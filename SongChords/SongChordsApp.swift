@@ -12,7 +12,7 @@ import SwiftData
 struct SongChordsApp: App {
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
-            Item.self,
+            Song.self, PlayList.self
         ])
         let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
 
@@ -24,9 +24,16 @@ struct SongChordsApp: App {
     }()
 
     var body: some Scene {
+        #if os(macOS)
+        Window ("SongChords", id: "main") {
+            ContentView()
+        }
+        .modelContainer(sharedModelContainer)
+        #else
         WindowGroup {
             ContentView()
         }
         .modelContainer(sharedModelContainer)
+        #endif
     }
 }

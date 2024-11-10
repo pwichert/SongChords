@@ -1,0 +1,99 @@
+//
+//  SongEditView.swift
+//  SongChords
+//
+//  Created by Peter Wichert on 10.11.24.
+//
+
+import SwiftUI
+
+struct SongEditView: View {
+    let playlist: PlayList
+    let song: Song?
+    
+    @Environment(\.modelContext) private var modelContext
+    @Environment(\.dismiss) private var dismiss
+
+    @State private var title: String = ""
+    @State private var srcText: String = ""
+    @State private var transpose: Double = 0
+    
+    var body: some View {
+        Form {
+            TextField("Title", text: $title)
+            
+            HStack {
+                #if os(iOS)
+                Text("Transpose [\(Int(transpose))]")
+                Spacer()
+                #endif
+                Slider(
+                    value: $transpose,
+                    in: -11...11,
+                    step: 1,
+                    minimumValueLabel:
+                        Text("-"),
+                    maximumValueLabel:
+                        Text("+")
+                ) {
+                    Text("Transpose [\(Int(transpose))]")
+                }
+            }
+            
+            VStack {
+                Text("ChordPro Text").foregroundStyle(Color(.lightGray))
+                TextEditor(text: $srcText)
+                    .monospaced()
+                    #if os(iOS)
+                    .frame(minHeight: 400)
+                    #else
+                    .frame(minWidth: 500, minHeight: 400)
+                    #endif
+                    .border(Color(.lightGray))
+            }.padding(.top, 20)
+            #if os(iOS)
+            .textInputAutocapitalization(.never)
+            #endif
+            .autocorrectionDisabled(true)
+        }
+        #if os(macOS)
+        .padding()
+        #endif
+        .navigationTitle("\(song == nil ? "new" : "edit") song")
+        .toolbar {
+            ToolbarItem(placement: .confirmationAction) {
+                Button("Save") {
+                    if let song {
+                        if song.title != title { song.title = title }
+                        if song.srcText != srcText {
+                            song.srcText = srcText
+                        }
+                        if song.transpose != Int(transpose) {
+                            song.transpose = Int(transpose)
+                        }
+                    } else {
+                        let song = Song(title: title)
+                        modelContext.insert(song)
+                        song.srcText = srcText
+                        song.transpose = Int(transpose)
+                        song.toPlaylist(playlist: playlist)
+                    }
+                    
+                    dismiss()
+                }
+            }
+            ToolbarItem(placement: .cancellationAction) {
+                Button("Cancel") {
+                    dismiss()
+                }
+            }
+        }
+        .onAppear {
+            if let song {
+                title = song.title
+                srcText = song.srcText
+                transpose = Double(song.transpose)
+            }
+        }
+    }
+}
