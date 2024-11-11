@@ -64,14 +64,16 @@ final class PlayList {
     }
 }
 
+class RepresentationHolder: ObservableObject {
+    @Published var songRepresentation: SongRepresentation = SongRepresentation(sections: [])
+}
+
 @Model
-final class Song: Codable {
+final public class Song: Codable {
     var seq: Int = 0
     var title: String = ""
     var srcText: String = ""
-    @Transient var songRepresentation: SongRepresentation?
     var musicItemId: String = ""
-    
     var showChords: Bool = true
     var showText: Bool = true
     var showHeader: Bool = true
@@ -79,6 +81,8 @@ final class Song: Codable {
     var duration: Double = 200
     
     var playlist: PlayList?
+    
+    @Transient private(set) var representationHolder = RepresentationHolder()
     
     init(title: String = "") {
         self.title = title
@@ -90,7 +94,43 @@ final class Song: Codable {
         toPlaylist(playlist: playlist)
     }
     
-//    func createRepresentationSync(viewModel: ViewModel) {
+    func processSongInBackground(viewModel: ViewModel) {        
+        // Eine vorherige Task abbrechen, falls eine existiert
+        viewModel.processingTask?.cancel()
+        
+        // Neue Hintergrund-Task starten
+        viewModel.processingTask = Task { [weak self] in
+            // Aufgabe im Hintergrund ausführen
+            guard let self = self else { return }
+            let result = await self.createSongRepresentation(viewModel: viewModel)
+            
+            // Ergebnis auf dem Main-Thread aktualisieren
+            await MainActor.run {
+                if let result = result {
+                    self.representationHolder.songRepresentation = result
+                }
+            }
+        }
+    }
+
+    private func createSongRepresentation(viewModel: ViewModel) async -> SongRepresentation? {
+        do {
+            print("songRepresentation")
+            
+            let tokens = try ChordProLexer(input: srcText).tokenize()
+            if Task.isCancelled { print("cancelled"); return nil }
+
+            let songRepresentation = try ChordProParser(viewModel: viewModel, song: self, tokens: tokens).parse()
+            if Task.isCancelled { print("cancelled"); return nil }
+
+            return songRepresentation
+        } catch {
+            print("\(error)")
+            return nil
+        }
+    }
+
+    //    func createRepresentationSync(viewModel: ViewModel) {
 //        let rep = SongRepresentation()
 //        rep.parseSync(viewModel: viewModel, song: self)
 //        songRepresentation = rep
@@ -117,23 +157,6 @@ final class Song: Codable {
         self.musicItemId = musicItemId
     }
 
-    func toSongRepresentation() {
-        do {
-            print("songRepresentation")
-            let tokens = try ChordProLexer(input: srcText).tokenize()
-            songRepresentation = try ChordProParser(tokens: tokens).parse()
-        } catch {
-            print("\(error)")
-        }
-    }
-    
-    func toString() -> String {
-        if songRepresentation == nil {
-            toSongRepresentation()
-        }
-        return songRepresentation?.toChordProString() ?? ""
-    }
-    
     func toPlaylist(playlist: PlayList, after: Song? = nil) {
         // aus alter Playlist entfernen
         if let myplaylist = self.playlist {

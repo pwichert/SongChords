@@ -5,14 +5,22 @@
 //  Created by Peter Wichert on 09.10.24.
 //
 
-import Foundation
+import SwiftUI
+
+#if os(macOS)
+    typealias UIFont = NSFont
+#endif
 
 enum ParserError: Error {
 //    case inputTooLarge
 }
 
-@Observable
-public class SongRepresentation {
+public class SongRepresentation: ObservableObject, Identifiable, Equatable {
+    public static func == (lhs: SongRepresentation, rhs: SongRepresentation) -> Bool {
+        return lhs.id == rhs.id
+    }
+    
+    public let id = UUID()
     let sections: [Section]
     
     init(sections: [Section]) {
@@ -27,13 +35,13 @@ public class SongRepresentation {
             for line in section.lines {
                 for element in line.elements {
                     switch element.type {
-                    case .chord(let chord, _):
+                    case .chord(let chord, _, _):
                         result += "[" + chord + "]"
-                    case.chordcomment(let comment):
+                    case.chordcomment(let comment, _):
                         result += comment
-                    case .text(let text):
+                    case .text(let text, _):
                         result += text
-                    case .comment(let text):
+                    case .comment(let text, _):
                         result += text
                     }
                 }
@@ -46,10 +54,23 @@ public class SongRepresentation {
     }
 }
 
-struct Section: Identifiable {
+class Section: Identifiable {
     let id = UUID()
     let name: String
     let lines: [Line]
+    var splittedLines: [SplittedLine] = []
+    
+    init(name: String, lines: [Line]) {
+        self.name = name
+        self.lines = lines
+    }
+}
+
+struct SplittedLine: Identifiable {
+    public let id = UUID()
+    
+    var chords: [TextElement] = []
+    var text: String?
 }
 
 struct Line: Identifiable {
@@ -60,26 +81,35 @@ struct Line: Identifiable {
     let lineIsNewPage: Bool
 }
 
+struct TextElement: Identifiable {
+    let id = UUID()
+    let txt: String
+    let fontOffset: Double
+}
+
 struct Element: Identifiable {
     let id = UUID()
     let type: ElementType
 }
 
 enum ElementType {    
-    case chord(String, ParsedChord)
-    case chordcomment(String)
-    case comment(String)
-    case text(String)
+    case chord(String, ParsedChord, Double)
+    case chordcomment(String, Double)
+    case comment(String, Double)
+    case text(String, Double)
 }
 
 public struct ChordProParser {
     private let tokens: [Token]
+    private let song: Song
+    private let viewModel: ViewModel
     private let directiveManager = DirectiveManager()
     
-    private let isGermanNotation: Bool = false
     
-    public init(tokens: [Token]) {
+    public init(viewModel: ViewModel, song: Song, tokens: [Token]) {
+        self.song = song
         self.tokens = tokens
+        self.viewModel = viewModel
     }
     
     // Hauptmethode, um den gesamten Song zu parsen
@@ -101,15 +131,20 @@ public struct ChordProParser {
         var lineIsNewPage: Bool = false
         
         var firstTime = true
-
+        
+        let txtf = viewModel.txtUIFont
+        let chordf = viewModel.chordUIFont
+        
         while position < tokens.count {
+            if Task.isCancelled { print("cancelled"); break }
+
             let token = tokens[position]
             
             switch token {
             case .curlyEnclosed(let directive):
                 numDirectives += 1
                 
-                if let d = directiveManager.addDirective(processReplace(directive)) {
+                if let d = directiveManager.addDirective(processReplace(viewModel: viewModel, song: song, srcline: directive)) {
                     switch d {
                     case .column_break: lineIsColumnBreak = true
                     case .new_page:     lineIsNewPage = true
@@ -120,40 +155,52 @@ public struct ChordProParser {
                         appendCurrentLineElements()
                         appendLastSection()
                         currentSectionName = val
-
+                        
                     case .end_of_verse, .end_of_bridge, .end_of_chorus:
                         // aktuelle Elemente noch in alte Section übernehmen
                         appendCurrentLineElements()
                         appendLastSection()
                         currentSectionName = ""
-
+                        
                     case .comment, .comment_box, .comment_italic:
                         let val = directiveManager.getDirective(d.rawValue) ?? ""
-                        currentLineElements.append(Element(type: .comment(val)))
+                        let strLen = sizeOfString(string: val, font: txtf)
+                        currentLineElements.append(Element(type: .comment(val, strLen)))
                         
                     default: break
                     }
                 } else {
-                    currentLineElements.append(Element(type: .text(processReplace(directive))))
+                    let str = processReplace(viewModel: viewModel, song: song, srcline: directive)
+                    let strLen = sizeOfString(string: str, font: txtf)
+                    currentLineElements.append(Element(type: .text(str, strLen)))
                 }
                 
             case .bracketEnclosed(let chord):
                 numChords += 1
                 if chord.starts(with: "*") {
-                    currentLineElements.append(Element(type: .chordcomment(processReplace(String(chord.dropFirst())))))
+                    let str = processReplace(viewModel: viewModel, song: song, srcline: String(chord.dropFirst()))
+                    let strLen = sizeOfString(string: str, font: txtf)
+                    currentLineElements.append(Element(type: .chordcomment(str, strLen)))
                 } else {
-                    if let pchord = parseChord(chord, convertGerman: isGermanNotation) {
-                        currentLineElements.append(Element(type: .chord(chord, pchord)))
+                    if let pchord = parseChord(chord, convertGerman: viewModel.isGermanNotation) {
+                        let strLen = sizeOfString(string: pchord.toString(transpose: song.transpose + directiveManager.transpose, convertGerman: viewModel.isGermanNotation), font: chordf)
+                        currentLineElements.append(Element(type: .chord(chord, pchord, strLen)))
                     } else {
-                        currentLineElements.append(Element(type: .chordcomment(processReplace(chord))))
+                        let str = processReplace(viewModel: viewModel, song: song, srcline: chord)
+                        let strLen = sizeOfString(string: str, font: txtf)
+                        currentLineElements.append(Element(type: .chordcomment(str, strLen)))
                     }
                 }
                 
             case .text(let text):
-                currentLineElements.append(Element(type: .text(processReplace(text))))
+                let str = processReplace(viewModel: viewModel, song: song, srcline: text)
+                let strLen = sizeOfString(string: str, font: txtf)
+                currentLineElements.append(Element(type: .text(str, strLen)))
                 
             case .comment(let text):
-                currentLineElements.append(Element(type: .comment(processReplace(text))))
+                let str = processReplace(viewModel: viewModel, song: song, srcline: text)
+                let strLen = sizeOfString(string: str, font: txtf)
+                currentLineElements.append(Element(type: .comment(str, strLen)))
                 
             case .newLine: break
                 
@@ -164,14 +211,14 @@ public struct ChordProParser {
                 // Zeileninhalt in den aktuellen Abschnitt einfügen.
                 if numChords == 1 && onlyWhitespaceOrChordComment(elements: currentLineElements) {
                     // Section-Name [abc], einzelner ChordComment in Zeile entdeckt:
-
+                    
                     // neuen Sectionnamen festlegen
                     var newSectionName = ""
                     if let elem = getFirstChordComment(elements: currentLineElements),
-                       case let .chordcomment(comment) = elem.type {
+                       case let .chordcomment(comment, _) = elem.type {
                         newSectionName = comment
                     }
-
+                    
                     // alte Section abschließen, aber aktuelle Zeile nicht mehr einfügen, da sie nur aus [Section] besteht
                     currentLineElements = []
                     appendLastSection()
@@ -180,19 +227,21 @@ public struct ChordProParser {
                     // Zeile einfügen, falls sie nicht nur aus Directiven (+ evtl. WhiteSpace) besteht
                     currentSectionLines.append(Line(elements: currentLineElements, lineIsColumnBreak: lineIsColumnBreak, lineIsNewPage: lineIsNewPage))
                 }
-
+                
                 currentLineElements = []
                 numDirectives = 0
                 numChords = 0
                 lineIsColumnBreak = false
                 lineIsNewPage = false
             }
-
+            
             position += 1
         }
         
         // Letzten Abschnitt (auch unnamed) hinzufügen
         appendLastSection()
+        
+        createSplittedLines()
         
         //print(directiveManager.listDirectives())
         return SongRepresentation(sections: sections)
@@ -215,19 +264,83 @@ public struct ChordProParser {
                 currentLineElements = []
             }
         }
-    }
         
+        func createSplittedLines() {
+            let chordPadding: Double = 3
+            
+            for section in sections {
+                for line in section.lines {
+                    if Task.isCancelled { print("cancelled"); return }
+
+                    var nextChordPosition: Double = 0
+                    var nextTextPosition: Double = 0
+                    var minNextChordPosition: Double = 0
+                    
+                    var spl = SplittedLine()
+
+                    for elem in line.elements {
+                        switch elem.type {
+                        case .chord(let chordtxt, let chord, let len):
+                            let position = max(nextChordPosition, minNextChordPosition)
+                            let tElem = TextElement(txt: chordtxt, fontOffset: position)
+
+                            spl.chords.append(tElem)
+                            
+                            nextChordPosition = position + len
+                            minNextChordPosition = nextChordPosition + chordPadding
+                            
+                        case .chordcomment(let comment, let len):
+                            break
+                            
+                        case .comment(let comment, let len):
+                            break
+                            
+                        case .text(let txt, let len):
+                            if spl.text == nil { spl.text = txt } else { spl.text?.append(txt)}
+                            
+                            // Chordabstand erzeugen, falls Whitespace
+                            if txt.trimmingCharacters(in: .whitespaces).count == 0 {
+                                nextChordPosition += sizeOfString(string: txt, font: chordf)
+                            }
+                            
+                            // Text direkt hintereinander setzen
+                            nextTextPosition += len
+                            
+                            nextChordPosition = max(nextTextPosition, nextChordPosition)
+                        }
+                    }
+
+                    section.splittedLines.append(spl)
+                }
+            }
+        }
+    }
+    
+    private func sizeOfStringPart(str: String, end: Int, font: UIFont) -> Double {
+        let iStart = str.startIndex
+        let i2 = str.index(iStart, offsetBy: end)
+        
+        let x = String(str[iStart..<i2])
+//        print("."+String(x)+".")
+        return sizeOfString(string: x, font: font)
+    }
+    
+    private func sizeOfString(string: String, font: UIFont) -> Double {
+        let fontAttributes = [NSAttributedString.Key.font: font]
+        return string.size(withAttributes: fontAttributes).width
+    }
+    
     private func onlyWhitespace(elements: [Element]) -> Bool {
         return elements.allSatisfy { element in
-            if case .text(let text) = element.type, text.trimmingCharacters(in: .whitespaces).isEmpty { return true }
+            if case .text(let text, _) = element.type, text.trimmingCharacters(in: .whitespaces).isEmpty { return true }
             return false
         }
     }
     
     private func onlyWhitespaceOrChordComment(elements: [Element]) -> Bool {
         return elements.allSatisfy { element in
-            if case .text(let text) = element.type, text.trimmingCharacters(in: .whitespaces).isEmpty { return true }
-            if case .chordcomment(_) = element.type { return true }
+            if case .text(let text, _) = element.type, text.trimmingCharacters(in: .whitespaces).isEmpty { return true }
+            if case .chordcomment(_, _) = element.type { return true }
             return false
         }
     }
@@ -351,7 +464,7 @@ public struct ChordProParser {
     }
     
     // Ersetzt Variablen durch ihren Wert: %{ variable }
-    private func processReplace(_ srcline: String) -> String {
+    private func processReplace(viewModel: ViewModel, song: Song, srcline: String) -> String {
         if srcline.isEmpty { return srcline }
         
         var src: String = srcline
@@ -377,7 +490,7 @@ public struct ChordProParser {
                             if let key = key {
                                 let chord = parseChord(key)
                                 if let chord = chord {
-                                    repl = chord.toString(transpose: directiveManager.transpose, convertGerman: isGermanNotation)
+                                    repl = chord.toString(transpose: directiveManager.transpose, convertGerman: viewModel.isGermanNotation)
                                 }
                             }
                             break

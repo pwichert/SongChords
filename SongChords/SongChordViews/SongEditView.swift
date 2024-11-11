@@ -13,6 +13,7 @@ struct SongEditView: View {
     
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
+    @Environment(ViewModel.self) private var viewModel
 
     @State private var title: String = ""
     @State private var srcText: String = ""
@@ -63,20 +64,28 @@ struct SongEditView: View {
         .toolbar {
             ToolbarItem(placement: .confirmationAction) {
                 Button("Save") {
+                    var changed: Bool = false
+                    
                     if let song {
                         if song.title != title { song.title = title }
                         if song.srcText != srcText {
                             song.srcText = srcText
+                            changed = true
                         }
                         if song.transpose != Int(transpose) {
                             song.transpose = Int(transpose)
+                            changed = true
                         }
+                        if changed { song.processSongInBackground(viewModel: viewModel) }
                     } else {
+                        changed = true
                         let song = Song(title: title)
                         modelContext.insert(song)
                         song.srcText = srcText
                         song.transpose = Int(transpose)
                         song.toPlaylist(playlist: playlist)
+
+                        song.processSongInBackground(viewModel: viewModel)
                     }
                     
                     dismiss()
