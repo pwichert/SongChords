@@ -9,18 +9,21 @@ import SwiftUI
 
 struct ContentView: View {
     @State private var visibility: NavigationSplitViewVisibility = .all
-        
-        var body: some View {
-            NavigationSplitView(columnVisibility: $visibility) {
+    @Environment(ViewModel.self) private var viewModel
 
-                PlayListView()
-
-            } content: {
-                ContentUnavailableView("Select an element from the sidebar", systemImage: "doc.text.image.fill")
-            } detail: {
-                ContentUnavailableView("Select an element from the list", systemImage: "doc.text.image.fill")
-            }
+    var body: some View {
+        NavigationSplitView(columnVisibility: $visibility) {
+            
+            PlayListView()
+            
+        } content: {
+            ContentUnavailableView("Select an element from the sidebar", systemImage: "doc.text.image.fill")
+        } detail: {
+            ContentUnavailableView("Select an element from the list", systemImage: "doc.text.image.fill")
         }
+        .navigationSplitViewStyle(.balanced)
+        .preferredColorScheme(viewModel.displayMode == .dark ? .dark : (viewModel.displayMode == .light ? .light : nil))
+    }
 }
 
 struct CategoryView: View {

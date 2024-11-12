@@ -15,12 +15,9 @@ enum ParserError: Error {
 //    case inputTooLarge
 }
 
-public class SongRepresentation: ObservableObject, Identifiable, Equatable {
-    public static func == (lhs: SongRepresentation, rhs: SongRepresentation) -> Bool {
-        return lhs.id == rhs.id
-    }
-    
+public class SongRepresentation: Identifiable {
     public let id = UUID()
+    
     let sections: [Section]
     
     init(sections: [Section]) {
@@ -37,7 +34,7 @@ public class SongRepresentation: ObservableObject, Identifiable, Equatable {
                     switch element.type {
                     case .chord(let chord, _, _):
                         result += "[" + chord + "]"
-                    case.chordcomment(let comment, _):
+                    case.chordcomment(let comment, _, _):
                         result += comment
                     case .text(let text, _):
                         result += text
@@ -56,6 +53,7 @@ public class SongRepresentation: ObservableObject, Identifiable, Equatable {
 
 class Section: Identifiable {
     let id = UUID()
+    
     let name: String
     let lines: [Line]
     var splittedLines: [SplittedLine] = []
@@ -70,31 +68,34 @@ struct SplittedLine: Identifiable {
     public let id = UUID()
     
     var chords: [TextElement] = []
-    var text: String?
+    var texts: [TextElement] = []
 }
 
 struct Line: Identifiable {
     let id = UUID()
+    
     let elements: [Element]
-
     let lineIsColumnBreak: Bool
     let lineIsNewPage: Bool
 }
 
 struct TextElement: Identifiable {
     let id = UUID()
+    
     let txt: String
     let fontOffset: Double
+    let background: Bool
 }
 
 struct Element: Identifiable {
     let id = UUID()
+    
     let type: ElementType
 }
 
 enum ElementType {    
     case chord(String, ParsedChord, Double)
-    case chordcomment(String, Double)
+    case chordcomment(String, Double, Bool)
     case comment(String, Double)
     case text(String, Double)
 }
@@ -135,6 +136,10 @@ public struct ChordProParser {
         let txtf = viewModel.txtUIFont
         let chordf = viewModel.chordUIFont
         
+        // feste Optionen
+        let showText: Bool = true
+        let textFollowsChords = true
+
         while position < tokens.count {
             if Task.isCancelled { print("cancelled"); break }
 
@@ -179,16 +184,17 @@ public struct ChordProParser {
                 numChords += 1
                 if chord.starts(with: "*") {
                     let str = processReplace(viewModel: viewModel, song: song, srcline: String(chord.dropFirst()))
-                    let strLen = sizeOfString(string: str, font: txtf)
-                    currentLineElements.append(Element(type: .chordcomment(str, strLen)))
+                    let strLen = sizeOfString(string: str, font: chordf)
+                    currentLineElements.append(Element(type: .chordcomment(str, strLen, true)))  // "*" merken
                 } else {
                     if let pchord = parseChord(chord, convertGerman: viewModel.isGermanNotation) {
-                        let strLen = sizeOfString(string: pchord.toString(transpose: song.transpose + directiveManager.transpose, convertGerman: viewModel.isGermanNotation), font: chordf)
-                        currentLineElements.append(Element(type: .chord(chord, pchord, strLen)))
+                        let str = pchord.toString(transpose: song.transpose + directiveManager.transpose, convertGerman: viewModel.isGermanNotation)
+                        let strLen = sizeOfString(string: str, font: chordf)
+                        currentLineElements.append(Element(type: .chord(str, pchord, strLen)))
                     } else {
                         let str = processReplace(viewModel: viewModel, song: song, srcline: chord)
-                        let strLen = sizeOfString(string: str, font: txtf)
-                        currentLineElements.append(Element(type: .chordcomment(str, strLen)))
+                        let strLen = sizeOfString(string: str, font: chordf)
+                        currentLineElements.append(Element(type: .chordcomment(str, strLen, false)))
                     }
                 }
                 
@@ -210,12 +216,12 @@ public struct ChordProParser {
             if .newLine == token || position == tokens.endIndex - 1 {
                 // Zeileninhalt in den aktuellen Abschnitt einfügen.
                 if numChords == 1 && onlyWhitespaceOrChordComment(elements: currentLineElements) {
-                    // Section-Name [abc], einzelner ChordComment in Zeile entdeckt:
+                    // Section-Name [abc], einzelner ChordComment (ohne "*") in Zeile entdeckt:
                     
                     // neuen Sectionnamen festlegen
                     var newSectionName = ""
                     if let elem = getFirstChordComment(elements: currentLineElements),
-                       case let .chordcomment(comment, _) = elem.type {
+                       case let .chordcomment(comment, _, _) = elem.type {
                         newSectionName = comment
                     }
                     
@@ -280,24 +286,42 @@ public struct ChordProParser {
 
                     for elem in line.elements {
                         switch elem.type {
-                        case .chord(let chordtxt, let chord, let len):
+                        case .chord(let chordtxt, _, let len):
                             let position = max(nextChordPosition, minNextChordPosition)
-                            let tElem = TextElement(txt: chordtxt, fontOffset: position)
-
+                            let tElem = TextElement(txt: chordtxt, fontOffset: position, background: true)
                             spl.chords.append(tElem)
+                            
+                            // wenn Chords angezeigt werden, soll sich der Text danach richten
+                            if song.showChords {
+                                // textFollowsChords == true: Text genau an Chord-Position, wird danach aber evtl. auseinander gezogen
+                                // sym !== symLine.symbols.first && txt.isEmpty: Text nur beim ersten Mal genau an Chord-Position, wird danach aber nicht mehr auseinander gezogen (z.B.: [Bb][B][Am]c[A]d[A]e[A][Bb][B][Am]c[A]d[A]e[A])
+                                if textFollowsChords || (spl.chords.count == 1 && spl.texts.isEmpty) {
+                                    nextTextPosition = position
+                                }
+                            }
                             
                             nextChordPosition = position + len
                             minNextChordPosition = nextChordPosition + chordPadding
                             
-                        case .chordcomment(let comment, let len):
-                            break
+                        case .chordcomment(let comment, let len, _):
+                            let position = nextChordPosition
+                            let tElem = TextElement(txt: comment, fontOffset: position, background: false)
+                            spl.chords.append(tElem)
+
+                            if song.showChords {
+                                // siehe oben
+                                if textFollowsChords || (spl.chords.count == 1 && spl.texts.isEmpty) {
+                                    nextTextPosition = position
+                                }
+                            }
+
+                            nextChordPosition = position + len
+                            minNextChordPosition = nextChordPosition
                             
-                        case .comment(let comment, let len):
-                            break
-                            
-                        case .text(let txt, let len):
-                            if spl.text == nil { spl.text = txt } else { spl.text?.append(txt)}
-                            
+                        case .text(let txt, let len), .comment(let txt, let len):
+                            let tElem = TextElement(txt: txt, fontOffset: nextTextPosition, background: false)
+                            spl.texts.append(tElem)
+
                             // Chordabstand erzeugen, falls Whitespace
                             if txt.trimmingCharacters(in: .whitespaces).count == 0 {
                                 nextChordPosition += sizeOfString(string: txt, font: chordf)
@@ -306,10 +330,26 @@ public struct ChordProParser {
                             // Text direkt hintereinander setzen
                             nextTextPosition += len
                             
-                            nextChordPosition = max(nextTextPosition, nextChordPosition)
+                            // wenn Text angezeigt wird, sollen sich die Chords danach richten
+                            if (showText) {
+                                nextChordPosition = max(nextTextPosition, nextChordPosition)
+                            }
                         }
                     }
 
+                    // Falls Chords da sind und Text nur aus whitespaces besteht, dann wurde der Text nur aus den Chordzwischenräumen erzeugt: [Am]  [Am]  [Am]
+                    if !spl.chords.isEmpty && !spl.texts.isEmpty {
+                        var isWhitespace = true
+                        for t in spl.texts {
+                            if t.txt.trimmingCharacters(in: .whitespaces).count > 0 {
+                                isWhitespace = false
+                            }
+                        }
+                        
+                        // Und dann muss er weg
+                        if isWhitespace { spl.texts = [] }
+                    }
+                    
                     section.splittedLines.append(spl)
                 }
             }
@@ -340,7 +380,7 @@ public struct ChordProParser {
     private func onlyWhitespaceOrChordComment(elements: [Element]) -> Bool {
         return elements.allSatisfy { element in
             if case .text(let text, _) = element.type, text.trimmingCharacters(in: .whitespaces).isEmpty { return true }
-            if case .chordcomment(_, _) = element.type { return true }
+            if case .chordcomment(_, _, let hasStar) = element.type, hasStar == false { return true }    // ohne "*"
             return false
         }
     }

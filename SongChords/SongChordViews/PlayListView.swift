@@ -14,6 +14,8 @@ struct PlayListView: View {
     @State private var showDeleteAlert: Bool = false
     @State private var selectedPlaylist: PlayList?
     
+    @State private var showOptionsView: Bool = false
+    
     @Query(sort: \PlayList.seq, order: .forward) private var playlists: [PlayList]
     
     var body: some View {
@@ -40,9 +42,24 @@ struct PlayListView: View {
         }
         .navigationTitle("Playlists")
         .toolbar {
-            ToolbarItem {
+            ToolbarItemGroup {
                 Button(action: { showPlaylistNewView.toggle() }, label: { Image(systemName: "plus") })
+            
+                // Menü-Button
+                Menu {
+                    Button(action: { showOptionsView.toggle() }) {
+                        Label("Options", systemImage: "gear.circle")
+                    }
+                    
+//                    Button(action: {}) {
+//                        Label("Printing", systemImage: "printer")
+//                    }
+                } label: {
+                    Label("Optionen", systemImage: "ellipsis.circle")
+                }
+                .menuStyle(BorderlessButtonMenuStyle())  // Optional: Menü-Stil für macOS
             }
+            
             #if os(iOS)
             ToolbarItem(placement: .primaryAction) {
                 EditButton()
@@ -58,6 +75,12 @@ struct PlayListView: View {
         .sheet(isPresented: $showPlaylistNewView) {
             NavigationStack {
                 PlaylistEditView(playlist: nil)
+            }
+            .interactiveDismissDisabled()
+        }
+        .sheet(isPresented: $showOptionsView) {
+            NavigationStack {
+                OptionsView()
             }
             .interactiveDismissDisabled()
         }
