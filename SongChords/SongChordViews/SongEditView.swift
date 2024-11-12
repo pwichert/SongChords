@@ -60,7 +60,7 @@ struct SongEditView: View {
         #if os(macOS)
         .padding()
         #endif
-        .navigationTitle("\(song == nil ? "new" : "edit") song")
+        .navigationTitle((song == nil ? "" :  song?.title) ?? "")
         .toolbar {
             ToolbarItem(placement: .confirmationAction) {
                 Button("Save") {

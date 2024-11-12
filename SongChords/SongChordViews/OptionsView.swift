@@ -84,7 +84,7 @@ struct OptionsView: View {
         #if os(macOS)
         .padding()
         #endif
-        .navigationTitle(viewModel.getVersion())
+        .navigationTitle("Options")
         .toolbar {
             ToolbarItem(placement: .confirmationAction) {
                 Button("Save") {
@@ -109,6 +109,28 @@ struct OptionsView: View {
             headerSize = viewModel.headersize
             isGermanNotation = viewModel.isGermanNotation
             displayMode = viewModel.displayMode
+        }
+    }
+}
+
+
+struct InfoView: View {
+    @Environment(ViewModel.self) private var viewModel
+    @Environment(\.dismiss) private var dismiss
+    
+    var body: some View {
+        Form {
+            VStack {
+                Text(viewModel.getVersion())
+            }.padding()
+        }
+        .navigationTitle("Info")
+        .toolbar {
+            ToolbarItem(placement: .confirmationAction) {
+                Button("Ok") {
+                    dismiss()
+                }
+            }
         }
     }
 }

@@ -9,7 +9,7 @@ import SwiftUI
 
 struct SongView: View {
     var song: Song
-        
+
     @State private var contentSize: CGSize = .zero
     @State private var showSongEditView: Bool = false
     
@@ -82,6 +82,10 @@ struct DetailContent: View {
         }
         .onChange(of: viewModel.headersize, initial: false) {
             print("headersize changed")
+            song.processSongInBackground(viewModel: viewModel)
+        }
+        .onChange(of: viewModel.isGermanNotation, initial: false) {
+            print("isGermanNotation changed")
             song.processSongInBackground(viewModel: viewModel)
         }
     }

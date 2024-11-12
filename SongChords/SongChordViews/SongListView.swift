@@ -11,6 +11,7 @@ struct SongListView: View {
     var playlist: PlayList  // Übergebene Playlist
 
     @Environment(\.modelContext) private var modelContext
+    @Environment(ViewModel.self) private var viewModel
 
     @State private var showSongEditView: Bool = false
     @State private var deleteIndexset: IndexSet?
@@ -19,7 +20,7 @@ struct SongListView: View {
     var body: some View {
         List {
             ForEach((playlist.songs?.sorted(by: { $0.seq < $1.seq }))!) { song in
-                NavigationLink(song.title, destination: SongView(song: song))
+                NavigationLink(song.title, destination: SongView(song: song).environment(viewModel))
                     .contextMenu {
                         Button("delete", role: .destructive) {
                             let indexOfSong = (playlist.songs ?? []).sorted(by: { $0.seq < $1.seq }).firstIndex { $0 === song }

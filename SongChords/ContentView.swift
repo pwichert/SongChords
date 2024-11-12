@@ -14,35 +14,14 @@ struct ContentView: View {
     var body: some View {
         NavigationSplitView(columnVisibility: $visibility) {
             
-            PlayListView()
+            PlayListView().environment(viewModel)
             
         } content: {
-            ContentUnavailableView("Select an element from the sidebar", systemImage: "doc.text.image.fill")
+            ContentUnavailableView("Select a playlist", systemImage: "doc.text.image.fill")
         } detail: {
-            ContentUnavailableView("Select an element from the list", systemImage: "doc.text.image.fill")
+            ContentUnavailableView("Select a song", systemImage: "doc.text.image.fill")
         }
-        .navigationSplitViewStyle(.balanced)
+        .navigationSplitViewStyle(.automatic)
         .preferredColorScheme(viewModel.displayMode == .dark ? .dark : (viewModel.displayMode == .light ? .light : nil))
-    }
-}
-
-struct CategoryView: View {
-    let category: String
-
-    var body: some View {
-        List {
-            NavigationLink("\\(category) Item 1", destination: DetailView(item: "\\(category) Item 1"))
-            NavigationLink("\\(category) Item 2", destination: DetailView(item: "\\(category) Item 2"))
-        }
-        .navigationTitle("Content")
-    }
-}
-
-struct DetailView: View {
-    let item: String
-
-    var body: some View {
-        Text("Details for \\(item)")
-            .navigationTitle("Detail")
     }
 }

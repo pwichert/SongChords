@@ -10,18 +10,21 @@ import SwiftData
 
 struct PlayListView: View {
     @Environment(\.modelContext) private var modelContext
+    @Environment(ViewModel.self) private var viewModel
+
     @State private var showPlaylistNewView: Bool = false
     @State private var showDeleteAlert: Bool = false
     @State private var selectedPlaylist: PlayList?
     
     @State private var showOptionsView: Bool = false
+    @State private var showInfoView: Bool = false
     
     @Query(sort: \PlayList.seq, order: .forward) private var playlists: [PlayList]
     
     var body: some View {
         List {
             ForEach(playlists) { playlist in
-                NavigationLink(playlist.title, destination: SongListView(playlist: playlist))
+                NavigationLink(playlist.title, destination: SongListView(playlist: playlist).environment(viewModel))
                     .contextMenu {
                         Button("rename") {
                             selectedPlaylist = playlist
@@ -54,6 +57,9 @@ struct PlayListView: View {
 //                    Button(action: {}) {
 //                        Label("Printing", systemImage: "printer")
 //                    }
+                    Button(action: { showInfoView.toggle() }) {
+                        Label("Info", systemImage: "gear.circle")
+                    }
                 } label: {
                     Label("Optionen", systemImage: "ellipsis.circle")
                 }
@@ -81,6 +87,12 @@ struct PlayListView: View {
         .sheet(isPresented: $showOptionsView) {
             NavigationStack {
                 OptionsView()
+            }
+            .interactiveDismissDisabled()
+        }
+        .sheet(isPresented: $showInfoView) {
+            NavigationStack {
+                InfoView()
             }
             .interactiveDismissDisabled()
         }
