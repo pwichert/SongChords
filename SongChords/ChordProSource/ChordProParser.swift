@@ -106,7 +106,6 @@ public struct ChordProParser {
     private let viewModel: ViewModel
     private let directiveManager = DirectiveManager()
     
-    
     public init(viewModel: ViewModel, song: Song, tokens: [Token]) {
         self.song = song
         self.tokens = tokens
