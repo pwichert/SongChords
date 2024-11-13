@@ -16,14 +16,12 @@ struct SongView: View {
     var body: some View {
         GeometryReader { viewSize in    // Größe des umgebenden Containers
             ScrollView([.horizontal, .vertical]) {
-                DetailContent(song: song, representationHolder: song.representationHolder)
-                    .onGeometryChange(for: CGSize.self) { proxy in
-                        proxy.size
-                    } action: {
-                        contentSize = $0    // Größe von DetailContent
-                    }
-                    .frame(minWidth: max(viewSize.size.width, contentSize.width),
-                           minHeight: max(viewSize.size.height, contentSize.height), alignment: .topLeading)
+                ZStack(alignment: .topLeading) {
+                    DetailContent(song: song, representationHolder: song.representationHolder)
+
+                    Color.clear.frame(width: 1, height: viewSize.size.height, alignment: .center)
+                    Color.clear.frame(width: viewSize.size.width, height: 1, alignment: .center)
+                }
             }
         }
         .toolbar {
@@ -39,6 +37,39 @@ struct SongView: View {
         }
     }
 }
+
+//struct SongView_: View {
+//    var song: Song
+//
+//    @State private var contentSize: CGSize = .zero
+//    @State private var showSongEditView: Bool = false
+//    
+//    var body: some View {
+//        GeometryReader { viewSize in    // Größe des umgebenden Containers
+//            ScrollView([.horizontal, .vertical]) {
+//                DetailContent(song: song, representationHolder: song.representationHolder)
+//                    .onGeometryChange(for: CGSize.self) { proxy in
+//                        proxy.size
+//                    } action: {
+//                        contentSize = $0    // Größe von DetailContent
+//                    }
+//                    .frame(minWidth: max(viewSize.size.width, contentSize.width),
+//                           minHeight: max(viewSize.size.height, contentSize.height), alignment: .topLeading)
+//            }
+//        }
+//        .toolbar {
+//            ToolbarItem {
+//                Button(action: { showSongEditView.toggle() }, label: { Image(systemName: "pencil") })
+//            }
+//        }
+//        .sheet(isPresented: $showSongEditView) {
+//            NavigationStack {
+//                SongEditView(playlist: song.playlist!, song: song)
+//            }
+//            .interactiveDismissDisabled()
+//        }
+//    }
+//}
 
 struct DetailContent: View {
     var song: Song

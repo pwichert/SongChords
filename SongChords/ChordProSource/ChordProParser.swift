@@ -137,7 +137,7 @@ public struct ChordProParser {
         
         // feste Optionen
         let showText: Bool = true
-        let textFollowsChords = true
+        let textFollowsChords = false
 
         while position < tokens.count {
             if Task.isCancelled { print("cancelled"); break }
