@@ -76,7 +76,7 @@ struct SongEditView: View {
                             song.transpose = Int(transpose)
                             changed = true
                         }
-                        if changed { song.processSongInBackground(viewModel: viewModel) }
+                        if changed { song.processSongInBackground(viewModel: viewModel, forPrinting: false) }
                     } else {
                         changed = true
                         let song = Song(title: title)
@@ -85,7 +85,7 @@ struct SongEditView: View {
                         song.transpose = Int(transpose)
                         song.toPlaylist(playlist: playlist)
 
-                        song.processSongInBackground(viewModel: viewModel)
+                        song.processSongInBackground(viewModel: viewModel, forPrinting: false)
                     }
                     
                     dismiss()

@@ -58,12 +58,11 @@ struct PlayListView: View {
                         Label("PDF Options", systemImage: "printer")
                     }
                     Button(action: { showInfoView.toggle() }) {
-                        Label("Info", systemImage: "gear.circle")
+                        Label("Info", systemImage: "info.circle")
                     }
                 } label: {
                     Label("Options", systemImage: "ellipsis.circle")
                 }
-                .menuStyle(BorderlessButtonMenuStyle())  // Optional: Menü-Stil für macOS
             }
             
             #if os(iOS)

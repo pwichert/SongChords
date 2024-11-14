@@ -68,7 +68,7 @@ class PrintSongDelegate: NSObject, PrintDelegateBase, UIPrintInteractionControll
         #else
         
         do {
-            let songRepresentation = song.createSongRepresentation(viewModel: viewModel)!
+            let songRepresentation = song.createSongRepresentation(viewModel: viewModel, forPrinting: true)!
             let mgr = songRepresentation.directiveManager
             let cols = mgr.columns
 
@@ -117,7 +117,7 @@ class PrintSongDelegate: NSObject, PrintDelegateBase, UIPrintInteractionControll
                         gen.draw(col: line.col, view: Text(" ").font(Font(viewModel.txtPDFUIFont)))
                     } else {
                         gen.draw(col: line.col, view: ChordsLineView(line: line).font(Font(viewModel.chordPDFUIFont)))
-                        gen.draw(col: line.col, view:TextsLineView(line: line).font(Font(viewModel.txtPDFUIFont)))
+                        gen.draw(col: line.col, view: TextsLineView(line: line).font(Font(viewModel.txtPDFUIFont)))
                     }
                 }
                 

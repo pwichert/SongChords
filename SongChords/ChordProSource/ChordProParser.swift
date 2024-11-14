@@ -110,12 +110,14 @@ public class ChordProParser: ChordsProBase {
     private let songTranspose: Int
     private let tokens: [Token]
     private let viewModel: ViewModel
+    private let forPrinting: Bool
     private let directiveManager = DirectiveManager()
     
-    public init(viewModel: ViewModel, songTranspose: Int, tokens: [Token]) {
+    public init(viewModel: ViewModel, songTranspose: Int, tokens: [Token], forPrinting: Bool) {
         self.songTranspose = songTranspose
         self.tokens = tokens
         self.viewModel = viewModel
+        self.forPrinting = forPrinting
     }
     
     // Hauptmethode, um den gesamten Song zu parsen
@@ -138,8 +140,8 @@ public class ChordProParser: ChordsProBase {
         
         var firstTime = true
         
-        let txtf = viewModel.txtUIFont
-        let chordf = viewModel.chordUIFont
+        let txtf = forPrinting ? viewModel.txtPDFUIFont : viewModel.txtUIFont
+        let chordf = forPrinting ? viewModel.chordPDFUIFont : viewModel.chordUIFont
         
         // feste Optionen
         let showText: Bool = true

@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import UniformTypeIdentifiers
 
 struct SongView: View {
     var song: Song
@@ -17,6 +18,7 @@ struct SongView: View {
     @State private var pdfUrl: URL?
     @State private var showFileExport: Bool = false
     @State private var showPDFExport: Bool = false
+    @State private var uttype: UTType = .plainText
     
     var body: some View {
         GeometryReader { viewSize in    // Größe des umgebenden Containers
@@ -40,12 +42,12 @@ struct SongView: View {
             ToolbarItem {
                 Button("toggle PDF", systemImage: pdfUrl == nil ? "text.viewfinder" : "text.alignleft", action: { if pdfUrl == nil { showPdf() } else { pdfUrl = nil } }).help("toggle PDF")
             }
-//            ToolbarItem {
-//                Button("Export ChordPro file", systemImage: "square.and.arrow.up", action: { showFileExport.toggle() }).help("Export ChordPro file")
-//            }
-//            ToolbarItem {
-//                Button("Export PDF file", systemImage: "arrow.up.document", action: { showPDFExport.toggle() }).help("Export PDF file")
-//            }
+            ToolbarItem {
+                Button("Export ChordPro file", systemImage: "square.and.arrow.up", action: { uttype = .plainText; showPDFExport.toggle() }).help("Export ChordPro file")
+            }
+            ToolbarItem {
+                Button("Export PDF file", systemImage: "arrow.up.document", action: { uttype = .pdf; showPDFExport.toggle() }).help("Export PDF file")
+            }
         }
         .sheet(isPresented: $showSongEditView) {
             NavigationStack {
@@ -59,14 +61,14 @@ struct SongView: View {
                 pdfUrl = nil
             }
         }
-//        .fileExporter(isPresented: $showFileExport, item: song, contentTypes: [.plainText], defaultFilename: song.title, onCompletion: { result in
-//            switch result {
-//            case .success(let url):
-//                print(".fileExporter: URL: " + url.absoluteString)
-//            case .failure(let error):
-//                print(".fileExporter: " + error.localizedDescription)
-//            }
-//        })
+        .fileExporter(isPresented: $showPDFExport, item: song, contentTypes: [uttype], defaultFilename: song.title) { result in
+            switch result {
+            case .success(let url):
+                print("Gespeichert: \(url)")
+            case .failure(let error):
+                print("Fehler: \(error.localizedDescription)")
+            }
+        }
     }
     
     private func showPdf() {
@@ -112,23 +114,23 @@ struct DetailContent: View {
         }.padding()
         .onChange(of: song, initial: true) {
             print("song changed")
-            song.processSongInBackground(viewModel: viewModel)
+            song.processSongInBackground(viewModel: viewModel, forPrinting: false)
         }
         .onChange(of: viewModel.chordsize, initial: false) {
             print("chordsize changed")
-            song.processSongInBackground(viewModel: viewModel)
+            song.processSongInBackground(viewModel: viewModel, forPrinting: false)
         }
         .onChange(of: viewModel.txtsize, initial: false) {
             print("txtsize changed")
-            song.processSongInBackground(viewModel: viewModel)
+            song.processSongInBackground(viewModel: viewModel, forPrinting: false)
         }
         .onChange(of: viewModel.headersize, initial: false) {
             print("headersize changed")
-            song.processSongInBackground(viewModel: viewModel)
+            song.processSongInBackground(viewModel: viewModel, forPrinting: false)
         }
         .onChange(of: viewModel.isGermanNotation, initial: false) {
             print("isGermanNotation changed")
-            song.processSongInBackground(viewModel: viewModel)
+            song.processSongInBackground(viewModel: viewModel, forPrinting: false)
         }
     }
 }

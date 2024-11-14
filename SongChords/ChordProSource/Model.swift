@@ -91,11 +91,11 @@ final public class Song: Codable {
     
     init(title: String = "", playlist: PlayList) {
         self.title = title
-//        self.seq = playlist.nextSongSeq()
+        //        self.seq = playlist.nextSongSeq()
         toPlaylist(playlist: playlist)
     }
     
-    func processSongInBackground(viewModel: ViewModel) {        
+    func processSongInBackground(viewModel: ViewModel, forPrinting: Bool) {
         // Eine vorherige Task abbrechen, falls eine existiert
         viewModel.processingTask?.cancel()
         
@@ -103,7 +103,7 @@ final public class Song: Codable {
         viewModel.processingTask = Task { [weak self] in
             // Aufgabe im Hintergrund ausführen
             guard let self = self else { return }
-            let result = self.createSongRepresentation(viewModel: viewModel)
+            let result = self.createSongRepresentation(viewModel: viewModel, forPrinting: forPrinting)
             
             // Ergebnis auf dem Main-Thread aktualisieren
             await MainActor.run {
@@ -113,35 +113,23 @@ final public class Song: Codable {
             }
         }
     }
-
-    func createSongRepresentation(viewModel: ViewModel) -> SongRepresentation? {
+    
+    func createSongRepresentation(viewModel: ViewModel, forPrinting: Bool) -> SongRepresentation? {
         do {
             print("songRepresentation")
             
             let tokens = try ChordProLexer(input: srcText).tokenize()
             if Task.isCancelled { print("cancelled"); return nil }
-
-            let songRepresentation = try ChordProParser(viewModel: viewModel, songTranspose: transpose, tokens: tokens).parse()
+            
+            let songRepresentation = try ChordProParser(viewModel: viewModel, songTranspose: transpose, tokens: tokens, forPrinting: forPrinting).parse()
             if Task.isCancelled { print("cancelled"); return nil }
-
+            
             return songRepresentation
         } catch {
             print("\(error)")
             return nil
         }
     }
-
-    //    func createRepresentationSync(viewModel: ViewModel) {
-//        let rep = SongRepresentation()
-//        rep.parseSync(viewModel: viewModel, song: self)
-//        songRepresentation = rep
-//    }
-//    
-//    func createRepresentationAsync(viewModel: ViewModel) async {
-//        let rep = SongRepresentation()
-//        await rep.parseAsync(viewModel: viewModel, song: self)
-//        songRepresentation = rep
-//    }
     
     func updateFromSong(other: Song) {
         updateFrom(title: other.title, srcText: other.srcText, transpose: other.transpose, showChords: other.showChords, showText: other.showText, showHeader: other.showHeader, duration: other.duration, musicItemId: other.musicItemId)
@@ -157,7 +145,7 @@ final public class Song: Codable {
         self.duration = duration
         self.musicItemId = musicItemId
     }
-
+    
     func toPlaylist(playlist: PlayList, after: Song? = nil) {
         if (playlist.songs ?? []).contains(self) { return }
         
@@ -195,7 +183,7 @@ final public class Song: Codable {
 //        let decoder = JSONDecoder()
 //        return try decoder.decode(Song.self, from: songData)
 //    }
-//   
+    
     static func songFromText(url: URL) throws -> Song {
         let songData = try Data(contentsOf: url)
         let fileName = url.deletingPathExtension().lastPathComponent
@@ -204,37 +192,35 @@ final public class Song: Codable {
         song.srcText = src
         return song
     }
-//    
-//    func songToData() -> Data {
-//        let chordProString = srcText.joined(separator: "\n")
-//        return chordProString.data(using: .utf8)!
-//    }
-//    
-//    static func findObject(modelContext: ModelContext, song: Song) -> Song? {
-//        do {
-//            let id = song.persistentModelID
-//            let pred = #Predicate<Song> { object in
-//                object.persistentModelID == id
-//            }
-//            
-//            var desc = FetchDescriptor(predicate: pred)
-//            desc.fetchLimit = 1
-//            
-//            let res = try modelContext.fetch(desc)
-//            return res.first
-//        } catch {
-//            return nil
-//        }
-//    }
+    
+    func songToData() -> Data {
+        return srcText.data(using: .utf8)!
+    }
+    
+    static func findObject(modelContext: ModelContext, song: Song) -> Song? {
+        do {
+            let id = song.persistentModelID
+            let pred = #Predicate<Song> { object in
+                object.persistentModelID == id
+            }
+            
+            var desc = FetchDescriptor(predicate: pred)
+            desc.fetchLimit = 1
+            
+            let res = try modelContext.fetch(desc)
+            return res.first
+        } catch {
+            return nil
+        }
+    }
     
     static func countSongs(modelContext: ModelContext) -> Int {
         let desc = FetchDescriptor<Song>()
         let res = (try? modelContext.fetchCount(desc)) ?? 0
         return res
     }
-
+    
     enum CodingKeys: CodingKey {
-//        case uuid
         case seq
         case title
         case srctext
@@ -245,10 +231,9 @@ final public class Song: Codable {
         case duration
         case musicitemid
     }
-
+    
     required public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-//        uuid = try container.decode(UUID.self, forKey: .uuid)
         seq = try container.decode(Int.self, forKey: .seq)
         title = try container.decode(String.self, forKey: .title)
         srcText = try container.decode(String.self, forKey: .srctext)
@@ -262,7 +247,6 @@ final public class Song: Codable {
     
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
-//        try container.encode(uuid, forKey: .uuid)
         try container.encode(seq, forKey: .seq)
         try container.encode(title, forKey: .title)
         try container.encode(srcText, forKey: .srctext)
@@ -272,5 +256,38 @@ final public class Song: Codable {
         try container.encode(showText, forKey: .showtext)
         try container.encode(duration, forKey: .duration)
         try container.encode(musicItemId, forKey: .musicitemid)
+    }
+}
+
+extension Song: Transferable {
+    public static var transferRepresentation: some TransferRepresentation {
+        
+        FileRepresentation(exportedContentType: .pdf, exporting: { song in
+            print("FileRepresentation (.pdf) exported song \(song.title)")
+            let viewModel = ViewModel()
+            let delegate = await PrintSongDelegate(viewModel: viewModel, song: song)
+            let defaultPaper = MediaBoxes.getBox(name: viewModel.mediabox)
+            let pdfUrl = await delegate.createPDF(paperSize: defaultPaper)
+            return SentTransferredFile(pdfUrl!, allowAccessingOriginalFile: false)
+        }).suggestedFileName { song in
+            (song.title.count > 0 ? song.title : "song")
+        }
+        
+        FileRepresentation(exportedContentType: .plainText, exporting: { song in
+            print("FileRepresentation (.text) exported song \(song.title)")
+            let cacheDirectoryURL =
+            try FileManager.default.url(for: .cachesDirectory,
+                                        in: .userDomainMask,
+                                        appropriateFor: nil,
+                                        create: true)
+            
+            let data = song.songToData()
+            let filename = song.title
+            let fileurl = cacheDirectoryURL.appending(component: filename)
+            try data.write(to: fileurl)
+            return SentTransferredFile(fileurl, allowAccessingOriginalFile: true)
+        }).suggestedFileName { song in
+            (song.title.count > 0 ? song.title : "song")
+        }
     }
 }
