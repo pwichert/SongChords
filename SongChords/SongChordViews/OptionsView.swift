@@ -113,6 +113,97 @@ struct OptionsView: View {
     }
 }
 
+struct PrintOptionsView: View {
+    @Environment(ViewModel.self) private var viewModel
+    @Environment(\.dismiss) private var dismiss
+
+    @State private var chordSize: Double = 0
+    @State private var txtSize: Double = 0
+    @State private var headerSize: Double = 0
+    
+    var body: some View {
+        Form {
+            HStack {
+                #if os(iOS)
+                Text("Headersize [\(Int(headerSize))]")
+                Spacer()
+                #endif
+                Slider(
+                    value: $headerSize,
+                    in: 5...20,
+                    step: 1,
+                    minimumValueLabel:
+                        Text("-"),
+                    maximumValueLabel:
+                        Text("+")
+                ) {
+                    Text("Headersize [\(Int(headerSize))]")
+                }
+            }
+
+            HStack {
+                #if os(iOS)
+                Text("Chordsize [\(Int(chordSize))]")
+                Spacer()
+                #endif
+                Slider(
+                    value: $chordSize,
+                    in: 5...20,
+                    step: 1,
+                    minimumValueLabel:
+                        Text("-"),
+                    maximumValueLabel:
+                        Text("+")
+                ) {
+                    Text("Chordsize [\(Int(chordSize))]")
+                }
+            }
+
+            HStack {
+                #if os(iOS)
+                Text("Textsize [\(Int(txtSize))]")
+                Spacer()
+                #endif
+                Slider(
+                    value: $txtSize,
+                    in: 5...20,
+                    step: 1,
+                    minimumValueLabel:
+                        Text("-"),
+                    maximumValueLabel:
+                        Text("+")
+                ) {
+                    Text("Textsize [\(Int(txtSize))]")
+                }
+            }
+        }
+        #if os(macOS)
+        .padding()
+        #endif
+        .navigationTitle("PDF Options")
+        .toolbar {
+            ToolbarItem(placement: .confirmationAction) {
+                Button("Save") {
+                    if Int(chordSize) != Int(viewModel.chordsizepdf) { viewModel.chordsizepdf = chordSize }
+                    if Int(txtSize) != Int(viewModel.txtsizepdf) { viewModel.txtsizepdf = txtSize }
+                    if Int(headerSize) != Int(viewModel.headersizepdf) { viewModel.headersizepdf = headerSize }
+                    
+                    dismiss()
+                }
+            }
+            ToolbarItem(placement: .cancellationAction) {
+                Button("Cancel") {
+                    dismiss()
+                }
+            }
+        }
+        .onAppear {
+            chordSize = viewModel.chordsizepdf
+            txtSize = viewModel.txtsizepdf
+            headerSize = viewModel.headersizepdf
+        }
+    }
+}
 
 struct InfoView: View {
     @Environment(ViewModel.self) private var viewModel
@@ -120,8 +211,12 @@ struct InfoView: View {
     
     var body: some View {
         Form {
-            VStack {
-                Text(viewModel.getVersion())
+            VStack(alignment: .center) {
+                HStack(alignment: .center) {
+                    Spacer()
+                    Text(viewModel.getVersion()).font(.title)
+                    Spacer()
+                }
             }.padding()
         }
         .navigationTitle("Info")

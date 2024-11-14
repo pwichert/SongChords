@@ -17,6 +17,7 @@ struct PlayListView: View {
     @State private var selectedPlaylist: PlayList?
     
     @State private var showOptionsView: Bool = false
+    @State private var showPrintOptionsView: Bool = false
     @State private var showInfoView: Bool = false
     
     @Query(sort: \PlayList.seq, order: .forward) private var playlists: [PlayList]
@@ -26,10 +27,10 @@ struct PlayListView: View {
             ForEach(playlists) { playlist in
                 NavigationLink(playlist.title, destination: SongListView(playlist: playlist).environment(viewModel))
                     .contextMenu {
-                        Button("rename") {
+                        Button("Rename") {
                             selectedPlaylist = playlist
                         }
-                        Button("delete", role: .destructive) {
+                        Button("Delete", role: .destructive) {
                             if !deletePlaylist(playlist: playlist) {
                                 showDeleteAlert.toggle()
                             }
@@ -53,15 +54,14 @@ struct PlayListView: View {
                     Button(action: { showOptionsView.toggle() }) {
                         Label("Options", systemImage: "gear.circle")
                     }
-                    
-//                    Button(action: {}) {
-//                        Label("Printing", systemImage: "printer")
-//                    }
+                    Button(action: { showPrintOptionsView.toggle() }) {
+                        Label("PDF Options", systemImage: "printer")
+                    }
                     Button(action: { showInfoView.toggle() }) {
                         Label("Info", systemImage: "gear.circle")
                     }
                 } label: {
-                    Label("Optionen", systemImage: "ellipsis.circle")
+                    Label("Options", systemImage: "ellipsis.circle")
                 }
                 .menuStyle(BorderlessButtonMenuStyle())  // Optional: Menü-Stil für macOS
             }
@@ -87,6 +87,12 @@ struct PlayListView: View {
         .sheet(isPresented: $showOptionsView) {
             NavigationStack {
                 OptionsView()
+            }
+            .interactiveDismissDisabled()
+        }
+        .sheet(isPresented: $showPrintOptionsView) {
+            NavigationStack {
+                PrintOptionsView()
             }
             .interactiveDismissDisabled()
         }

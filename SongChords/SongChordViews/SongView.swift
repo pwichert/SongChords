@@ -10,15 +10,24 @@ import SwiftUI
 struct SongView: View {
     var song: Song
 
+    @Environment(ViewModel.self) private var viewModel
+
     @State private var contentSize: CGSize = .zero
     @State private var showSongEditView: Bool = false
+    @State private var pdfUrl: URL?
+    @State private var showFileExport: Bool = false
+    @State private var showPDFExport: Bool = false
     
     var body: some View {
         GeometryReader { viewSize in    // Größe des umgebenden Containers
             ScrollView([.horizontal, .vertical]) {
                 ZStack(alignment: .topLeading) {
-                    DetailContent(song: song, representationHolder: song.representationHolder)
-
+                    if let pdfUrl = pdfUrl {
+                        PDFKitView(url: pdfUrl)
+                    } else {
+                        DetailContent(song: song, representationHolder: song.representationHolder)
+                    }
+                    
                     Color.clear.frame(width: 1, height: viewSize.size.height, alignment: .center)
                     Color.clear.frame(width: viewSize.size.width, height: 1, alignment: .center)
                 }
@@ -26,8 +35,17 @@ struct SongView: View {
         }
         .toolbar {
             ToolbarItem {
-                Button(action: { showSongEditView.toggle() }, label: { Image(systemName: "pencil") })
+                Button("ChordPro Text", systemImage: "pencil", action: { showSongEditView.toggle() }).help("Edit ChordPro Text")
             }
+            ToolbarItem {
+                Button("toggle PDF", systemImage: pdfUrl == nil ? "text.viewfinder" : "text.alignleft", action: { if pdfUrl == nil { showPdf() } else { pdfUrl = nil } }).help("toggle PDF")
+            }
+//            ToolbarItem {
+//                Button("Export ChordPro file", systemImage: "square.and.arrow.up", action: { showFileExport.toggle() }).help("Export ChordPro file")
+//            }
+//            ToolbarItem {
+//                Button("Export PDF file", systemImage: "arrow.up.document", action: { showPDFExport.toggle() }).help("Export PDF file")
+//            }
         }
         .sheet(isPresented: $showSongEditView) {
             NavigationStack {
@@ -35,41 +53,33 @@ struct SongView: View {
             }
             .interactiveDismissDisabled()
         }
+        .onChange(of: song, initial: false) {
+            if pdfUrl != nil {
+                print("pdfUrl changed")
+                pdfUrl = nil
+            }
+        }
+//        .fileExporter(isPresented: $showFileExport, item: song, contentTypes: [.plainText], defaultFilename: song.title, onCompletion: { result in
+//            switch result {
+//            case .success(let url):
+//                print(".fileExporter: URL: " + url.absoluteString)
+//            case .failure(let error):
+//                print(".fileExporter: " + error.localizedDescription)
+//            }
+//        })
+    }
+    
+    private func showPdf() {
+        let delegate = PrintSongDelegate(viewModel: viewModel, song: song)
+        let defaultPaper = MediaBoxes.getBox(name: viewModel.mediabox)
+        pdfUrl = delegate.createPDF(paperSize: defaultPaper)
+    }
+    
+    private func onPrint() {
+        let delegate = PrintSongDelegate(viewModel: viewModel, song: song)
+        PrintController.onPrint(viewModel: viewModel, title: song.title, delegate: delegate)
     }
 }
-
-//struct SongView_: View {
-//    var song: Song
-//
-//    @State private var contentSize: CGSize = .zero
-//    @State private var showSongEditView: Bool = false
-//    
-//    var body: some View {
-//        GeometryReader { viewSize in    // Größe des umgebenden Containers
-//            ScrollView([.horizontal, .vertical]) {
-//                DetailContent(song: song, representationHolder: song.representationHolder)
-//                    .onGeometryChange(for: CGSize.self) { proxy in
-//                        proxy.size
-//                    } action: {
-//                        contentSize = $0    // Größe von DetailContent
-//                    }
-//                    .frame(minWidth: max(viewSize.size.width, contentSize.width),
-//                           minHeight: max(viewSize.size.height, contentSize.height), alignment: .topLeading)
-//            }
-//        }
-//        .toolbar {
-//            ToolbarItem {
-//                Button(action: { showSongEditView.toggle() }, label: { Image(systemName: "pencil") })
-//            }
-//        }
-//        .sheet(isPresented: $showSongEditView) {
-//            NavigationStack {
-//                SongEditView(playlist: song.playlist!, song: song)
-//            }
-//            .interactiveDismissDisabled()
-//        }
-//    }
-//}
 
 struct DetailContent: View {
     var song: Song
@@ -84,6 +94,7 @@ struct DetailContent: View {
             
             ForEach(representationHolder.songRepresentation.sections) { section in
                 SectionHeaderView(section: section)
+                    .font(Font(viewModel.headerUIFont))
                     .padding(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0))
                 
                 ForEach(section.splittedLines) { line in
@@ -92,8 +103,8 @@ struct DetailContent: View {
                             // Leerzeile
                             Text(" ").font(Font(viewModel.txtUIFont))
                         } else {
-                            ChordsLineView(line: line)
-                            TextsLineView(line: line)
+                            ChordsLineView(line: line).font(Font(viewModel.chordUIFont))
+                            TextsLineView(line: line).font(Font(viewModel.txtUIFont))
                         }
                     }.padding(EdgeInsets(top: 0, leading: 0, bottom: viewModel.linespacing, trailing: 0))
                 }
@@ -122,7 +133,6 @@ struct DetailContent: View {
     }
 }
 
-
 struct SectionHeaderView: View {
     var section: Section
     var showHeader: Bool = true
@@ -134,7 +144,6 @@ struct SectionHeaderView: View {
         if showHeader && section.name.trimmingCharacters(in: .whitespaces).count > 0 {
             HStack(alignment: .center) {
                 Text(section.name)
-                    .font(Font(viewModel.headerUIFont))
                     .padding(.leading, 3)
                 Spacer()
             }
@@ -166,7 +175,7 @@ struct ChordsLineView: View {
                         .padding(.horizontal, 0.8)
                         .background(chord.background ? (colorScheme == .dark ? Color.init(red: 0.25, green: 0.25, blue: 0.25) : Color.init(red: 0.85, green: 0.85, blue: 0.85)) : Color.clear)
                         .clipShape(RoundedRectangle(cornerRadius: 4, style: .circular))
-                }.font(Font(viewModel.chordUIFont))
+                }
             }
         }
     }
@@ -185,7 +194,7 @@ struct TextsLineView: View {
                     
                     Text(text.txt)
                         .lineLimit(1)
-                }.font(Font(viewModel.txtUIFont))
+                }
             }
         }
     }

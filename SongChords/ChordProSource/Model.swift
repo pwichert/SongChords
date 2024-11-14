@@ -65,7 +65,7 @@ final class PlayList {
 }
 
 class RepresentationHolder: ObservableObject {
-    @Published var songRepresentation: SongRepresentation = SongRepresentation(sections: [])
+    @Published var songRepresentation: SongRepresentation = SongRepresentation(sections: [], directiveManager: DirectiveManager())
 }
 
 @Model
@@ -86,11 +86,12 @@ final public class Song: Codable {
     
     init(title: String = "") {
         self.title = title
+        self.seq = 0
     }
     
     init(title: String = "", playlist: PlayList) {
         self.title = title
-        self.seq = playlist.nextSongSeq()
+//        self.seq = playlist.nextSongSeq()
         toPlaylist(playlist: playlist)
     }
     
@@ -102,7 +103,7 @@ final public class Song: Codable {
         viewModel.processingTask = Task { [weak self] in
             // Aufgabe im Hintergrund ausführen
             guard let self = self else { return }
-            let result = await self.createSongRepresentation(viewModel: viewModel)
+            let result = self.createSongRepresentation(viewModel: viewModel)
             
             // Ergebnis auf dem Main-Thread aktualisieren
             await MainActor.run {
@@ -113,14 +114,14 @@ final public class Song: Codable {
         }
     }
 
-    private func createSongRepresentation(viewModel: ViewModel) async -> SongRepresentation? {
+    func createSongRepresentation(viewModel: ViewModel) -> SongRepresentation? {
         do {
             print("songRepresentation")
             
             let tokens = try ChordProLexer(input: srcText).tokenize()
             if Task.isCancelled { print("cancelled"); return nil }
 
-            let songRepresentation = try ChordProParser(viewModel: viewModel, song: self, tokens: tokens).parse()
+            let songRepresentation = try ChordProParser(viewModel: viewModel, songTranspose: transpose, tokens: tokens).parse()
             if Task.isCancelled { print("cancelled"); return nil }
 
             return songRepresentation
@@ -158,6 +159,8 @@ final public class Song: Codable {
     }
 
     func toPlaylist(playlist: PlayList, after: Song? = nil) {
+        if (playlist.songs ?? []).contains(self) { return }
+        
         // aus alter Playlist entfernen
         if let myplaylist = self.playlist {
             if myplaylist.songs != nil {
@@ -193,14 +196,14 @@ final public class Song: Codable {
 //        return try decoder.decode(Song.self, from: songData)
 //    }
 //   
-//    static func songFromText(url: URL) throws -> Song {
-//        let songData = try Data(contentsOf: url)
-//        let fileName = url.deletingPathExtension().lastPathComponent
-//        let src = String(decoding: songData, as: UTF8.self)
-//        let song = Song(seq: 0, title: fileName)
-//        song.srcText = src.components(separatedBy: "\n")
-//        return song
-//    }
+    static func songFromText(url: URL) throws -> Song {
+        let songData = try Data(contentsOf: url)
+        let fileName = url.deletingPathExtension().lastPathComponent
+        let src = String(decoding: songData, as: UTF8.self)
+        let song = Song(title: fileName)
+        song.srcText = src
+        return song
+    }
 //    
 //    func songToData() -> Data {
 //        let chordProString = srcText.joined(separator: "\n")

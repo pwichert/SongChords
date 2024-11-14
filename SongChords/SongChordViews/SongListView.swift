@@ -9,20 +9,21 @@ import SwiftUI
 
 struct SongListView: View {
     var playlist: PlayList  // Übergebene Playlist
-
+    
     @Environment(\.modelContext) private var modelContext
     @Environment(ViewModel.self) private var viewModel
-
+    
     @State private var showSongEditView: Bool = false
     @State private var deleteIndexset: IndexSet?
     @State private var showDeleteAlert: Bool = false
-
+    @State private var showFileImport: Bool = false
+    
     var body: some View {
         List {
             ForEach((playlist.songs?.sorted(by: { $0.seq < $1.seq }))!) { song in
                 NavigationLink(song.title, destination: SongView(song: song).environment(viewModel))
                     .contextMenu {
-                        Button("delete", role: .destructive) {
+                        Button("Delete", role: .destructive) {
                             let indexOfSong = (playlist.songs ?? []).sorted(by: { $0.seq < $1.seq }).firstIndex { $0 === song }
                             if let indexOfSong = indexOfSong {
                                 deleteIndexset = IndexSet()
@@ -30,6 +31,13 @@ struct SongListView: View {
                                 showDeleteAlert.toggle()
                             }
                         }
+                        Button(action: {
+                            let sng = Song(title: song.title)
+                            sng.seq = song.seq
+                            sng.updateFromSong(other: song)
+                            sng.toPlaylist(playlist: playlist, after: song)
+                            modelContext.insert(sng)
+                        }) { Label("Duplicate", systemImage: "doc.on.doc")}
                     }
             }
             .onMove(perform: moveSongs)
@@ -43,17 +51,42 @@ struct SongListView: View {
             ToolbarItem {
                 Button(action: { showSongEditView.toggle() }, label: { Image(systemName: "plus") })
             }
-            #if os(iOS)
+#if os(iOS)
             ToolbarItem(placement: .primaryAction) {
                 EditButton()
             }
-            #endif
+#endif
+            ToolbarItem {
+                Menu("Playlist...") {
+                    Button(action: {
+                        importSongClipboard()
+                    }) { Label("Import Clipboard", systemImage: "pencil.and.list.clipboard") }.help("Import clipboard")
+                    Button(action: {
+                        importSongTemplate()
+                    }) { Label("New Song Template", systemImage: "doc.badge.plus") }.help("New Song Template")
+                    Button(action: {
+                        showFileImport.toggle()
+                    }) { Label("Import Song File", systemImage: "arrow.down.doc") }.help("Import Song File")
+                }
+            }
         }
         .sheet(isPresented: $showSongEditView) {
             NavigationStack {
                 SongEditView(playlist: playlist, song: nil)
             }
             .interactiveDismissDisabled()
+        }
+        .fileImporter(isPresented: $showFileImport, allowedContentTypes: [.plainText], allowsMultipleSelection: true) { result in
+            switch result {
+            case .success(let urls):
+                for url in urls {
+                    print("Playlist: \(playlist.title): .fileImporter: URL: " + url.absoluteString)
+                    let success = importTextSong(url: url)
+                    if !success { break }
+                }
+            case .failure(let error):
+                print("Playlist: \(playlist.title): .fileImporter: " + error.localizedDescription)
+            }
         }
         .confirmationDialog(Text("Delete Song"), isPresented: $showDeleteAlert, titleVisibility: .visible) {
             Button("Delete", role: .destructive) {
@@ -87,5 +120,70 @@ struct SongListView: View {
             modelContext.delete(s)
             playlist.songs?.removeAll(where: { $0.seq == s.seq })
         }
+    }
+    
+    private func importSongClipboard() {
+        print("Import")
+        
+#if os(macOS)
+        let cb = NSPasteboard.general.string(forType: .string)
+#else
+        let cb = UIPasteboard.general.string
+#endif
+        
+        if !(cb ?? "").isEmpty {
+            let chordProReverseParser = ChordProReverseParser()
+            let sections = chordProReverseParser.parse(input: cb!)
+            let txt = chordProReverseParser.toString(sections: sections)
+            
+            let song = Song(title: "", playlist: playlist)
+            modelContext.insert(song)
+            song.title = "Import \(song.seq)"
+            song.srcText = txt
+        }
+    }
+    
+    private func importSongTemplate() {
+        let new = String(localized: "New")
+        let song = Song(title: new + " " + Date.now.formatted(date: .numeric, time: .shortened))
+        modelContext.insert(song)
+        song.toPlaylist(playlist: playlist)
+
+        song.srcText.append("{st: Subtitle of Song}\n")
+        song.srcText.append("[*%{st}]\n")
+        song.srcText.append("\n")
+
+        song.srcText.append("[Song Section]\n")
+        song.srcText.append("[Am]Lorem ipsum [D]dolor sit [E]amet\n")
+        song.srcText.append("[G]consetetur [C]sadipscing elitr\n")
+        
+        song.srcText.append("[Another Section]\n")
+        song.srcText.append("[Am]magna aliquyam [D]erat   [E]\n")
+        song.srcText.append("[G]sed diam [C]voluptu\n")
+    }
+    
+    private func importTextSong(url: URL) -> Bool {
+        print("importTextSong URL: \(url.absoluteString)")
+        var success = false
+
+        let startSecurityScope = url.startAccessingSecurityScopedResource()
+        
+        do {
+            let song = try Song.songFromText(url: url)
+            let newSong = Song(title: song.title)
+            modelContext.insert(newSong)
+            newSong.toPlaylist(playlist: playlist)
+            newSong.updateFromSong(other: song)
+
+            success = true
+        } catch {
+            print(error.localizedDescription)
+        }
+
+        if startSecurityScope {
+            url.stopAccessingSecurityScopedResource()
+        }
+        
+        return success
     }
 }

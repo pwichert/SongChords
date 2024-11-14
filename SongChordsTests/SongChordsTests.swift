@@ -12,6 +12,9 @@ struct SongChordsTests {
     
     @Test func testParser() async throws {
         // Write your test here and use APIs like `#expect(...)` to check expected conditions.
+
+        let viewModel = ViewModel()
+
         var inputText: String = """
         {title: Simple Song}
         {artist: The Example Band}
@@ -31,7 +34,7 @@ struct SongChordsTests {
         """
         
         var tokens = try ChordProLexer(input: inputText).tokenize()
-        var songRepresentation = try ChordProParser(tokens: tokens).parse()
+        var songRepresentation = try ChordProParser(viewModel: viewModel, songTranspose: 0, tokens: tokens).parse()
         #expect(songRepresentation.toChordProString() == expectedResult)
 
         
@@ -47,7 +50,7 @@ struct SongChordsTests {
         
         """
         tokens = try ChordProLexer(input: inputText).tokenize()
-        songRepresentation = try ChordProParser(tokens: tokens).parse()
+        songRepresentation = try ChordProParser(viewModel: viewModel, songTranspose: 0, tokens: tokens).parse()
         #expect(songRepresentation.toChordProString() == expectedResult)
 
         
@@ -62,7 +65,7 @@ struct SongChordsTests {
         
         """
         tokens = try ChordProLexer(input: inputText).tokenize()
-        songRepresentation = try ChordProParser(tokens: tokens).parse()
+        songRepresentation = try ChordProParser(viewModel: viewModel, songTranspose: 0, tokens: tokens).parse()
         #expect(songRepresentation.toChordProString() == expectedResult)
 
         
@@ -77,7 +80,7 @@ struct SongChordsTests {
         
         """
         tokens = try ChordProLexer(input: inputText).tokenize()
-        songRepresentation = try ChordProParser(tokens: tokens).parse()
+        songRepresentation = try ChordProParser(viewModel: viewModel, songTranspose: 0, tokens: tokens).parse()
         #expect(songRepresentation.toChordProString() == expectedResult)
 
         
@@ -93,7 +96,7 @@ struct SongChordsTests {
         
         """
         tokens = try ChordProLexer(input: inputText).tokenize()
-        songRepresentation = try ChordProParser(tokens: tokens).parse()
+        songRepresentation = try ChordProParser(viewModel: viewModel, songTranspose: 0, tokens: tokens).parse()
         #expect(songRepresentation.toChordProString() == expectedResult)
 
         
@@ -109,7 +112,7 @@ struct SongChordsTests {
         
         """
         tokens = try ChordProLexer(input: inputText).tokenize()
-        songRepresentation = try ChordProParser(tokens: tokens).parse()
+        songRepresentation = try ChordProParser(viewModel: viewModel, songTranspose: 0, tokens: tokens).parse()
         #expect(songRepresentation.toChordProString() == expectedResult)
 
 
@@ -125,13 +128,14 @@ struct SongChordsTests {
         
         """
         tokens = try ChordProLexer(input: inputText).tokenize()
-        songRepresentation = try ChordProParser(tokens: tokens).parse()
+        songRepresentation = try ChordProParser(viewModel: viewModel, songTranspose: 0, tokens: tokens).parse()
         #expect(songRepresentation.toChordProString() == expectedResult)
     }
     
     
     @Test func testChords() async throws {
-        let parser = ChordProParser(tokens: [])
+        let viewModel = ViewModel()
+        let parser = ChordProParser(viewModel: viewModel, songTranspose: 0, tokens: [])
         var pchord = parser.parseChord("C", convertGerman: false)
         #expect(pchord?.toString(transpose: 0, convertGerman: false) == "C")
 
@@ -164,5 +168,92 @@ struct SongChordsTests {
 
         pchord = parser.parseChord("Bb", convertGerman: true)
         #expect(pchord?.toString(transpose: 0, convertGerman: true) == "B")
+    }
+    
+    @Test func testReverse() async throws {
+        let chordProReverseParser = ChordProReverseParser()
+
+        var inputText = """
+              C                            F   Gsus4
+        I get up, and nothing gets me down.
+        """
+        var expectedResult = """
+        []
+        I get [C]up, and nothing gets me down.[F]    [Gsus4]
+        
+        """
+        
+        var sections = chordProReverseParser.parse(input: inputText)
+        #expect(chordProReverseParser.toString(sections: sections) == expectedResult)
+        
+        inputText = """
+        [Verse]
+              C           sdsd             F   Gsus4
+        I get up, and nothing gets me down.
+        """
+        expectedResult = """
+        [Verse]
+        I get [C]up, and noth[*sdsd]ing gets me down.[F]    [Gsus4]
+        
+        """
+        
+        sections = chordProReverseParser.parse(input: inputText)
+        #expect(chordProReverseParser.toString(sections: sections) == expectedResult)
+        
+        inputText = """
+        C                            F   Gsus4
+        I get up, and nothing gets me down.
+              C                                  F    Gsus4
+        You got it tough, I've seen the toughest around.
+         C                             F    Gsus4
+        And I know, baby, just how you feel.
+                C                                          F      Gsus4
+        You've got to roll with the punches to get to what's real
+        """
+        
+        expectedResult = """
+        []
+        [C]I get up, and nothing gets me[F] dow[Gsus4]n.
+        You go[C]t it tough, I've seen the toughest [F]aroun[Gsus4]d.
+        A[C]nd I know, baby, just how you [F]feel.[Gsus4]
+        You've g[C]ot to roll with the punches to get to what'[F]s real [Gsus4]
+        
+        """
+        sections = chordProReverseParser.parse(input: inputText)
+        #expect(chordProReverseParser.toString(sections: sections) == expectedResult)
+        
+        inputText = """
+        
+        (Guitar Solo)
+        
+        (Keyboard Solo)
+        """
+        expectedResult = """
+        []
+        
+        (Guitar Solo)
+        
+        (Keyboard Solo)
+        
+        """
+        sections = chordProReverseParser.parse(input: inputText)
+        #expect(chordProReverseParser.toString(sections: sections) == expectedResult)
+        
+        inputText = """
+        
+        (Guitar Solo)
+        
+        C#m
+        """
+        expectedResult = """
+        []
+        
+        (Guitar Solo)
+        
+        [C#m]
+        
+        """
+        sections = chordProReverseParser.parse(input: inputText)
+        #expect(chordProReverseParser.toString(sections: sections) == expectedResult)
     }
 }

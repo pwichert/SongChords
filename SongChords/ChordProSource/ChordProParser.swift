@@ -19,9 +19,11 @@ public class SongRepresentation: Identifiable {
     public let id = UUID()
     
     let sections: [Section]
+    let directiveManager: DirectiveManager
     
-    init(sections: [Section]) {
+    init(sections: [Section], directiveManager: DirectiveManager) {
         self.sections = sections
+        self.directiveManager = directiveManager
     }
     
     public func toChordProString() -> String {
@@ -51,12 +53,13 @@ public class SongRepresentation: Identifiable {
     }
 }
 
-class Section: Identifiable {
-    let id = UUID()
+public class Section: Identifiable {
+    public let id = UUID()
     
     let name: String
     let lines: [Line]
     var splittedLines: [SplittedLine] = []
+    var col: Int = 0
     
     init(name: String, lines: [Line]) {
         self.name = name
@@ -69,6 +72,9 @@ struct SplittedLine: Identifiable {
     
     var chords: [TextElement] = []
     var texts: [TextElement] = []
+    
+    var onNewPage: Bool = false
+    var col: Int = 0
 }
 
 struct Line: Identifiable {
@@ -100,14 +106,14 @@ enum ElementType {
     case text(String, Double)
 }
 
-public struct ChordProParser {
+public class ChordProParser: ChordsProBase {
+    private let songTranspose: Int
     private let tokens: [Token]
-    private let song: Song
     private let viewModel: ViewModel
     private let directiveManager = DirectiveManager()
     
-    public init(viewModel: ViewModel, song: Song, tokens: [Token]) {
-        self.song = song
+    public init(viewModel: ViewModel, songTranspose: Int, tokens: [Token]) {
+        self.songTranspose = songTranspose
         self.tokens = tokens
         self.viewModel = viewModel
     }
@@ -137,18 +143,19 @@ public struct ChordProParser {
         
         // feste Optionen
         let showText: Bool = true
+        let showChords = true
         let textFollowsChords = false
-
+        
         while position < tokens.count {
             if Task.isCancelled { print("cancelled"); break }
-
+            
             let token = tokens[position]
             
             switch token {
             case .curlyEnclosed(let directive):
                 numDirectives += 1
                 
-                if let d = directiveManager.addDirective(processReplace(viewModel: viewModel, song: song, srcline: directive)) {
+                if let d = directiveManager.addDirective(processReplace(viewModel: viewModel, srcline: directive)) {
                     switch d {
                     case .column_break: lineIsColumnBreak = true
                     case .new_page:     lineIsNewPage = true
@@ -174,7 +181,7 @@ public struct ChordProParser {
                     default: break
                     }
                 } else {
-                    let str = processReplace(viewModel: viewModel, song: song, srcline: directive)
+                    let str = processReplace(viewModel: viewModel, srcline: directive)
                     let strLen = sizeOfString(string: str, font: txtf)
                     currentLineElements.append(Element(type: .text(str, strLen)))
                 }
@@ -182,28 +189,28 @@ public struct ChordProParser {
             case .bracketEnclosed(let chord):
                 numChords += 1
                 if chord.starts(with: "*") {
-                    let str = processReplace(viewModel: viewModel, song: song, srcline: String(chord.dropFirst()))
+                    let str = processReplace(viewModel: viewModel, srcline: String(chord.dropFirst()))
                     let strLen = sizeOfString(string: str, font: chordf)
                     currentLineElements.append(Element(type: .chordcomment(str, strLen, true)))  // "*" merken
                 } else {
                     if let pchord = parseChord(chord, convertGerman: viewModel.isGermanNotation) {
-                        let str = pchord.toString(transpose: song.transpose + directiveManager.transpose, convertGerman: viewModel.isGermanNotation)
+                        let str = pchord.toString(transpose: songTranspose + directiveManager.transpose, convertGerman: viewModel.isGermanNotation)
                         let strLen = sizeOfString(string: str, font: chordf)
                         currentLineElements.append(Element(type: .chord(str, pchord, strLen)))
                     } else {
-                        let str = processReplace(viewModel: viewModel, song: song, srcline: chord)
+                        let str = processReplace(viewModel: viewModel, srcline: chord)
                         let strLen = sizeOfString(string: str, font: chordf)
                         currentLineElements.append(Element(type: .chordcomment(str, strLen, false)))
                     }
                 }
                 
             case .text(let text):
-                let str = processReplace(viewModel: viewModel, song: song, srcline: text)
+                let str = processReplace(viewModel: viewModel, srcline: text)
                 let strLen = sizeOfString(string: str, font: txtf)
                 currentLineElements.append(Element(type: .text(str, strLen)))
                 
             case .comment(let text):
-                let str = processReplace(viewModel: viewModel, song: song, srcline: text)
+                let str = processReplace(viewModel: viewModel, srcline: text)
                 let strLen = sizeOfString(string: str, font: txtf)
                 currentLineElements.append(Element(type: .comment(str, strLen)))
                 
@@ -214,12 +221,12 @@ public struct ChordProParser {
             // neue Zeile oder Ende?
             if .newLine == token || position == tokens.endIndex - 1 {
                 // Zeileninhalt in den aktuellen Abschnitt einfügen.
-                if numChords == 1 && onlyWhitespaceOrChordComment(elements: currentLineElements) {
+                if numChords == 1 && onlyWhitespaceOrChordComment(elements: &currentLineElements) {
                     // Section-Name [abc], einzelner ChordComment (ohne "*") in Zeile entdeckt:
                     
                     // neuen Sectionnamen festlegen
                     var newSectionName = ""
-                    if let elem = getFirstChordComment(elements: currentLineElements),
+                    if let elem = getFirstChordComment(elements: &currentLineElements),
                        case let .chordcomment(comment, _, _) = elem.type {
                         newSectionName = comment
                     }
@@ -228,7 +235,7 @@ public struct ChordProParser {
                     currentLineElements = []
                     appendLastSection()
                     currentSectionName = newSectionName
-                } else if numDirectives == 0 || !onlyWhitespace(elements: currentLineElements) {
+                } else if numDirectives == 0 || !onlyWhitespace(elements: &currentLineElements) {
                     // Zeile einfügen, falls sie nicht nur aus Directiven (+ evtl. WhiteSpace) besteht
                     currentSectionLines.append(Line(elements: currentLineElements, lineIsColumnBreak: lineIsColumnBreak, lineIsNewPage: lineIsNewPage))
                 }
@@ -249,7 +256,7 @@ public struct ChordProParser {
         createSplittedLines()
         
         //print(directiveManager.listDirectives())
-        return SongRepresentation(sections: sections)
+        return SongRepresentation(sections: sections, directiveManager: directiveManager)
         
         // Hilfsfunktionen
         
@@ -272,17 +279,33 @@ public struct ChordProParser {
         
         func createSplittedLines() {
             let chordPadding: Double = 3
+            var currentColumn: Int = 0
             
             for section in sections {
                 for line in section.lines {
                     if Task.isCancelled { print("cancelled"); return }
-
+                    
                     var nextChordPosition: Double = 0
                     var nextTextPosition: Double = 0
                     var minNextChordPosition: Double = 0
                     
                     var spl = SplittedLine()
-
+                    
+                    if line.lineIsNewPage { spl.onNewPage = true }
+                    
+                    // column_break. Falls kein col gesetzt wurde, einfach hochzählen
+                    if line.lineIsColumnBreak {
+                        let cols = directiveManager.columns
+                        if cols > 1 {
+                            currentColumn = (currentColumn + 1) % cols
+                        } else {
+                            currentColumn += 1
+                        }
+                    }
+                    
+                    spl.col = currentColumn
+                    section.col = currentColumn
+                    
                     for elem in line.elements {
                         switch elem.type {
                         case .chord(let chordtxt, _, let len):
@@ -291,7 +314,7 @@ public struct ChordProParser {
                             spl.chords.append(tElem)
                             
                             // wenn Chords angezeigt werden, soll sich der Text danach richten
-                            if song.showChords {
+                            if showChords {
                                 // textFollowsChords == true: Text genau an Chord-Position, wird danach aber evtl. auseinander gezogen
                                 // sym !== symLine.symbols.first && txt.isEmpty: Text nur beim ersten Mal genau an Chord-Position, wird danach aber nicht mehr auseinander gezogen (z.B.: [Bb][B][Am]c[A]d[A]e[A][Bb][B][Am]c[A]d[A]e[A])
                                 if textFollowsChords || (spl.chords.count == 1 && spl.texts.isEmpty) {
@@ -306,21 +329,21 @@ public struct ChordProParser {
                             let position = nextChordPosition
                             let tElem = TextElement(txt: comment, fontOffset: position, background: false)
                             spl.chords.append(tElem)
-
-                            if song.showChords {
+                            
+                            if showChords {
                                 // siehe oben
                                 if textFollowsChords || (spl.chords.count == 1 && spl.texts.isEmpty) {
                                     nextTextPosition = position
                                 }
                             }
-
+                            
                             nextChordPosition = position + len
                             minNextChordPosition = nextChordPosition
                             
                         case .text(let txt, let len), .comment(let txt, let len):
                             let tElem = TextElement(txt: txt, fontOffset: nextTextPosition, background: false)
                             spl.texts.append(tElem)
-
+                            
                             // Chordabstand erzeugen, falls Whitespace
                             if txt.trimmingCharacters(in: .whitespaces).count == 0 {
                                 nextChordPosition += sizeOfString(string: txt, font: chordf)
@@ -335,7 +358,7 @@ public struct ChordProParser {
                             }
                         }
                     }
-
+                    
                     // Falls Chords da sind und Text nur aus whitespaces besteht, dann wurde der Text nur aus den Chordzwischenräumen erzeugt: [Am]  [Am]  [Am]
                     if !spl.chords.isEmpty && !spl.texts.isEmpty {
                         var isWhitespace = true
@@ -360,7 +383,7 @@ public struct ChordProParser {
         let i2 = str.index(iStart, offsetBy: end)
         
         let x = String(str[iStart..<i2])
-//        print("."+String(x)+".")
+        //        print("."+String(x)+".")
         return sizeOfString(string: x, font: font)
     }
     
@@ -369,14 +392,14 @@ public struct ChordProParser {
         return string.size(withAttributes: fontAttributes).width
     }
     
-    private func onlyWhitespace(elements: [Element]) -> Bool {
+    private func onlyWhitespace(elements: inout [Element]) -> Bool {
         return elements.allSatisfy { element in
             if case .text(let text, _) = element.type, text.trimmingCharacters(in: .whitespaces).isEmpty { return true }
             return false
         }
     }
     
-    private func onlyWhitespaceOrChordComment(elements: [Element]) -> Bool {
+    private func onlyWhitespaceOrChordComment(elements: inout [Element]) -> Bool {
         return elements.allSatisfy { element in
             if case .text(let text, _) = element.type, text.trimmingCharacters(in: .whitespaces).isEmpty { return true }
             if case .chordcomment(_, _, let hasStar) = element.type, hasStar == false { return true }    // ohne "*"
@@ -384,7 +407,7 @@ public struct ChordProParser {
         }
     }
     
-    private func getFirstChordComment(elements: [Element]) -> Element? {
+    private func getFirstChordComment(elements: inout [Element]) -> Element? {
         for element in elements {
             if case .chordcomment = element.type {
                 return element
@@ -394,6 +417,71 @@ public struct ChordProParser {
         return nil
     }
     
+    // Ersetzt Variablen durch ihren Wert: %{ variable }
+    private func processReplace(viewModel: ViewModel, srcline: String) -> String {
+        if srcline.isEmpty { return srcline }
+        
+        var src: String = srcline
+
+        while true {
+            let dirRepl = findSubstringBetweenDelimiters(mainString: src, startDelimiter: "%{", endDelimiter: "}")
+            
+            if dirRepl == nil { break }
+            let str = dirRepl!.substring.trimmingCharacters(in: .whitespaces).lowercased()
+            let s1Index = dirRepl!.startIndex
+            let eIndex = dirRepl!.endIndex
+            let sIndex = src.index(s1Index, offsetBy: -2)
+            
+            var repl: String?
+            if str.count < 200 && str.count > 0 {
+                if let dirval = directiveManager.getDirective(str) {
+                    repl = dirval
+                } else {
+                    if let special = DirectiveNamesSpecial(rawValue: str) {
+                        switch special {
+                        case DirectiveNamesSpecial.key_actual:
+                            let key = directiveManager.getDirective(DirectiveType.key.rawValue)
+                            if let key = key {
+                                let chord = parseChord(key)
+                                if let chord = chord {
+                                    repl = chord.toString(transpose: directiveManager.transpose, convertGerman: viewModel.isGermanNotation)
+                                }
+                            }
+                            break
+                        case DirectiveNamesSpecial.key_from:
+                            let key = directiveManager.getDirective(DirectiveType.key.rawValue)
+                            if let key = key {
+                                repl = key
+                            }
+                            break
+                        }
+                    }
+                }
+            }
+                        
+            src = src[src.startIndex..<sIndex].appending(repl ?? "").appending(src[src.index(after: eIndex)...])
+        }
+        
+        return src
+    }
+    
+    private func findSubstringBetweenDelimiters(mainString: String, startDelimiter: String, endDelimiter: String) -> (substring: String, startIndex: String.Index, endIndex: String.Index)? {
+        guard let rangeStart = mainString.range(of: startDelimiter),
+              let rangeEnd = mainString.range(of: endDelimiter, range: rangeStart.upperBound..<mainString.endIndex)
+        else {
+            return nil
+        }
+
+        let startIndex = rangeStart.upperBound
+        let endIndex = rangeEnd.lowerBound
+
+        let substring = mainString[startIndex..<endIndex]
+
+        return (String(substring), startIndex, endIndex)
+    }
+}
+
+public class ChordsProBase {
     // Funktion zum Parsen des Akkord-Strings
     public func parseChord(_ chordString: String, convertGerman: Bool = false) -> ParsedChord? {
         let spl = chordString.components(separatedBy: "/")
@@ -492,7 +580,7 @@ public struct ChordProParser {
                     }
                 }
             }
-
+            
             if index != input.endIndex || basston == nil {
                 return nil
             }
@@ -500,68 +588,5 @@ public struct ChordProParser {
         
         // Akkord erstellen und zurückgeben
         return ParsedChord(grundton: grundton, istMoll: istMoll, hatKreuz: hatKreuz, hatB: hatB, mehrklang: mk, basston: basston, bassKreuz: basskreuz, bassB: bassB)
-    }
-    
-    // Ersetzt Variablen durch ihren Wert: %{ variable }
-    private func processReplace(viewModel: ViewModel, song: Song, srcline: String) -> String {
-        if srcline.isEmpty { return srcline }
-        
-        var src: String = srcline
-
-        while true {
-            let dirRepl = findSubstringBetweenDelimiters(mainString: src, startDelimiter: "%{", endDelimiter: "}")
-            
-            if dirRepl == nil { break }
-            let str = dirRepl!.substring.trimmingCharacters(in: .whitespaces).lowercased()
-            let s1Index = dirRepl!.startIndex
-            let eIndex = dirRepl!.endIndex
-            let sIndex = src.index(s1Index, offsetBy: -2)
-            
-            var repl: String?
-            if str.count < 200 && str.count > 0 {
-                if let dirval = directiveManager.getDirective(str) {
-                    repl = dirval
-                } else {
-                    if let special = DirectiveNamesSpecial(rawValue: str) {
-                        switch special {
-                        case DirectiveNamesSpecial.key_actual:
-                            let key = directiveManager.getDirective(DirectiveType.key.rawValue)
-                            if let key = key {
-                                let chord = parseChord(key)
-                                if let chord = chord {
-                                    repl = chord.toString(transpose: directiveManager.transpose, convertGerman: viewModel.isGermanNotation)
-                                }
-                            }
-                            break
-                        case DirectiveNamesSpecial.key_from:
-                            let key = directiveManager.getDirective(DirectiveType.key.rawValue)
-                            if let key = key {
-                                repl = key
-                            }
-                            break
-                        }
-                    }
-                }
-            }
-                        
-            src = src[src.startIndex..<sIndex].appending(repl ?? "").appending(src[src.index(after: eIndex)...])
-        }
-        
-        return src
-    }
-    
-    private func findSubstringBetweenDelimiters(mainString: String, startDelimiter: String, endDelimiter: String) -> (substring: String, startIndex: String.Index, endIndex: String.Index)? {
-        guard let rangeStart = mainString.range(of: startDelimiter),
-              let rangeEnd = mainString.range(of: endDelimiter, range: rangeStart.upperBound..<mainString.endIndex)
-        else {
-            return nil
-        }
-
-        let startIndex = rangeStart.upperBound
-        let endIndex = rangeEnd.lowerBound
-
-        let substring = mainString[startIndex..<endIndex]
-
-        return (String(substring), startIndex, endIndex)
     }
 }
