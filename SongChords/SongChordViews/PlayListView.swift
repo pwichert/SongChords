@@ -164,7 +164,7 @@ struct PlaylistEditView: View {
         #if os(macOS)
         .padding()
         #endif
-        .navigationTitle("\(playlist == nil ? "new" : "edit") Playlist")
+        .navigationTitle(playlist == nil ? "New Playlist" : "Edit Playlist")
         .toolbar {
             ToolbarItem(placement: .confirmationAction) {
                 Button("Save") {

@@ -65,21 +65,24 @@ struct SongListView: View {
             }
 #endif
             ToolbarItem {
-                Menu("Playlist...") {
-                    Button(action: {
-                        importSongClipboard()
-                    }) { Label("Import Clipboard", systemImage: "pencil.and.list.clipboard") }.help("Import clipboard")
+                Menu("Song...") {
                     Button(action: {
                         importSongTemplate()
                     }) { Label("New Song Template", systemImage: "doc.badge.plus") }.help("New Song Template")
                     Button(action: {
                         showFileImport.toggle()
-                    }) { Label("Import Song File", systemImage: "arrow.down.doc") }.help("Import Song File")
-        #if os(macOS)
-                    Button(action: { exportPlaylist(playlist: playlist) }) { Label("Export playlist", systemImage: "arrow.up.doc") }.help("Export playlist")
-        #else
-                    Button(action: { showExportToFolder.toggle() }) { Label("Export playlist", systemImage: "arrow.up.doc") }.help("Export playlist")
-        #endif
+                    }) { Label("Import ChordPro File", systemImage: "arrow.down.doc") }.help("Import ChordPro File")
+                    Button(action: {
+                        importSongClipboard()
+                    }) { Label("Import Text Clipboard", systemImage: "pencil.and.list.clipboard") }.help("Import Text Clipboard")
+                    #if os(macOS)
+                    Button(action: { exportPlaylist(playlist: playlist) }) { Label("Export Playlist", systemImage: "arrow.up.doc") }.help("Export Playlist")
+                    #else
+                    Button(action: { showExportToFolder.toggle() }) { Label("Export Playlist", systemImage: "arrow.up.doc") }.help("Export Playlist")
+                    #endif
+                    #if false
+                    Button(action: { Task { await printSetlist() }}) { Label("Print Setlist", systemImage: "printer.dotmatrix") }.help("Print Setlist")
+                    #endif
                 }
             }
         }
@@ -210,6 +213,12 @@ struct SongListView: View {
         }
         
         return success
+    }
+    
+    @MainActor
+    func printSetlist() async {
+        let delegate = PrintSetlistDelegate(viewModel: viewModel, playlist: playlist)
+        PrintController.onPrint(viewModel: viewModel, title: playlist.title, delegate: delegate)
     }
     
 #if os(macOS)

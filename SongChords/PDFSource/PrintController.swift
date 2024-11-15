@@ -84,14 +84,14 @@ class PrintSongDelegate: NSObject, PrintDelegateBase, UIPrintInteractionControll
             
             for (dir,title) in [
                 (mgr.getDirective("subtitle"), ""),
-                (mgr.getDirective("artist"), String(localized: "Artist") + ": "),
-                (mgr.getDirective("album"), String(localized: "Album") + ": "),
-                (mgr.getDirective("composer"), String(localized: "Composer") + ": "),
-                (mgr.getDirective("year"), String(localized: "Year") + ": "),
-                (mgr.getDirective("copyright"), String(localized: "Copyright") + ": "),
-                (mgr.getDirective("tempo"), String(localized: "Tempo") + ": "),
-                (mgr.getDirective("time"), String(localized: "Time") + ": "),
-                (mgr.getDirective("duration"), String(localized: "Duration") + ": ")
+                (mgr.getDirective("artist"), "Artist: "),
+                (mgr.getDirective("album"), "Album: "),
+                (mgr.getDirective("composer"), "Composer: "),
+                (mgr.getDirective("year"), "Year: "),
+                (mgr.getDirective("copyright"), "Copyright: "),
+                (mgr.getDirective("tempo"), "Tempo: "),
+                (mgr.getDirective("time"), "Time: "),
+                (mgr.getDirective("duration"), "Duration: ")
             ] {
                 if let dir = dir {
                     gen.draw(col: 0, view: Text("\(title)\(dir)").font(.system(size: viewModel.chordsizepdf, weight: .bold, design: .rounded)).padding(.top, topPadding))

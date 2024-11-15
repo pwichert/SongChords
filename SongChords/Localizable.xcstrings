@@ -1,0 +1,428 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "" : {
+      "shouldTranslate" : false
+    },
+    " " : {
+      "shouldTranslate" : false
+    },
+    "-" : {
+      "shouldTranslate" : false
+    },
+    "%@%@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@%2$@"
+          }
+        }
+      },
+      "shouldTranslate" : false
+    },
+    "%lld.  %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld.  %2$@"
+          }
+        }
+      },
+      "shouldTranslate" : false
+    },
+    "+" : {
+      "shouldTranslate" : false
+    },
+    "Abort" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abbrechen"
+          }
+        }
+      }
+    },
+    "Cancel" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abbrechen"
+          }
+        }
+      }
+    },
+    "ChordPro Text" : {
+      "shouldTranslate" : false
+    },
+    "Chordsize [%lld]" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Akkordgröße [%lld]"
+          }
+        }
+      }
+    },
+    "dark" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "dunkel"
+          }
+        }
+      }
+    },
+    "Delete" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Löschen"
+          }
+        }
+      }
+    },
+    "Delete Song" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Song löschen"
+          }
+        }
+      }
+    },
+    "Display Mode" : {
+      "shouldTranslate" : false
+    },
+    "Done" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "fertig"
+          }
+        }
+      }
+    },
+    "Duplicate" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Duplizieren"
+          }
+        }
+      }
+    },
+    "Edit ChordPro Text" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ChordPro-Text editieren"
+          }
+        }
+      }
+    },
+    "Edit Playlist" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Playliste ändern"
+          }
+        }
+      }
+    },
+    "Export ChordPro file" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ChordPro-Datei exportieren"
+          }
+        }
+      }
+    },
+    "Export PDF file" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PDF-Datei exportieren"
+          }
+        }
+      }
+    },
+    "Export Playlist" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Playliste exportieren"
+          }
+        }
+      }
+    },
+    "German Notation" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deutsche Notation"
+          }
+        }
+      }
+    },
+    "Headersize [%lld]" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Headergröße [%lld]"
+          }
+        }
+      }
+    },
+    "Import ChordPro File" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ChordPro-Datei importieren"
+          }
+        }
+      }
+    },
+    "Import Text Clipboard" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Text von Zwischenablage importieren"
+          }
+        }
+      }
+    },
+    "Info" : {
+      "shouldTranslate" : false
+    },
+    "light" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "hell"
+          }
+        }
+      }
+    },
+    "Move" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bewegen"
+          }
+        }
+      }
+    },
+    "Move to Playlist" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "zu Playliste bewegen"
+          }
+        }
+      }
+    },
+    "New" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Neu"
+          }
+        }
+      }
+    },
+    "New Playlist" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Neue Playliste"
+          }
+        }
+      }
+    },
+    "New Song Template" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Neues Template"
+          }
+        }
+      }
+    },
+    "Ok" : {
+      "shouldTranslate" : false
+    },
+    "Options" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Optionen"
+          }
+        }
+      }
+    },
+    "PDF Options" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PDF-Optionen"
+          }
+        }
+      }
+    },
+    "Playlist must be empty" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Playliste muss leer sein"
+          }
+        }
+      }
+    },
+    "Playlists" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Playlisten"
+          }
+        }
+      }
+    },
+    "Print Setlist" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Setliste drucken"
+          }
+        }
+      }
+    },
+    "Rename" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Umbenennen"
+          }
+        }
+      }
+    },
+    "Save" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Speichern"
+          }
+        }
+      }
+    },
+    "Select a playlist" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Playliste auswählen"
+          }
+        }
+      }
+    },
+    "Select a song" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Song auswählen"
+          }
+        }
+      }
+    },
+    "Song..." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Song…"
+          }
+        }
+      }
+    },
+    "SongChords" : {
+      "shouldTranslate" : false
+    },
+    "system" : {
+      "shouldTranslate" : false
+    },
+    "Textsize [%lld]" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Textgröße [%lld]"
+          }
+        }
+      }
+    },
+    "Title" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Titel"
+          }
+        }
+      }
+    },
+    "Toggle PDF" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PDF umschalten"
+          }
+        }
+      }
+    },
+    "Transpose [%lld]" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Transponieren [%lld]"
+          }
+        }
+      }
+    }
+  },
+  "version" : "1.0"
+}

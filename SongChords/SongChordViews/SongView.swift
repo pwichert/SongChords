@@ -40,7 +40,7 @@ struct SongView: View {
                 Button("ChordPro Text", systemImage: "pencil", action: { showSongEditView.toggle() }).help("Edit ChordPro Text")
             }
             ToolbarItem {
-                Button("toggle PDF", systemImage: pdfUrl == nil ? "text.viewfinder" : "text.alignleft", action: { if pdfUrl == nil { showPdf() } else { pdfUrl = nil } }).help("toggle PDF")
+                Button("Toggle PDF", systemImage: pdfUrl == nil ? "text.viewfinder" : "text.alignleft", action: { if pdfUrl == nil { showPdf() } else { pdfUrl = nil } }).help("Toggle PDF")
             }
             ToolbarItem {
                 Button("Export ChordPro file", systemImage: "square.and.arrow.up", action: { uttype = .plainText; showPDFExport.toggle() }).help("Export ChordPro file")
@@ -71,12 +71,14 @@ struct SongView: View {
         }
     }
     
+    @MainActor
     private func showPdf() {
         let delegate = PrintSongDelegate(viewModel: viewModel, song: song)
         let defaultPaper = MediaBoxes.getBox(name: viewModel.mediabox)
         pdfUrl = delegate.createPDF(paperSize: defaultPaper)
     }
     
+    @MainActor
     private func onPrint() {
         let delegate = PrintSongDelegate(viewModel: viewModel, song: song)
         PrintController.onPrint(viewModel: viewModel, title: song.title, delegate: delegate)
