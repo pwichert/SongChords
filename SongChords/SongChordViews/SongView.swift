@@ -13,7 +13,6 @@ struct SongView: View {
 
     @Environment(ViewModel.self) private var viewModel
 
-    @State private var contentSize: CGSize = .zero
     @State private var showSongEditView: Bool = false
     @State private var pdfUrl: URL?
     @State private var showFileExport: Bool = false
@@ -21,18 +20,37 @@ struct SongView: View {
     @State private var uttype: UTType = .plainText
     
     var body: some View {
-        GeometryReader { viewSize in    // Größe des umgebenden Containers
-            ScrollView([.horizontal, .vertical]) {
-                ZStack(alignment: .topLeading) {
-                    if let pdfUrl = pdfUrl {
-                        PDFKitView(url: pdfUrl)
-                    } else {
-                        DetailContent(song: song, representationHolder: song.representationHolder)
+        Group {
+            if viewModel.hidechords {
+                GeometryReader { viewSize in    // Größe des umgebenden Containers
+                    ScrollView() {
+                        ZStack(alignment: .topLeading) {
+                            if let pdfUrl = pdfUrl {
+                                PDFKitView(url: pdfUrl)
+                            } else {
+                                DetailContent(song: song, representationHolder: song.representationHolder)
+                            }
+                            
+                            Color.clear.frame(width: 1, height: viewSize.size.height, alignment: .center)
+                            Color.clear.frame(width: viewSize.size.width, height: 1, alignment: .center)
+                        }.padding(0)
                     }
-                    
-                    Color.clear.frame(width: 1, height: viewSize.size.height, alignment: .center)
-                    Color.clear.frame(width: viewSize.size.width, height: 1, alignment: .center)
-                }.padding(0)
+                }
+            } else {
+                GeometryReader { viewSize in    // Größe des umgebenden Containers
+                    ScrollView([.horizontal, .vertical]) {
+                        ZStack(alignment: .topLeading) {
+                            if let pdfUrl = pdfUrl {
+                                PDFKitView(url: pdfUrl)
+                            } else {
+                                DetailContent(song: song, representationHolder: song.representationHolder)
+                            }
+                            
+                            Color.clear.frame(width: 1, height: viewSize.size.height, alignment: .center)
+                            Color.clear.frame(width: viewSize.size.width, height: 1, alignment: .center)
+                        }.padding(0)
+                    }
+                }
             }
         }
         .toolbar {
@@ -116,8 +134,12 @@ struct DetailContent: View {
                             // Leerzeile
                             Text(" ").font(Font(viewModel.txtUIFont))
                         } else {
-                            if !viewModel.hidechords { ChordsLineView(line: line).font(Font(viewModel.chordUIFont)) }
-                            TextsLineView(line: line).font(Font(viewModel.txtUIFont))
+                            if viewModel.hidechords {
+                                if !line.texts.isEmpty { Text(line.plainText).font(Font(viewModel.txtUIFont)) }
+                            } else {
+                                ChordsLineView(line: line).font(Font(viewModel.chordUIFont))
+                                TextsLineView(line: line).font(Font(viewModel.txtUIFont))
+                            }
                         }
                     }.padding(EdgeInsets(top: 0, leading: 0, bottom: viewModel.linespacing, trailing: 0))
                 }

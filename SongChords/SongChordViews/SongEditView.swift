@@ -22,6 +22,9 @@ struct SongEditView: View {
     var body: some View {
         Form {
             TextField("Title", text: $title)
+            #if os(macOS)
+                .padding(.bottom, 4)
+            #endif
             
             HStack {
                 #if os(iOS)
@@ -40,15 +43,18 @@ struct SongEditView: View {
                     Text("Transpose [\(Int(transpose))]")
                 }
             }
-            
+            #if os(macOS)
+                .padding(.bottom, 4)
+            #endif
+
             VStack {
                 Text("ChordPro Text").foregroundStyle(Color(.lightGray))
                 TextEditor(text: $srcText)
                     .monospaced()
                     #if os(iOS)
-                    .frame(minHeight: 400)
+                    .frame(idealHeight: 350)
                     #else
-                    .frame(minWidth: 500, minHeight: 400)
+                    .frame(idealWidth: 500, idealHeight: 400)
                     #endif
                     .border(Color(.lightGray))
             }.padding(.top, 20)

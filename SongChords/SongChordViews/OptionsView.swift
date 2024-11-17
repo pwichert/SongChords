@@ -26,11 +26,34 @@ struct OptionsView: View {
                 Text("dark").tag(DisplayMode.dark)
                 Text("system").tag(DisplayMode.automatic)
             }.pickerStyle(.segmented)
-    
-            Toggle("Hide Chords", isOn: $hideChords)
-            Toggle("Text follows Chords", isOn: $textFollowsChords).disabled(hideChords)
-            Toggle("German Notation", isOn: $isGermanNotation)
+            #if os(macOS)
+                .padding(.bottom, 4)
+            #endif
 
+            Section {
+                Toggle("Hide Chords", isOn: $hideChords)
+            }
+            #if os(macOS)
+                .padding(.bottom, 4)
+            #endif
+
+            #if os(macOS)
+            Section(footer: Text("The text is always positioned below the chord").font(.footnote).padding(.bottom, 4)) {
+                Toggle("Text follows Chords", isOn: $textFollowsChords).disabled(hideChords)
+            }
+            #else
+            Section(footer: Text("The text is always positioned below the chord")) {
+                Toggle("Text follows Chords", isOn: $textFollowsChords).disabled(hideChords)
+            }
+            #endif
+
+            Section {
+                Toggle("German Notation", isOn: $isGermanNotation)
+            }
+            #if os(macOS)
+                .padding(.bottom, 4)
+            #endif
+            
             HStack {
                 #if os(iOS)
                 Text("Headersize [\(Int(headerSize))]")
@@ -48,6 +71,9 @@ struct OptionsView: View {
                     Text("Headersize [\(Int(headerSize))]")
                 }
             }
+            #if os(macOS)
+                .padding(.bottom, 4)
+            #endif
 
             HStack {
                 #if os(iOS)
@@ -66,6 +92,9 @@ struct OptionsView: View {
                     Text("Chordsize [\(Int(chordSize))]")
                 }
             }
+            #if os(macOS)
+                .padding(.bottom, 4)
+            #endif
 
             HStack {
                 #if os(iOS)
@@ -151,6 +180,9 @@ struct PrintOptionsView: View {
                     Text("Headersize [\(Int(headerSize))]")
                 }
             }
+            #if os(macOS)
+                .padding(.bottom, 4)
+            #endif
 
             HStack {
                 #if os(iOS)
@@ -169,6 +201,9 @@ struct PrintOptionsView: View {
                     Text("Chordsize [\(Int(chordSize))]")
                 }
             }
+            #if os(macOS)
+                .padding(.bottom, 4)
+            #endif
 
             HStack {
                 #if os(iOS)

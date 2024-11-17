@@ -116,8 +116,12 @@ class PrintSongDelegate: NSObject, PrintDelegateBase, UIPrintInteractionControll
                         // Leerzeile
                         gen.draw(col: line.col, view: Text(" ").font(Font(viewModel.txtPDFUIFont)))
                     } else {
-                        if !viewModel.hidechords { gen.draw(col: line.col, view: ChordsLineView(line: line).font(Font(viewModel.chordPDFUIFont))) }
-                        gen.draw(col: line.col, view: TextsLineView(line: line).font(Font(viewModel.txtPDFUIFont)))
+                        if viewModel.hidechords {
+                            if !line.texts.isEmpty { gen.draw(col: line.col, view: Text(line.plainText).font(Font(viewModel.txtPDFUIFont))) }
+                        } else {
+                            gen.draw(col: line.col, view: ChordsLineView(line: line).font(Font(viewModel.chordPDFUIFont)))
+                            gen.draw(col: line.col, view: TextsLineView(line: line).font(Font(viewModel.txtPDFUIFont)))
+                        }
                     }
                 }
                 

@@ -501,6 +501,16 @@
     "The sky was blue" : {
       "shouldTranslate" : false
     },
+    "The text is always positioned below the chord" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der Text steht immer unter der Akkordposition"
+          }
+        }
+      }
+    },
     "Then you can copy it to the clipboard by selecting/copying. In the app, you can import the song into a playlist by using 'Import Text Clipboard'. It will attempt to recognize as much as possible and display it in a meaningful format." : {
       "localizations" : {
         "de" : {
