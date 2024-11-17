@@ -8,7 +8,7 @@
 public class ChordProReverseParser: ChordsProBase {
     public override init() { super.init() }
 
-    public func toString(sections: [Section]) -> String {
+    public func toString(sections: [CPPSection]) -> String {
         var res: String = ""
 
         for section in sections {
@@ -23,8 +23,8 @@ public class ChordProReverseParser: ChordsProBase {
         return res
     }
     
-    public func parse(input: String) -> [Section] {
-        var sections: [Section] = []
+    public func parse(input: String) -> [CPPSection] {
+        var sections: [CPPSection] = []
         
         var lines = [String]()
         input.enumerateLines{ (line, _) -> () in
@@ -33,7 +33,7 @@ public class ChordProReverseParser: ChordsProBase {
         
         var lastLine: (textElement: [TextElement], isChord: Bool)?
 
-        var lastSection: Section?
+        var lastSection: CPPSection?
         var sectionName: String = ""
         var cnt = lines.count
         
@@ -50,7 +50,7 @@ public class ChordProReverseParser: ChordsProBase {
                 
                 if let lastSection = lastSection { sections.append(lastSection) }
                 sectionName = String(line[s..<e])
-                lastSection = Section(name: sectionName, lines: [])
+                lastSection = CPPSection(name: sectionName, lines: [])
                 
                 continue
             }
@@ -59,7 +59,7 @@ public class ChordProReverseParser: ChordsProBase {
                 // aktuelle Zeile sind Chords
                 if let last = lastLine, last.isChord {
                     // letzte Zeile waren auch Chords, also eine einzelne Chordzeile ohne Text
-                    if lastSection == nil { lastSection = Section(name: sectionName, lines: []) }
+                    if lastSection == nil { lastSection = CPPSection(name: sectionName, lines: []) }
                     lastSection!.splittedLines.append(SplittedLine(chords: last.textElement))
                 }
                 // für nächste Zeile merken
@@ -69,14 +69,14 @@ public class ChordProReverseParser: ChordsProBase {
                 // aktuelle Zeile keine Chords
                 if let last = lastLine, last.isChord {
                     // letzte Zeile waren Chords, also komplette Chord/Text-Zeile
-                    if lastSection == nil { lastSection = Section(name: sectionName, lines: [])}
+                    if lastSection == nil { lastSection = CPPSection(name: sectionName, lines: [])}
                     lastSection!.splittedLines.append(SplittedLine(chords: last.textElement, texts: curLine.textElement))
 
                     // Text als erledigt merken
                     lastLine = nil
                 } else  {
                     // letzte Zeile waren keine Chords, also eine einzelne Textzeile ohne Chord
-                    if lastSection == nil { lastSection = Section(name: sectionName, lines: [])}
+                    if lastSection == nil { lastSection = CPPSection(name: sectionName, lines: [])}
                     lastSection!.splittedLines.append(SplittedLine(texts: curLine.textElement))
                  
                     // Text als erledigt merken
@@ -139,7 +139,7 @@ public class ChordProReverseParser: ChordsProBase {
     }
     
     private func mixSplittedLine(splittedLine: inout SplittedLine) -> String {
-        var txt = stringFromSplittedLineText(splittedLine: &splittedLine) ?? ""
+        var txt = splittedLine.textsToString() ?? ""
         
         // absteigend sortiert
         for chord in splittedLine.chords.sorted(by: { $0.fontOffset > $1.fontOffset }) {
@@ -153,19 +153,19 @@ public class ChordProReverseParser: ChordsProBase {
         return txt
     }
     
-    private func stringFromSplittedLineText(splittedLine: inout SplittedLine) -> String? {
-        if splittedLine.texts.isEmpty { return nil }
-        
-        var res: String = ""
-        
-        for txt in splittedLine.texts {
-            let pos = Int(txt.fontOffset)
-            if res.count < pos {
-                res.append(String(repeating: " ", count: pos - res.count))
-            }
-            res.append(txt.txt)
-        }
-        
-        return res
-    }
+//    private func stringFromSplittedLineText(splittedLine: inout SplittedLine) -> String? {
+//        if splittedLine.texts.isEmpty { return nil }
+//        
+//        var res: String = ""
+//        
+//        for txt in splittedLine.texts {
+//            let pos = Int(txt.fontOffset)
+//            if res.count < pos {
+//                res.append(String(repeating: " ", count: pos - res.count))
+//            }
+//            res.append(txt.txt)
+//        }
+//        
+//        return res
+//    }
 }

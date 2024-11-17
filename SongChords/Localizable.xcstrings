@@ -10,6 +10,12 @@
     "-" : {
       "shouldTranslate" : false
     },
+    "..." : {
+      "shouldTranslate" : false
+    },
+    "%@" : {
+      "shouldTranslate" : false
+    },
     "%@%@" : {
       "localizations" : {
         "en" : {
@@ -35,6 +41,36 @@
     "+" : {
       "shouldTranslate" : false
     },
+    "1st Option" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1. Möglichkeit"
+          }
+        }
+      }
+    },
+    "2nd Option" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "2. Möglichkeit"
+          }
+        }
+      }
+    },
+    "3rd Option" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "3. Möglichkeit"
+          }
+        }
+      }
+    },
     "Abort" : {
       "localizations" : {
         "de" : {
@@ -44,6 +80,9 @@
           }
         }
       }
+    },
+    "Am          C" : {
+      "shouldTranslate" : false
     },
     "Cancel" : {
       "localizations" : {
@@ -171,6 +210,16 @@
         }
       }
     },
+    "For all variants, you first create/select a playlist, as the new song will be associated with that playlist." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bei allen Möglichkeiten sollte zunächst eine Playliste erstellt bzw. ausgewählt werden, da der neue Song damit verknüpft wird."
+          }
+        }
+      }
+    },
     "German Notation" : {
       "localizations" : {
         "de" : {
@@ -191,12 +240,55 @@
         }
       }
     },
+    "Hide Chords" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Akkorde nicht darstellen"
+          }
+        }
+      }
+    },
+    "How to create a song?" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wie wird ein neuer Song erstellt?"
+          }
+        }
+      }
+    },
+    "If you have already displayed the song somewhere in the typical chord/text format, e.g., in a browser or PDF:" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Falls du bereits einen Song irgendwo in dem typischen Akkord/Text-Format angezeigt hast, z.B. in einem Browser:"
+          }
+        }
+      }
+    },
+    "Import" : {
+      "shouldTranslate" : false
+    },
     "Import ChordPro File" : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "ChordPro-Datei importieren"
+          }
+        }
+      }
+    },
+    "Import song to playlist %@?" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Import Song in Playlist %@?"
           }
         }
       }
@@ -367,6 +459,9 @@
         }
       }
     },
+    "Share" : {
+      "shouldTranslate" : false
+    },
     "Song..." : {
       "localizations" : {
         "de" : {
@@ -383,12 +478,35 @@
     "system" : {
       "shouldTranslate" : false
     },
+    "Text follows Chords" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Text folgt Akkorden"
+          }
+        }
+      }
+    },
     "Textsize [%lld]" : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Textgröße [%lld]"
+          }
+        }
+      }
+    },
+    "The sky was blue" : {
+      "shouldTranslate" : false
+    },
+    "Then you can copy it to the clipboard by selecting/copying. In the app, you can import the song into a playlist by using 'Import Text Clipboard'. It will attempt to recognize as much as possible and display it in a meaningful format." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dann kannst du diesen Text auswählen/kopieren. In der App wird der Text mit 'Text von Zwischenablage importieren' als Song in eine Playliste importiert. Dabei wird versucht, so viel wie möglich zu erkennen und darzustellen."
           }
         }
       }
@@ -419,6 +537,36 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Transponieren [%lld]"
+          }
+        }
+      }
+    },
+    "You can import a ChordPro file; the app understands the key directives. The song can be inserted into a playlist using 'Import ChordPro File'. The ChordPro file should have the extension .chpro" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Du kannst eine ChordPro-Datei importieren. Der Song wird mit 'ChordPro-Datei importieren' in die Playliste importiert. Die Dateiendung ist meist .chpro"
+          }
+        }
+      }
+    },
+    "You create a new template by selecting 'New Song Template'. You can customize this template to your preferences using 'Edit ChordPro Text'." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Du kannst eine neue Vorlage mit 'neue Vorlage erstellen' erstellen. Anschließend kannst du diese Vorlage mit 'ChordPro-Text editieren' an deine Wünsche anpassen."
+          }
+        }
+      }
+    },
+    "You initially see the live representation of the song. By toggling with 'Toggle PDF', the display switches to print view, taking ChordPro directives into account." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Du siehst nach dem Import die Live-Darstellung des Songs. Mit dem Schalter 'PDF umschalten' kann in die PDF-Sicht gewechselt werden. Die wesentlichen ChordPro-Direktiven werden dabei berücksichtigt."
           }
         }
       }

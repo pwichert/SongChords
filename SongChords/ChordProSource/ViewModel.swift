@@ -25,7 +25,13 @@ public class ViewModel {
     
     var isGermanNotation: Bool = UserDefaults.standard.bool(forKey: "set_isGermanNotation")
     { didSet { UserDefaults.standard.set(isGermanNotation, forKey: "set_isGermanNotation") }}
-    
+
+    var hidechords: Bool = UserDefaults.standard.bool(forKey: "set_hidechords")
+    { didSet { UserDefaults.standard.set(hidechords, forKey: "set_hidechords") }}
+
+    var textfollowschords: Bool = UserDefaults.standard.bool(forKey: "set_textfollowschords")
+    { didSet { UserDefaults.standard.set(textfollowschords, forKey: "set_textfollowschords") }}
+
     var headerUIFont: UIFont {
         return UIFont.systemFont(ofSize: headersize, weight: .bold)
     }

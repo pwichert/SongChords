@@ -176,6 +176,7 @@ struct PlaylistEditView: View {
                     }
                     dismiss()
                 }
+                .disabled(playlistTitle.isEmpty)
             }
             ToolbarItem(placement: .cancellationAction) {
                 Button("Cancel") {

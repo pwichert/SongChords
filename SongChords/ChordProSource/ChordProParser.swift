@@ -18,10 +18,10 @@ enum ParserError: Error {
 public class SongRepresentation: Identifiable {
     public let id = UUID()
     
-    let sections: [Section]
+    let sections: [CPPSection]
     let directiveManager: DirectiveManager
     
-    init(sections: [Section], directiveManager: DirectiveManager) {
+    init(sections: [CPPSection], directiveManager: DirectiveManager) {
         self.sections = sections
         self.directiveManager = directiveManager
     }
@@ -53,7 +53,7 @@ public class SongRepresentation: Identifiable {
     }
 }
 
-public class Section: Identifiable {
+public class CPPSection: Identifiable {
     public let id = UUID()
     
     let name: String
@@ -75,6 +75,22 @@ struct SplittedLine: Identifiable {
     
     var onNewPage: Bool = false
     var col: Int = 0
+    
+    func textsToString() -> String? {
+        if texts.isEmpty { return nil }
+        
+        var res: String = ""
+        
+        for txt in texts {
+            let pos = Int(txt.fontOffset)
+            if res.count < pos {
+                res.append(String(repeating: " ", count: pos - res.count))
+            }
+            res.append(txt.txt)
+        }
+        
+        return res
+    }
 }
 
 struct Line: Identifiable {
@@ -125,7 +141,7 @@ public class ChordProParser: ChordsProBase {
     // Directiven sind nicht mehr enthalten
     
     public func parse() throws -> SongRepresentation {
-        var sections: [Section] = []
+        var sections: [CPPSection] = []
         
         var currentLineElements: [Element] = []
         var currentSectionLines: [Line] = []
@@ -143,10 +159,9 @@ public class ChordProParser: ChordsProBase {
         let txtf = forPrinting ? viewModel.txtPDFUIFont : viewModel.txtUIFont
         let chordf = forPrinting ? viewModel.chordPDFUIFont : viewModel.chordUIFont
         
-        // feste Optionen
         let showText: Bool = true
-        let showChords = true
-        let textFollowsChords = false
+        let showChords: Bool = !viewModel.hidechords
+        let textFollowsChords: Bool = viewModel.textfollowschords
         
         while position < tokens.count {
             if Task.isCancelled { print("cancelled"); break }
@@ -268,7 +283,7 @@ public class ChordProParser: ChordsProBase {
                 if currentSectionLines.isEmpty && currentLineElements.isEmpty { return }
             }
             
-            sections.append(Section(name: currentSectionName, lines: currentSectionLines))
+            sections.append(CPPSection(name: currentSectionName, lines: currentSectionLines))
             currentSectionLines = []
         }
         
@@ -319,7 +334,7 @@ public class ChordProParser: ChordsProBase {
                             if showChords {
                                 // textFollowsChords == true: Text genau an Chord-Position, wird danach aber evtl. auseinander gezogen
                                 // sym !== symLine.symbols.first && txt.isEmpty: Text nur beim ersten Mal genau an Chord-Position, wird danach aber nicht mehr auseinander gezogen (z.B.: [Bb][B][Am]c[A]d[A]e[A][Bb][B][Am]c[A]d[A]e[A])
-                                if textFollowsChords || (spl.chords.count == 1 && spl.texts.isEmpty) {
+                                if textFollowsChords || (spl.chords.count > 1 && spl.texts.isEmpty) {
                                     nextTextPosition = position
                                 }
                             }
@@ -334,7 +349,7 @@ public class ChordProParser: ChordsProBase {
                             
                             if showChords {
                                 // siehe oben
-                                if textFollowsChords || (spl.chords.count == 1 && spl.texts.isEmpty) {
+                                if textFollowsChords || (spl.chords.count > 1 && spl.texts.isEmpty) {
                                     nextTextPosition = position
                                 }
                             }

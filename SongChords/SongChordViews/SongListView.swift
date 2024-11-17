@@ -21,6 +21,9 @@ struct SongListView: View {
     @State private var showExportToFolder: Bool = false
     @State private var contextSong: Song?
 
+    @State private var showOnOpenUrlImport: Bool = false
+    @State private var onOpenUrl: URL?
+
     var body: some View {
         List {
             ForEach((playlist.songs?.sorted(by: { $0.seq < $1.seq }))!) { song in
@@ -80,7 +83,7 @@ struct SongListView: View {
                     #else
                     Button(action: { showExportToFolder.toggle() }) { Label("Export Playlist", systemImage: "arrow.up.doc") }.help("Export Playlist")
                     #endif
-                    #if false
+                    #if false   // kein Drucken
                     Button(action: { Task { await printSetlist() }}) { Label("Print Setlist", systemImage: "printer.dotmatrix") }.help("Print Setlist")
                     #endif
                 }
@@ -120,6 +123,20 @@ struct SongListView: View {
             Button("Delete", role: .destructive) {
                 if let deleteIndexset = deleteIndexset {
                     deleteSongs(playlist: playlist, offsets: deleteIndexset)
+                }
+            }
+        }
+        .onOpenURL(perform: { url in
+            print("onOpenURL: \(url) in \(playlist.title)")
+            onOpenUrl = url
+            showOnOpenUrlImport.toggle()
+        })
+        .confirmationDialog(Text("Import song to playlist \(playlist.title)?"), isPresented: $showOnOpenUrlImport, titleVisibility: .visible) {
+            Button("Import") {
+                withAnimation {
+                    if let onOpenUrl = onOpenUrl {
+                        _ = importTextSong(url: onOpenUrl)
+                    }
                 }
             }
         }

@@ -32,7 +32,7 @@ struct SongView: View {
                     
                     Color.clear.frame(width: 1, height: viewSize.size.height, alignment: .center)
                     Color.clear.frame(width: viewSize.size.width, height: 1, alignment: .center)
-                }
+                }.padding(0)
             }
         }
         .toolbar {
@@ -43,11 +43,20 @@ struct SongView: View {
                 Button("Toggle PDF", systemImage: pdfUrl == nil ? "text.viewfinder" : "text.alignleft", action: { if pdfUrl == nil { showPdf() } else { pdfUrl = nil } }).help("Toggle PDF")
             }
             ToolbarItem {
-                Button("Export ChordPro file", systemImage: "square.and.arrow.up", action: { uttype = .plainText; showPDFExport.toggle() }).help("Export ChordPro file")
-            }
-            ToolbarItem {
                 Button("Export PDF file", systemImage: "arrow.up.document", action: { uttype = .pdf; showPDFExport.toggle() }).help("Export PDF file")
             }
+            #if true// && os(iOS)
+            ToolbarItem {
+                ShareLink(
+                    item: song.saveDataToFile(filename: "\(song.title).chpro")!,
+                    preview: SharePreview(song.title, image: Image(systemName: "doc.text"))
+                ).help("Share")
+            }
+            #else
+            ToolbarItem {
+                Button("Export ChordPro file", systemImage: "square.and.arrow.up", action: { uttype = .plainText; showPDFExport.toggle() }).help("Export ChordPro file")
+            }
+            #endif
         }
         .sheet(isPresented: $showSongEditView) {
             NavigationStack {
@@ -107,7 +116,7 @@ struct DetailContent: View {
                             // Leerzeile
                             Text(" ").font(Font(viewModel.txtUIFont))
                         } else {
-                            ChordsLineView(line: line).font(Font(viewModel.chordUIFont))
+                            if !viewModel.hidechords { ChordsLineView(line: line).font(Font(viewModel.chordUIFont)) }
                             TextsLineView(line: line).font(Font(viewModel.txtUIFont))
                         }
                     }.padding(EdgeInsets(top: 0, leading: 0, bottom: viewModel.linespacing, trailing: 0))
@@ -134,11 +143,19 @@ struct DetailContent: View {
             print("isGermanNotation changed")
             song.processSongInBackground(viewModel: viewModel, forPrinting: false)
         }
+        .onChange(of: viewModel.textfollowschords, initial: false) {
+            print("textfollowschords changed")
+            song.processSongInBackground(viewModel: viewModel, forPrinting: false)
+        }
+        .onChange(of: viewModel.hidechords, initial: false) {
+            print("dontshowchords changed")
+            song.processSongInBackground(viewModel: viewModel, forPrinting: false)
+        }
     }
 }
 
 struct SectionHeaderView: View {
-    var section: Section
+    var section: CPPSection
     var showHeader: Bool = true
     
     @Environment(ViewModel.self) private var viewModel

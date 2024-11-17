@@ -178,11 +178,11 @@ final public class Song: Codable {
         }
     }
     
-//    static func songFromData(url: URL) throws -> Song {
-//        let songData = try Data(contentsOf: url)
-//        let decoder = JSONDecoder()
-//        return try decoder.decode(Song.self, from: songData)
-//    }
+    static func songFromData(url: URL) throws -> Song {
+        let songData = try Data(contentsOf: url)
+        let decoder = JSONDecoder()
+        return try decoder.decode(Song.self, from: songData)
+    }
     
     static func songFromText(url: URL) throws -> Song {
         let songData = try Data(contentsOf: url)
@@ -195,6 +195,19 @@ final public class Song: Codable {
     
     func songToData() -> Data {
         return srcText.data(using: .utf8)!
+    }
+    
+    func saveDataToFile(filename: String) -> URL? {
+        let tempDirectory = FileManager.default.temporaryDirectory
+        let fileURL = tempDirectory.appendingPathComponent(filename)
+        do {
+            let data = songToData()
+            try data.write(to: fileURL)
+            return fileURL
+        } catch {
+            print("Fehler beim Speichern der Datei: \(error)")
+            return nil
+        }
     }
     
     static func findObject(modelContext: ModelContext, song: Song) -> Song? {
@@ -261,20 +274,8 @@ final public class Song: Codable {
 
 extension Song: Transferable {
     public static var transferRepresentation: some TransferRepresentation {
-        
-        FileRepresentation(exportedContentType: .pdf, exporting: { song in
-            print("FileRepresentation (.pdf) exported song \(song.title)")
-            let viewModel = ViewModel()
-            let delegate = await PrintSongDelegate(viewModel: viewModel, song: song)
-            let defaultPaper = MediaBoxes.getBox(name: viewModel.mediabox)
-            let pdfUrl = await delegate.createPDF(paperSize: defaultPaper)
-            return SentTransferredFile(pdfUrl!, allowAccessingOriginalFile: false)
-        }).suggestedFileName { song in
-            (song.title.count > 0 ? song.title : "song")
-        }
-        
         FileRepresentation(exportedContentType: .plainText, exporting: { song in
-            print("FileRepresentation (.text) exported song \(song.title)")
+            print("FileRepresentation (.plainText) exported song \(song.title)")
             let cacheDirectoryURL =
             try FileManager.default.url(for: .cachesDirectory,
                                         in: .userDomainMask,
@@ -286,6 +287,17 @@ extension Song: Transferable {
             let fileurl = cacheDirectoryURL.appending(component: filename)
             try data.write(to: fileurl)
             return SentTransferredFile(fileurl, allowAccessingOriginalFile: true)
+        }).suggestedFileName { song in
+            (song.title.count > 0 ? song.title : "song")
+        }
+        
+        FileRepresentation(exportedContentType: .pdf, exporting: { song in
+            print("FileRepresentation (.pdf) exported song \(song.title)")
+            let viewModel = ViewModel()
+            let delegate = await PrintSongDelegate(viewModel: viewModel, song: song)
+            let defaultPaper = MediaBoxes.getBox(name: viewModel.mediabox)
+            let pdfUrl = await delegate.createPDF(paperSize: defaultPaper)
+            return SentTransferredFile(pdfUrl!, allowAccessingOriginalFile: false)
         }).suggestedFileName { song in
             (song.title.count > 0 ? song.title : "song")
         }

@@ -15,10 +15,22 @@ struct OptionsView: View {
     @State private var txtSize: Double = 0
     @State private var headerSize: Double = 0
     @State private var isGermanNotation: Bool = false
+    @State private var textFollowsChords: Bool = false
+    @State private var hideChords: Bool = false
     @State private var displayMode: DisplayMode = .automatic
     
     var body: some View {
         Form {
+            Picker("Display Mode", selection: $displayMode) {
+                Text("light").tag(DisplayMode.light)
+                Text("dark").tag(DisplayMode.dark)
+                Text("system").tag(DisplayMode.automatic)
+            }.pickerStyle(.segmented)
+    
+            Toggle("Hide Chords", isOn: $hideChords)
+            Toggle("Text follows Chords", isOn: $textFollowsChords).disabled(hideChords)
+            Toggle("German Notation", isOn: $isGermanNotation)
+
             HStack {
                 #if os(iOS)
                 Text("Headersize [\(Int(headerSize))]")
@@ -72,14 +84,9 @@ struct OptionsView: View {
                     Text("Textsize [\(Int(txtSize))]")
                 }
             }
-         
-            Picker("Display Mode", selection: $displayMode) {
-                Text("light").tag(DisplayMode.light)
-                Text("dark").tag(DisplayMode.dark)
-                Text("system").tag(DisplayMode.automatic)
-            }.pickerStyle(.segmented)
-            
-            Toggle("German Notation", isOn: $isGermanNotation)
+        }
+        .onChange(of: hideChords, initial: false) {
+            if hideChords { textFollowsChords = false }
         }
         #if os(macOS)
         .padding()
@@ -92,6 +99,8 @@ struct OptionsView: View {
                     if Int(txtSize) != Int(viewModel.txtsize) { viewModel.txtsize = txtSize }
                     if Int(headerSize) != Int(viewModel.headersize) { viewModel.headersize = headerSize }
                     if isGermanNotation != viewModel.isGermanNotation { viewModel.isGermanNotation = isGermanNotation }
+                    if hideChords != viewModel.hidechords { viewModel.hidechords = hideChords }
+                    if textFollowsChords != viewModel.textfollowschords { viewModel.textfollowschords = textFollowsChords }
                     if displayMode != viewModel.displayMode { viewModel.displayMode = displayMode }
                     
                     dismiss()
@@ -108,6 +117,8 @@ struct OptionsView: View {
             txtSize = viewModel.txtsize
             headerSize = viewModel.headersize
             isGermanNotation = viewModel.isGermanNotation
+            hideChords = viewModel.hidechords
+            textFollowsChords = viewModel.textfollowschords
             displayMode = viewModel.displayMode
         }
     }
@@ -216,7 +227,39 @@ struct InfoView: View {
                     Spacer()
                     Text(viewModel.getVersion()).font(.title)
                     Spacer()
+                }.padding(.bottom, 20)
+                
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("How to create a song?").font(.headline)
+                    Text(" ")
+                    Section {
+                        Text("For all variants, you first create/select a playlist, as the new song will be associated with that playlist.")
+                    }
+                    Section(header: Text("1st Option")) {
+                        Text("If you have already displayed the song somewhere in the typical chord/text format, e.g., in a browser or PDF:")
+                        
+                        VStack(alignment: .leading) {
+                            Text("Am          C")
+                            Text("The sky was blue")
+                            Text("...")
+                        }.fontDesign(.monospaced).lineSpacing(0)
+                        
+                        Text("Then you can copy it to the clipboard by selecting/copying. In the app, you can import the song into a playlist by using 'Import Text Clipboard'. It will attempt to recognize as much as possible and display it in a meaningful format.")
+                    }
+                    Section(header: Text("2nd Option")) {
+                        Text("You can import a ChordPro file; the app understands the key directives. The song can be inserted into a playlist using 'Import ChordPro File'. The ChordPro file should have the extension .chpro")
+                    }
+                    Section(header: Text("3rd Option")) {
+                        Text("You create a new template by selecting 'New Song Template'. You can customize this template to your preferences using 'Edit ChordPro Text'.")
+                    }
+                    Text(" ")
+                    Section {
+                        Text("You initially see the live representation of the song. By toggling with 'Toggle PDF', the display switches to print view, taking ChordPro directives into account.")
+                    }
                 }
+                #if os(iOS)
+                .font(.footnote)
+                #endif
             }.padding()
         }
         .navigationTitle("Info")

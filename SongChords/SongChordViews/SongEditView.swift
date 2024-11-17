@@ -89,7 +89,7 @@ struct SongEditView: View {
                     }
                     
                     dismiss()
-                }
+                }.disabled(title.isEmpty)
             }
             ToolbarItem(placement: .cancellationAction) {
                 Button("Cancel") {
