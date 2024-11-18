@@ -9,7 +9,7 @@ import SwiftUI
 import UniformTypeIdentifiers
 
 struct SongView: View {
-    var song: Song
+    let song: Song
 
     @Environment(ViewModel.self) private var viewModel
 
@@ -20,37 +20,18 @@ struct SongView: View {
     @State private var uttype: UTType = .plainText
     
     var body: some View {
-        Group {
-            if viewModel.hidechords {
-                GeometryReader { viewSize in    // Größe des umgebenden Containers
-                    ScrollView() {
-                        ZStack(alignment: .topLeading) {
-                            if let pdfUrl = pdfUrl {
-                                PDFKitView(url: pdfUrl)
-                            } else {
-                                DetailContent(song: song, representationHolder: song.representationHolder)
-                            }
-                            
-                            Color.clear.frame(width: 1, height: viewSize.size.height, alignment: .center)
-                            Color.clear.frame(width: viewSize.size.width, height: 1, alignment: .center)
-                        }.padding(0)
+        GeometryReader { viewSize in    // Größe des umgebenden Containers
+            ScrollView(viewModel.hidechords ? .vertical : [.horizontal, .vertical]) {
+                ZStack(alignment: .topLeading) {
+                    if let pdfUrl = pdfUrl {
+                        PDFKitView(url: pdfUrl)
+                    } else {
+                        DetailContent(song: song, representationHolder: song.representationHolder)
                     }
-                }
-            } else {
-                GeometryReader { viewSize in    // Größe des umgebenden Containers
-                    ScrollView([.horizontal, .vertical]) {
-                        ZStack(alignment: .topLeading) {
-                            if let pdfUrl = pdfUrl {
-                                PDFKitView(url: pdfUrl)
-                            } else {
-                                DetailContent(song: song, representationHolder: song.representationHolder)
-                            }
-                            
-                            Color.clear.frame(width: 1, height: viewSize.size.height, alignment: .center)
-                            Color.clear.frame(width: viewSize.size.width, height: 1, alignment: .center)
-                        }.padding(0)
-                    }
-                }
+                    
+                    Color.clear.frame(width: 1, height: viewSize.size.height, alignment: .center)
+                    Color.clear.frame(width: viewSize.size.width, height: 1, alignment: .center)
+                }.padding(0)
             }
         }
         .toolbar {
@@ -113,19 +94,21 @@ struct SongView: View {
 }
 
 struct DetailContent: View {
-    var song: Song
+    let song: Song
     @ObservedObject var representationHolder: RepresentationHolder
 
     @Environment(ViewModel.self) private var viewModel
     
+    @State private var lightColor = Color.init(red: 0.85, green: 0.85, blue: 0.85)
+    @State private var darkColor = Color.init(red: 0.25, green: 0.25, blue: 0.25)
+
     var body: some View {
         VStack (alignment: .leading) {
             Text(song.title).font(.title).fontWeight(.bold).padding(.bottom, 20)
 //            let _ = Self._printChanges()
             
             ForEach(representationHolder.songRepresentation.sections) { section in
-                SectionHeaderView(section: section)
-                    .font(Font(viewModel.headerUIFont))
+                SectionHeaderView(section: section, lightColor: lightColor, darkColor: darkColor).font(Font(viewModel.headerUIFont))
                     .padding(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0))
                 
                 ForEach(section.splittedLines) { line in
@@ -133,52 +116,34 @@ struct DetailContent: View {
                         if line.chords.isEmpty && line.texts.isEmpty {
                             // Leerzeile
                             Text(" ").font(Font(viewModel.txtUIFont))
+                        } else if viewModel.hidechords {
+                            if !line.texts.isEmpty { Text(line.plainText).font(Font(viewModel.txtUIFont)) }
                         } else {
-                            if viewModel.hidechords {
-                                if !line.texts.isEmpty { Text(line.plainText).font(Font(viewModel.txtUIFont)) }
-                            } else {
-                                ChordsLineView(line: line).font(Font(viewModel.chordUIFont))
-                                TextsLineView(line: line).font(Font(viewModel.txtUIFont))
-                            }
+                            ChordsLineView(line: line, lightColor: lightColor, darkColor: darkColor).font(Font(viewModel.chordUIFont))
+                            TextsLineView(line: line).font(Font(viewModel.txtUIFont))
                         }
                     }.padding(EdgeInsets(top: 0, leading: 0, bottom: viewModel.linespacing, trailing: 0))
                 }
             }
         }.padding()
-        .onChange(of: song, initial: true) {
-            print("song changed")
-            song.processSongInBackground(viewModel: viewModel, forPrinting: false)
-        }
-        .onChange(of: viewModel.chordsize, initial: false) {
-            print("chordsize changed")
-            song.processSongInBackground(viewModel: viewModel, forPrinting: false)
-        }
-        .onChange(of: viewModel.txtsize, initial: false) {
-            print("txtsize changed")
-            song.processSongInBackground(viewModel: viewModel, forPrinting: false)
-        }
-        .onChange(of: viewModel.headersize, initial: false) {
-            print("headersize changed")
-            song.processSongInBackground(viewModel: viewModel, forPrinting: false)
-        }
-        .onChange(of: viewModel.isGermanNotation, initial: false) {
-            print("isGermanNotation changed")
-            song.processSongInBackground(viewModel: viewModel, forPrinting: false)
-        }
-        .onChange(of: viewModel.textfollowschords, initial: false) {
-            print("textfollowschords changed")
-            song.processSongInBackground(viewModel: viewModel, forPrinting: false)
-        }
-        .onChange(of: viewModel.hidechords, initial: false) {
-            print("dontshowchords changed")
-            song.processSongInBackground(viewModel: viewModel, forPrinting: false)
-        }
+        .onChange(of: song, initial: true) { print("song changed"); updateSongRepresentation() }
+        .onChange(of: viewModel.chordsize, initial: false) { print("chordsize changed"); updateSongRepresentation() }
+        .onChange(of: viewModel.txtsize, initial: false) { print("txtsize changed"); updateSongRepresentation() }
+        .onChange(of: viewModel.headersize, initial: false) { print("headersize changed"); updateSongRepresentation() }
+        .onChange(of: viewModel.isGermanNotation, initial: false) { print("isGermanNotation changed"); updateSongRepresentation() }
+        .onChange(of: viewModel.textfollowschords, initial: false) { print("textfollowschords changed"); updateSongRepresentation() }
+    }
+    
+    private func updateSongRepresentation() {
+        song.processSongInBackground(viewModel: viewModel, forPrinting: false)
     }
 }
 
 struct SectionHeaderView: View {
-    var section: CPPSection
-    var showHeader: Bool = true
+    let section: CPPSection
+    let lightColor: Color
+    let darkColor: Color
+    let showHeader: Bool = true
     
     @Environment(ViewModel.self) private var viewModel
     @Environment(\.colorScheme) var colorScheme
@@ -191,7 +156,7 @@ struct SectionHeaderView: View {
                 Spacer()
             }
             .padding(1)
-            .background(colorScheme == .dark ? Color.init(red: 0.25, green: 0.25, blue: 0.25) : Color.init(red: 0.85, green: 0.85, blue: 0.85))
+            .background(colorScheme == .dark ? darkColor : lightColor)
             .cornerRadius(5)
         } else {
             HStack {
@@ -202,7 +167,9 @@ struct SectionHeaderView: View {
 }
 
 struct ChordsLineView: View {
-    var line: SplittedLine
+    let line: SplittedLine
+    let lightColor: Color
+    let darkColor: Color
     
     @Environment(ViewModel.self) private var viewModel
     @Environment(\.colorScheme) var colorScheme
@@ -211,13 +178,22 @@ struct ChordsLineView: View {
         ZStack(alignment: .topLeading) {
             ForEach(line.chords) { chord in
                 HStack(alignment: .center, spacing: 0) {
-                    Color.clear.frame(width: chord.fontOffset, height: 0.1, alignment: .center)
-                    
-                    Text(chord.txt)
-                        .lineLimit(1)
-                        .padding(.horizontal, 0.8)
-                        .background(chord.background ? (colorScheme == .dark ? Color.init(red: 0.25, green: 0.25, blue: 0.25) : Color.init(red: 0.85, green: 0.85, blue: 0.85)) : Color.clear)
-                        .clipShape(RoundedRectangle(cornerRadius: 4, style: .circular))
+                    if line.chords.last == chord {
+                        Color.clear.frame(width: chord.fontOffset, height: 0.1, alignment: .leading)
+                        
+                        Text(chord.txt)
+                            .lineLimit(1)
+                            .padding(.horizontal, 0.8)
+                            .background(chord.background ? (colorScheme == .dark ? darkColor : lightColor) : Color.clear)
+                            .clipShape(RoundedRectangle(cornerRadius: 4, style: .circular))
+                    } else {
+                        Text(chord.txt)
+                            .lineLimit(1)
+                            .padding(.horizontal, 0.8)
+                            .background(chord.background ? (colorScheme == .dark ? darkColor : lightColor) : Color.clear)
+                            .clipShape(RoundedRectangle(cornerRadius: 4, style: .circular))
+                            .offset(CGSize(width: chord.fontOffset, height: 0))
+                    }
                 }
             }
         }
@@ -225,7 +201,7 @@ struct ChordsLineView: View {
 }
 
 struct TextsLineView: View {
-    var line: SplittedLine
+    let line: SplittedLine
     
     @Environment(ViewModel.self) private var viewModel
 
@@ -233,10 +209,16 @@ struct TextsLineView: View {
         ZStack(alignment: .topLeading) {
             ForEach(line.texts) { text in
                 HStack(alignment: .center, spacing: 0) {
-                    Color.clear.frame(width: text.fontOffset, height: 0.1, alignment: .center)
-                    
-                    Text(text.txt)
-                        .lineLimit(1)
+                    if line.texts.last == text {
+                        Color.clear.frame(width: text.fontOffset, height: 0.1, alignment: .center)
+                        
+                        Text(text.txt)
+                            .lineLimit(1)
+                    } else {
+                        Text(text.txt)
+                            .lineLimit(1)
+                            .offset(CGSize(width: text.fontOffset, height: 0))
+                    }
                 }
             }
         }

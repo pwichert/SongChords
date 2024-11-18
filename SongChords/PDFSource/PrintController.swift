@@ -106,7 +106,7 @@ class PrintSongDelegate: NSObject, PrintDelegateBase, UIPrintInteractionControll
             
             for section in songRepresentation.sections {
                 gen.draw(col: section.col, view:
-                            SectionHeaderView(section: section)
+                            SectionHeaderView(section: section, lightColor: Color.init(red: 0.95, green: 0.95, blue: 0.95), darkColor: Color.init(red: 0.15, green: 0.15, blue: 0.15))
                             .font(Font(viewModel.headerPDFUIFont))
                             .padding(EdgeInsets(top: topPadding, leading: 0, bottom: 4, trailing: 0)))
                                 
@@ -115,13 +115,11 @@ class PrintSongDelegate: NSObject, PrintDelegateBase, UIPrintInteractionControll
                     if line.chords.isEmpty && line.texts.isEmpty {
                         // Leerzeile
                         gen.draw(col: line.col, view: Text(" ").font(Font(viewModel.txtPDFUIFont)))
+                    } else if viewModel.hidechords {
+                        if !line.texts.isEmpty { gen.draw(col: line.col, view: Text(line.plainText).font(Font(viewModel.txtPDFUIFont))) }
                     } else {
-                        if viewModel.hidechords {
-                            if !line.texts.isEmpty { gen.draw(col: line.col, view: Text(line.plainText).font(Font(viewModel.txtPDFUIFont))) }
-                        } else {
-                            gen.draw(col: line.col, view: ChordsLineView(line: line).font(Font(viewModel.chordPDFUIFont)))
-                            gen.draw(col: line.col, view: TextsLineView(line: line).font(Font(viewModel.txtPDFUIFont)))
-                        }
+                        gen.draw(col: line.col, view: ChordsLineView(line: line, lightColor: Color.init(red: 0.95, green: 0.95, blue: 0.95), darkColor: Color.init(red: 0.15, green: 0.15, blue: 0.15)).font(Font(viewModel.chordPDFUIFont)))
+                        gen.draw(col: line.col, view: TextsLineView(line: line).font(Font(viewModel.txtPDFUIFont)))
                     }
                 }
                 

@@ -152,20 +152,4 @@ public class ChordProReverseParser: ChordsProBase {
         
         return txt
     }
-    
-//    private func stringFromSplittedLineText(splittedLine: inout SplittedLine) -> String? {
-//        if splittedLine.texts.isEmpty { return nil }
-//        
-//        var res: String = ""
-//        
-//        for txt in splittedLine.texts {
-//            let pos = Int(txt.fontOffset)
-//            if res.count < pos {
-//                res.append(String(repeating: " ", count: pos - res.count))
-//            }
-//            res.append(txt.txt)
-//        }
-//        
-//        return res
-//    }
 }

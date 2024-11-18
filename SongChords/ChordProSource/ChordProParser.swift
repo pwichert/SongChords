@@ -98,12 +98,11 @@ struct Line: Identifiable {
     let id = UUID()
     
     let elements: [Element]
-    let plainText: String
     let lineIsColumnBreak: Bool
     let lineIsNewPage: Bool
 }
 
-struct TextElement: Identifiable {
+struct TextElement: Identifiable, Equatable {
     let id = UUID()
     
     let txt: String
@@ -164,8 +163,6 @@ public class ChordProParser: ChordsProBase {
         let showText: Bool = true
         let showChords: Bool = !viewModel.hidechords
         let textFollowsChords: Bool = viewModel.textfollowschords
-        
-        var txt: String = ""
         
         while position < tokens.count {
             if Task.isCancelled { print("cancelled"); break }
@@ -229,13 +226,11 @@ public class ChordProParser: ChordsProBase {
                 let str = processReplace(viewModel: viewModel, srcline: text)
                 let strLen = sizeOfString(string: str, font: txtf)
                 currentLineElements.append(Element(type: .text(str, strLen)))
-                txt.append(str)
                 
             case .comment(let text):
                 let str = processReplace(viewModel: viewModel, srcline: text)
                 let strLen = sizeOfString(string: str, font: txtf)
                 currentLineElements.append(Element(type: .comment(str, strLen)))
-                txt.append(str)
                 
             case .newLine: break
                 
@@ -260,10 +255,9 @@ public class ChordProParser: ChordsProBase {
                     currentSectionName = newSectionName
                 } else if numDirectives == 0 || !onlyWhitespace(elements: &currentLineElements) {
                     // Zeile einfügen, falls sie nicht nur aus Directiven (+ evtl. WhiteSpace) besteht
-                    currentSectionLines.append(Line(elements: currentLineElements, plainText: txt, lineIsColumnBreak: lineIsColumnBreak, lineIsNewPage: lineIsNewPage))
+                    currentSectionLines.append(Line(elements: currentLineElements, lineIsColumnBreak: lineIsColumnBreak, lineIsNewPage: lineIsNewPage))
                 }
                 
-                txt = ""
                 currentLineElements = []
                 numDirectives = 0
                 numChords = 0
@@ -296,7 +290,7 @@ public class ChordProParser: ChordsProBase {
         
         func appendCurrentLineElements() {
             if !currentLineElements.isEmpty {
-                currentSectionLines.append(Line(elements: currentLineElements, plainText: txt, lineIsColumnBreak: lineIsColumnBreak, lineIsNewPage: lineIsNewPage))
+                currentSectionLines.append(Line(elements: currentLineElements, lineIsColumnBreak: lineIsColumnBreak, lineIsNewPage: lineIsNewPage))
                 currentLineElements = []
             }
         }
@@ -314,7 +308,6 @@ public class ChordProParser: ChordsProBase {
                     var minNextChordPosition: Double = 0
                     
                     var spl = SplittedLine()
-                    spl.plainText = line.plainText
                     
                     if line.lineIsNewPage { spl.onNewPage = true }
                     
@@ -368,6 +361,7 @@ public class ChordProParser: ChordsProBase {
                         case .text(let txt, let len), .comment(let txt, let len):
                             let tElem = TextElement(txt: txt, fontOffset: nextTextPosition, background: false)
                             spl.texts.append(tElem)
+                            spl.plainText.append(txt)
                             
                             // Chordabstand erzeugen, falls Whitespace
                             if txt.trimmingCharacters(in: .whitespaces).count == 0 {

@@ -9,7 +9,7 @@ import SwiftUI
 import SwiftData
 
 struct SongListView: View {
-    var playlist: PlayList  // Übergebene Playlist
+    let playlist: PlayList  // Übergebene Playlist
     
     @Environment(\.modelContext) private var modelContext
     @Environment(ViewModel.self) private var viewModel
@@ -290,8 +290,8 @@ struct SongListView: View {
 struct MovePlaylistView: View {
     @Environment(\.dismiss) private var dismiss
 
-    var song: Song
-    var fromPlaylist: PlayList?
+    let song: Song
+    let fromPlaylist: PlayList?
 
     @State private var selected: PlayList?
     
@@ -336,8 +336,8 @@ struct MacMovePlaylistView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) var colorScheme
 
-    var song: Song
-    var fromPlaylist: PlayList?
+    let song: Song
+    let fromPlaylist: PlayList?
 
     @State private var selected: PlayList?
     
