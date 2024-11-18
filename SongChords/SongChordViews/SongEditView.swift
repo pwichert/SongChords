@@ -19,6 +19,8 @@ struct SongEditView: View {
     @State private var srcText: String = ""
     @State private var transpose: Double = 0
     
+    @State private var showSrcEditor: Bool = false
+    
     var body: some View {
         Form {
             TextField("Title", text: $title)
@@ -47,21 +49,12 @@ struct SongEditView: View {
                 .padding(.bottom, 4)
             #endif
 
-            VStack {
-                Text("ChordPro Text").foregroundStyle(Color(.lightGray))
-                TextEditor(text: $srcText)
-                    .monospaced()
-                    #if os(iOS)
-                    .frame(idealHeight: 350)
-                    #else
-                    .frame(idealWidth: 500, idealHeight: 400)
-                    #endif
-                    .border(Color(.lightGray))
-            }.padding(.top, 20)
-            #if os(iOS)
-            .textInputAutocapitalization(.never)
+            Button(action: { showSrcEditor.toggle() }) {
+                Label("Edit ChordPro Text", systemImage: "doc")
+            }
+            #if os(macOS)
+            .padding(.bottom, 4)
             #endif
-            .autocorrectionDisabled(true)
         }
         #if os(macOS)
         .padding()
@@ -103,6 +96,12 @@ struct SongEditView: View {
                 }
             }
         }
+        .sheet(isPresented: $showSrcEditor) {
+            NavigationStack {
+                ChordProEditorView(srcText: $srcText)
+            }
+            .interactiveDismissDisabled()
+        }
         .onAppear {
             if let song {
                 title = song.title
@@ -110,5 +109,40 @@ struct SongEditView: View {
                 transpose = Double(song.transpose)
             }
         }
+    }
+}
+
+struct ChordProEditorView: View {
+    @Binding var srcText: String
+    
+    @Environment(\.dismiss) private var dismiss
+
+    @State private var t: String = ""
+    
+    var body: some View {
+        TextEditor(text: $t)
+            .monospaced()
+            .autocorrectionDisabled(true)
+            #if os(iOS)
+            .textInputAutocapitalization(.never)
+            #else
+            .frame(idealHeight: 500)
+            #endif
+            .onAppear() {
+                t = srcText
+            }
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Save") {
+                        if srcText != t { srcText = t }
+                        dismiss()
+                    }
+                }
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") {
+                        dismiss()
+                    }
+                }
+            }
     }
 }
