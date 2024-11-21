@@ -16,7 +16,6 @@ struct SongView: View {
     @State private var showSongEditView: Bool = false
     @State private var pdfUrl: URL?
     @State private var showFileExport: Bool = false
-    @State private var showPDFExport: Bool = false
     @State private var uttype: UTType = .plainText
     
     var body: some View {
@@ -39,23 +38,19 @@ struct SongView: View {
                 Button("ChordPro Text", systemImage: "pencil", action: { showSongEditView.toggle() }).help("Edit ChordPro Text")
             }
             ToolbarItem {
-                Button("Toggle PDF", systemImage: pdfUrl == nil ? "text.viewfinder" : "text.alignleft", action: { if pdfUrl == nil { showPdf() } else { pdfUrl = nil } }).help("Toggle PDF")
+                Button("Toggle PDF", systemImage: pdfUrl == nil ? "document.viewfinder.fill" : "text.alignleft", action: { if pdfUrl == nil { showPdf() } else { pdfUrl = nil } }).help("Toggle PDF")
             }
             ToolbarItem {
-                Button("Export PDF file", systemImage: "arrow.up.document", action: { uttype = .pdf; showPDFExport.toggle() }).help("Export PDF file")
+                Button("Export PDF file", systemImage: "arrow.up.document.fill", action: { uttype = .pdf; showFileExport.toggle() }).help("Export PDF file")
             }
-            #if true// && os(iOS)
+//            ToolbarItem {
+//                Button("Export ChordPro file", systemImage: "arrow.up.document", action: { uttype = .plainText; showFileExport.toggle() }).help("Export ChordPro file")
+//            }
             ToolbarItem {
-                ShareLink(
-                    item: song.saveDataToFile(filename: "\(song.title).chpro")!,
-                    preview: SharePreview(song.title, image: Image(systemName: "doc.text"))
-                ).help("Share")
+                ShareLink (
+                    item: song, preview: SharePreview(song.title, image: Image(systemName: "doc.text"))
+                )
             }
-            #else
-            ToolbarItem {
-                Button("Export ChordPro file", systemImage: "square.and.arrow.up", action: { uttype = .plainText; showPDFExport.toggle() }).help("Export ChordPro file")
-            }
-            #endif
         }
         .sheet(isPresented: $showSongEditView) {
             NavigationStack {
@@ -69,7 +64,7 @@ struct SongView: View {
                 pdfUrl = nil
             }
         }
-        .fileExporter(isPresented: $showPDFExport, item: song, contentTypes: [uttype], defaultFilename: song.title) { result in
+        .fileExporter(isPresented: $showFileExport, item: song, contentTypes: [uttype], defaultFilename: song.title) { result in
             switch result {
             case .success(let url):
                 print("Gespeichert: \(url)")
@@ -99,8 +94,12 @@ struct DetailContent: View {
 
     @Environment(ViewModel.self) private var viewModel
     
-    @State private var lightColor = Color.init(red: 0.85, green: 0.85, blue: 0.85)
     @State private var darkColor = Color.init(red: 0.25, green: 0.25, blue: 0.25)
+    #if os(macOS)
+    @State private var lightColor = Color.init(red: 0.85, green: 0.85, blue: 0.85)
+    #else
+    @State private var lightColor = Color.init(red: 0.90, green: 0.90, blue: 0.90)
+    #endif
 
     var body: some View {
         VStack (alignment: .leading) {

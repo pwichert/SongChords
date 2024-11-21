@@ -71,16 +71,6 @@
         }
       }
     },
-    "Abort" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Abbrechen"
-          }
-        }
-      }
-    },
     "Am          C" : {
       "shouldTranslate" : false
     },
@@ -180,16 +170,6 @@
         }
       }
     },
-    "Export ChordPro file" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ChordPro-Datei exportieren"
-          }
-        }
-      }
-    },
     "Export PDF file" : {
       "localizations" : {
         "de" : {
@@ -206,6 +186,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Playliste exportieren"
+          }
+        }
+      }
+    },
+    "For a brief introduction, please refer to menu item 'Info'" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eine kurze Einführung gibt es unter dem Menüpunkt 'Info'"
           }
         }
       }
@@ -283,12 +273,22 @@
         }
       }
     },
-    "Import song to playlist %@?" : {
+    "Import Playlist?" : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Import Song in Playlist %@?"
+            "value" : "Playliste importieren?"
+          }
+        }
+      }
+    },
+    "Import Song into Playlist" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Song in Playliste importieren"
           }
         }
       }
@@ -458,9 +458,6 @@
           }
         }
       }
-    },
-    "Share" : {
-      "shouldTranslate" : false
     },
     "Song..." : {
       "localizations" : {

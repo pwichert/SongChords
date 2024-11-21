@@ -7,9 +7,14 @@
 
 import SwiftUI
 import SwiftData
+import UniformTypeIdentifiers
+
+enum SongError: Error {
+    case illegalSongname
+}
 
 @Model
-final class PlayList {
+final class PlayList: Codable {
     var seq: Int = 0
     var title: String = ""
     
@@ -17,7 +22,7 @@ final class PlayList {
     
     init(modelContext: ModelContext, title: String, songs: [Song] = []) {
         self.seq = nextPlaylistSeq(modelContext: modelContext)
-        self.title = title
+        self.title = title.trimmingCharacters(in: .whitespaces)
         self.songs = songs
     }
     
@@ -62,6 +67,61 @@ final class PlayList {
             newSeq += 1
         }
     }
+    
+    static func isValidPlaylistTitle(_ playlistTitle: String) -> Bool {
+        // Liste der ungültigen Zeichen für Playliste
+        let invalidCharacters = CharacterSet(charactersIn: "/\\|\"")
+            .union(.illegalCharacters)
+            .union(.controlCharacters)
+            .union(.symbols)
+            .union(.newlines)
+        
+        // Überprüfen, ob der Dateiname leer ist oder ungültige Zeichen enthält
+        if playlistTitle.trimmingCharacters(in: .whitespaces).isEmpty || playlistTitle.rangeOfCharacter(from: invalidCharacters) != nil  || playlistTitle.count > 200 {
+            return false
+        }
+        
+        return true
+    }
+    
+    static func playlistFromData(url: URL) throws -> PlayList {
+        let playlistData = try Data(contentsOf: url)
+        let decoder = JSONDecoder()
+        return try decoder.decode(PlayList.self, from: playlistData)
+    }
+    
+    enum CodingKeys: CodingKey {
+//        case seq
+        case title
+        case songs
+    }
+    
+    required public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+//        seq = try container.decode(Int.self, forKey: .seq)
+        title = try container.decode(String.self, forKey: .title)
+        songs = try container.decode([Song].self, forKey: .songs)
+    }
+    
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+//        try container.encode(seq, forKey: .seq)
+        try container.encode(title, forKey: .title)
+        try container.encode(songs, forKey: .songs)
+    }
+}
+
+extension PlayList: Transferable {
+    static var transferRepresentation: some TransferRepresentation {
+        // Export/Import json per AirDrop etc. für Playlist
+        // Endung .scplaylist
+        CodableRepresentation(contentType: .playlistJSON)
+            .suggestedFileName { $0.title }
+    }
+}
+
+extension UTType {
+    static let playlistJSON = UTType(exportedAs: "com.wichert.songchordslist")
 }
 
 class RepresentationHolder: ObservableObject {
@@ -85,12 +145,12 @@ final public class Song: Codable {
     @Transient private(set) var representationHolder = RepresentationHolder()
     
     init(title: String = "") {
-        self.title = title
+        self.title = title.trimmingCharacters(in: .whitespacesAndNewlines)
         self.seq = 0
     }
     
     init(title: String = "", playlist: PlayList) {
-        self.title = title
+        self.title = title.trimmingCharacters(in: .whitespaces)
         //        self.seq = playlist.nextSongSeq()
         toPlaylist(playlist: playlist)
     }
@@ -187,6 +247,9 @@ final public class Song: Codable {
     static func songFromText(url: URL) throws -> Song {
         let songData = try Data(contentsOf: url)
         let fileName = url.deletingPathExtension().lastPathComponent
+        
+        if !Song.isValidFilename(fileName) { throw SongError.illegalSongname }
+        
         let src = String(decoding: songData, as: UTF8.self)
         let song = Song(title: fileName)
         song.srcText = src
@@ -200,6 +263,7 @@ final public class Song: Codable {
     func saveDataToFile(filename: String) -> URL? {
         let tempDirectory = FileManager.default.temporaryDirectory
         let fileURL = tempDirectory.appendingPathComponent(filename)
+
         do {
             let data = songToData()
             try data.write(to: fileURL)
@@ -227,6 +291,22 @@ final public class Song: Codable {
         }
     }
     
+    static func isValidFilename(_ filename: String) -> Bool {
+        // Liste der ungültigen Zeichen für Dateinamen
+        let invalidCharacters = CharacterSet(charactersIn: "/\\?%*|\"<>:")
+            .union(.illegalCharacters)
+            .union(.controlCharacters)
+            .union(.symbols)
+            .union(.newlines)
+        
+        // Überprüfen, ob der Dateiname leer ist oder ungültige Zeichen enthält
+        if filename.trimmingCharacters(in: .whitespaces).isEmpty || filename.rangeOfCharacter(from: invalidCharacters) != nil || filename.count > 200 {
+            return false
+        }
+        
+        return true
+    }
+    
     static func countSongs(modelContext: ModelContext) -> Int {
         let desc = FetchDescriptor<Song>()
         let res = (try? modelContext.fetchCount(desc)) ?? 0
@@ -238,11 +318,11 @@ final public class Song: Codable {
         case title
         case srctext
         case transpose
-        case showheader
-        case showchords
-        case showtext
-        case duration
-        case musicitemid
+//        case showheader
+//        case showchords
+//        case showtext
+//        case duration
+//        case musicitemid
     }
     
     required public init(from decoder: Decoder) throws {
@@ -251,11 +331,11 @@ final public class Song: Codable {
         title = try container.decode(String.self, forKey: .title)
         srcText = try container.decode(String.self, forKey: .srctext)
         transpose = try container.decode(Int.self, forKey: .transpose)
-        showHeader = try container.decode(Bool.self, forKey: .showheader)
-        showChords = try container.decode(Bool.self, forKey: .showchords)
-        showText = try container.decode(Bool.self, forKey: .showtext)
-        duration = try container.decode(Double.self, forKey: .duration)
-        musicItemId = try container.decode(String.self, forKey: .musicitemid)
+//        showHeader = try container.decode(Bool.self, forKey: .showheader)
+//        showChords = try container.decode(Bool.self, forKey: .showchords)
+//        showText = try container.decode(Bool.self, forKey: .showtext)
+//        duration = try container.decode(Double.self, forKey: .duration)
+//        musicItemId = try container.decode(String.self, forKey: .musicitemid)
     }
     
     public func encode(to encoder: Encoder) throws {
@@ -264,16 +344,29 @@ final public class Song: Codable {
         try container.encode(title, forKey: .title)
         try container.encode(srcText, forKey: .srctext)
         try container.encode(transpose, forKey: .transpose)
-        try container.encode(showHeader, forKey: .showheader)
-        try container.encode(showChords, forKey: .showchords)
-        try container.encode(showText, forKey: .showtext)
-        try container.encode(duration, forKey: .duration)
-        try container.encode(musicItemId, forKey: .musicitemid)
+//        try container.encode(showHeader, forKey: .showheader)
+//        try container.encode(showChords, forKey: .showchords)
+//        try container.encode(showText, forKey: .showtext)
+//        try container.encode(duration, forKey: .duration)
+//        try container.encode(musicItemId, forKey: .musicitemid)
     }
 }
 
 extension Song: Transferable {
     public static var transferRepresentation: some TransferRepresentation {
+        // Export/Import json per AirDrop etc. für Song
+        // Endung .songchords
+        CodableRepresentation(contentType: .songJSON)
+            .suggestedFileName { $0.title }
+        
+        // wenn aktiv, geht AirDrop nicht mehr, da dann .txt als AirDrop-Transfortformat verwendet wird,
+        // also scheinbar die FileRepresentation bevorzugt wird.
+        // Daher bleibt es so, und der .txt-Export geht eben nicht mehr
+        #if false
+        // Export per FileDialog für ChordPro-Datei
+        // Endung .txt
+        // uttype = .plainText
+        // .fileExporter(isPresented: $showFileExport, item: song, contentTypes: [uttype], defaultFilename: song.title)
         FileRepresentation(exportedContentType: .plainText, exporting: { song in
             print("FileRepresentation (.plainText) exported song \(song.title)")
             let cacheDirectoryURL =
@@ -287,10 +380,13 @@ extension Song: Transferable {
             let fileurl = cacheDirectoryURL.appending(component: filename)
             try data.write(to: fileurl)
             return SentTransferredFile(fileurl, allowAccessingOriginalFile: true)
-        }).suggestedFileName { song in
-            (song.title.count > 0 ? song.title : "song")
-        }
+        }).suggestedFileName { $0.title }
+        #endif
         
+        // Export per FileDialog für PDF-Datei
+        // Endung .pdf
+        // uttype = .pdf
+        // .fileExporter(isPresented: $showFileExport, item: song, contentTypes: [uttype], defaultFilename: song.title)
         FileRepresentation(exportedContentType: .pdf, exporting: { song in
             print("FileRepresentation (.pdf) exported song \(song.title)")
             let viewModel = ViewModel()
@@ -298,8 +394,10 @@ extension Song: Transferable {
             let defaultPaper = MediaBoxes.getBox(name: viewModel.mediabox)
             let pdfUrl = await delegate.createPDF(paperSize: defaultPaper)
             return SentTransferredFile(pdfUrl!, allowAccessingOriginalFile: false)
-        }).suggestedFileName { song in
-            (song.title.count > 0 ? song.title : "song")
-        }
+        }).suggestedFileName { $0.title }
     }
+}
+
+extension UTType {
+    static let songJSON = UTType(exportedAs: "com.wichert.songchords")
 }

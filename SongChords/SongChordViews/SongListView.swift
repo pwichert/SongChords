@@ -18,10 +18,11 @@ struct SongListView: View {
     @State private var deleteIndexset: IndexSet?
     @State private var showDeleteAlert: Bool = false
     @State private var showFileImport: Bool = false
-    @State private var showExportToFolder: Bool = false
+    @State private var showFileExport: Bool = false
+//    @State private var showExportToFolder: Bool = false
     @State private var contextSong: Song?
 
-    @State private var showOnOpenUrlImport: Bool = false
+//    @State private var showOnOpenUrlImport: Bool = false
     @State private var onOpenUrl: URL?
 
     var body: some View {
@@ -63,12 +64,12 @@ struct SongListView: View {
                 Button(action: { showSongEditView.toggle() }, label: { Image(systemName: "plus") })
             }
 #if os(iOS)
-            ToolbarItem(placement: .primaryAction) {
+            ToolbarItem{//}(placement: .primaryAction) {
                 EditButton()
             }
 #endif
             ToolbarItem {
-                Menu("Song...") {
+                Menu {
                     Button(action: {
                         importSongTemplate()
                     }) { Label("New Song Template", systemImage: "doc.badge.plus") }.help("New Song Template")
@@ -78,15 +79,27 @@ struct SongListView: View {
                     Button(action: {
                         importSongClipboard()
                     }) { Label("Import Text Clipboard", systemImage: "pencil.and.list.clipboard") }.help("Import Text Clipboard")
-                    #if os(macOS)
-                    Button(action: { exportPlaylist(playlist: playlist) }) { Label("Export Playlist", systemImage: "arrow.up.doc") }.help("Export Playlist")
-                    #else
-                    Button(action: { showExportToFolder.toggle() }) { Label("Export Playlist", systemImage: "arrow.up.doc") }.help("Export Playlist")
-                    #endif
+//                    #if os(macOS)
+//                    Button(action: { exportPlaylist(playlist: playlist) }) { Label("Export Playlist", systemImage: "arrow.up.doc") }.help("Export Playlist")
+//                    #else
+//                    Button(action: { showExportToFolder.toggle() }) { Label("Export Playlist", systemImage: "arrow.up.doc") }.help("Export Playlist")
+//                    #endif
                     #if false   // kein Drucken
                     Button(action: { Task { await printSetlist() }}) { Label("Print Setlist", systemImage: "printer.dotmatrix") }.help("Print Setlist")
                     #endif
+                } label: {
+                    Label("Song...", systemImage: "filemenu.and.cursorarrow")
                 }
+            }
+
+            ToolbarItem {
+                Button(action: { showFileExport.toggle() }) { Label("Export Playlist", systemImage: "arrow.up.doc") }.help("Export Playlist")
+            }
+            
+            ToolbarItem {
+                ShareLink (
+                    item: playlist, preview: SharePreview(playlist.title, image: Image(systemName: "doc.text"))
+                )
             }
         }
         .sheet(isPresented: $showSongEditView) {
@@ -95,18 +108,19 @@ struct SongListView: View {
             }
             .interactiveDismissDisabled()
         }
-        #if os(iOS)
         .sheet(item: $contextSong) { ctSong in
-            MovePlaylistView(song: ctSong, fromPlaylist: playlist)
+            NavigationStack {
+                MovePlaylistView(song: ctSong, fromPlaylist: playlist)
+            }
         }
-        .sheet(isPresented: $showExportToFolder) {
-            DirectoryPickerView(playlist: playlist)
+        .fileExporter(isPresented: $showFileExport, item: playlist, contentTypes: [.playlistJSON], defaultFilename: playlist.title) { result in
+            switch result {
+            case .success(let url):
+                print("Gespeichert: \(url)")
+            case .failure(let error):
+                print("Fehler: \(error.localizedDescription)")
+            }
         }
-        #else
-        .sheet(item: $contextSong) { ctSong in
-            MacMovePlaylistView(song: ctSong, fromPlaylist: playlist)
-        }
-        #endif
         .fileImporter(isPresented: $showFileImport, allowedContentTypes: [.plainText], allowsMultipleSelection: true) { result in
             switch result {
             case .success(let urls):
@@ -123,20 +137,6 @@ struct SongListView: View {
             Button("Delete", role: .destructive) {
                 if let deleteIndexset = deleteIndexset {
                     deleteSongs(playlist: playlist, offsets: deleteIndexset)
-                }
-            }
-        }
-        .onOpenURL(perform: { url in
-            print("onOpenURL: \(url) in \(playlist.title)")
-            onOpenUrl = url
-            showOnOpenUrlImport.toggle()
-        })
-        .confirmationDialog(Text("Import song to playlist \(playlist.title)?"), isPresented: $showOnOpenUrlImport, titleVisibility: .visible) {
-            Button("Import") {
-                withAnimation {
-                    if let onOpenUrl = onOpenUrl {
-                        _ = importTextSong(url: onOpenUrl)
-                    }
                 }
             }
         }
@@ -238,155 +238,156 @@ struct SongListView: View {
         PrintController.onPrint(viewModel: viewModel, title: playlist.title, delegate: delegate)
     }
     
-#if os(macOS)
-    private func exportPlaylist(playlist: PlayList) {
-        var dirname: String = ""
-        var errtxt: String?
-        
-        let panel = NSOpenPanel()
-        panel.allowsMultipleSelection = false
-        panel.canChooseDirectories = true
-        panel.canCreateDirectories = true
-        panel.canChooseFiles = false
-        
-        if panel.runModal() == .OK {
-            if let url = panel.url {
-                dirname = panel.url!.path()
-                print(dirname)
-                
-                let startSecurityScope = url.startAccessingSecurityScopedResource()
-
-                do {
-                    var cnt = 0
-                    for song in playlist.songs ?? [] {
-                        cnt += 1
-                        let data = song.songToData()
-                        let filename = song.title.count > 0 ? song.title : "title " + String(cnt)
-                        var fileurl = url.appending(component: filename)
-                        fileurl.appendPathExtension(for: .plainText)
-                        
-                        try data.write(to: fileurl, options: Data.WritingOptions.withoutOverwriting)
-                    }
-                } catch {
-                    print("Error exporting Playlist: \(error.localizedDescription)")
-                    errtxt = error.localizedDescription
-                }
-                
-                if startSecurityScope {
-                    url.stopAccessingSecurityScopedResource()
-                }
-            }
-        }
-        
-        if let errtxt = errtxt {
-            let alert = NSAlert()
-            alert.messageText = "Aborted: " + errtxt
-            _ = alert.runModal()
-        }
-    }
-#endif
+//#if os(macOS)
+//    private func exportPlaylist(playlist: PlayList) {
+//        var dirname: String = ""
+//        var errtxt: String?
+//        
+//        let panel = NSOpenPanel()
+//        panel.allowsMultipleSelection = false
+//        panel.canChooseDirectories = true
+//        panel.canCreateDirectories = true
+//        panel.canChooseFiles = false
+//        
+//        if panel.runModal() == .OK {
+//            if let url = panel.url {
+//                dirname = panel.url!.path()
+//                print(dirname)
+//                
+//                let startSecurityScope = url.startAccessingSecurityScopedResource()
+//
+//                do {
+//                    var cnt = 0
+//                    for song in playlist.songs ?? [] {
+//                        cnt += 1
+//                        let data = song.songToData()
+//                        let filename = song.title.count > 0 ? song.title : "title " + String(cnt)
+//                        var fileurl = url.appending(component: filename)
+//                        fileurl.appendPathExtension(for: .plainText)
+//                        
+//                        try data.write(to: fileurl, options: Data.WritingOptions.withoutOverwriting)
+//                    }
+//                } catch {
+//                    print("Error exporting Playlist: \(error.localizedDescription)")
+//                    errtxt = error.localizedDescription
+//                }
+//                
+//                if startSecurityScope {
+//                    url.stopAccessingSecurityScopedResource()
+//                }
+//            }
+//        }
+//        
+//        if let errtxt = errtxt {
+//            let alert = NSAlert()
+//            alert.messageText = "Aborted: " + errtxt
+//            _ = alert.runModal()
+//        }
+//    }
+//#endif
 }
 
 struct MovePlaylistView: View {
     @Environment(\.dismiss) private var dismiss
-
+    
     let song: Song
     let fromPlaylist: PlayList?
-
+    
     @State private var selected: PlayList?
     
     @Query(sort: \PlayList.seq, order: .forward) private var playlists: [PlayList]
-        
+    
     var body: some View {
-        NavigationView {
-            List(selection: $selected) {
-                ForEach(playlists.filter({ $0.persistentModelID != fromPlaylist!.persistentModelID }), id: \.self) { pl in
-                    Text(pl.title)
+        List(selection: $selected) {
+            ForEach(playlists.filter({ $0.persistentModelID != fromPlaylist!.persistentModelID })) { pl in
+                Text(pl.title)
+            }
+        }
+        .toolbar {
+            ToolbarItem(placement: .primaryAction) {
+                Button(action: {
+                    if let selected = selected {
+                        print("---" + song.title)
+                        song.toPlaylist(playlist: selected)
+                    }
+                    dismiss()
+                }) {
+                    Text("Done")
                 }
             }
-            .toolbar {
-                ToolbarItem(placement: .primaryAction) {
-                    Button(action: {
-                        if let selected = selected {
-                            print("---" + song.title)
-                            song.toPlaylist(playlist: selected)
-                        }
-                        dismiss()
-                    }) {
-                        Text("Done")
-                    }
+            ToolbarItem(placement: .cancellationAction) {
+                Button(action: {
+                    dismiss()
                 }
-                ToolbarItem(placement: .cancellationAction) {
-                    Button(action: {
-                        dismiss()
-                    }
-                    ) {
-                        Text("Abort")
-                    }
+                ) {
+                    Text("Cancel")
                 }
-            }.navigationTitle("Move to Playlist")
-            #if os(iOS)
-            .navigationBarTitleDisplayMode(.inline)
-            #endif
-        }
-    }
-}
-
-struct MacMovePlaylistView: View {
-    @Environment(\.dismiss) private var dismiss
-    @Environment(\.colorScheme) var colorScheme
-
-    let song: Song
-    let fromPlaylist: PlayList?
-
-    @State private var selected: PlayList?
-    
-    @Query(sort: \PlayList.seq, order: .forward) private var playlists: [PlayList]
-
-    var body: some View {
-        Spacer()
-        HStack {
-            Spacer()
-            Form {
-                #if os(macOS)
-                HStack(alignment: .center) {
-                    Text("Move to Playlist").font(.subheadline).bold().foregroundStyle(Color(NSColor.labelColor)).padding(.leading, 3)
-                }.padding(3)
-                    .background(colorScheme == .dark ? Color.init(red: 0.1, green: 0.1, blue: 0.1) : Color.init(red: 0.9, green: 0.9, blue: 0.9))
-                    .cornerRadius(5)
-                #endif
-                Text(" ")
                 
-                List(selection: $selected) {
-                    ForEach(playlists.filter({ $0.persistentModelID != fromPlaylist!.persistentModelID }), id: \.self) { pl in
-                        Text(pl.title)
-                    }
-                }
-                .toolbar {
-                    ToolbarItem(placement: .primaryAction) {
-                        Button(action: {
-                            if let selected = selected {
-                                print("---" + song.title)
-                                song.toPlaylist(playlist: selected)
-                            }
-                            dismiss()
-                        }) {
-                            Text("Done")
-                        }
-                    }
-                    ToolbarItem(placement: .cancellationAction) {
-                        Button(action: {
-                            dismiss()
-                        }
-                        ) {
-                            Text("Abort")
-                        }
-                    }
-                }
             }
-            .frame(minWidth: 300, minHeight: 300)
-            Spacer()
-        }
-        Spacer()
+        }.navigationTitle("Move to Playlist")
+        #if os(iOS)
+            .navigationBarTitleDisplayMode(.inline)
+        #else
+            .frame(idealHeight: 400)
+        #endif
     }
 }
+
+//struct MacMovePlaylistView: View {
+//    @Environment(\.dismiss) private var dismiss
+//    @Environment(\.colorScheme) var colorScheme
+//
+//    let song: Song
+//    let fromPlaylist: PlayList?
+//
+//    @State private var selected: PlayList?
+//    
+//    @Query(sort: \PlayList.seq, order: .forward) private var playlists: [PlayList]
+//
+//    var body: some View {
+//        Spacer()
+//        HStack {
+//            Spacer()
+//            Form {
+//                #if os(macOS)
+//                HStack(alignment: .center) {
+//                    Text("Move to Playlist").font(.subheadline).bold().foregroundStyle(Color(NSColor.labelColor)).padding(.leading, 3)
+//                }.padding(3)
+//                    .background(colorScheme == .dark ? Color.init(red: 0.1, green: 0.1, blue: 0.1) : Color.init(red: 0.9, green: 0.9, blue: 0.9))
+//                    .cornerRadius(5)
+//                #endif
+//                Text(" ")
+//                
+//                List(selection: $selected) {
+//                    ForEach(playlists.filter({ $0.persistentModelID != fromPlaylist!.persistentModelID }), id: \.self) { pl in
+//                        Text(pl.title)
+//                    }
+//                }
+//                .toolbar {
+//                    ToolbarItem(placement: .primaryAction) {
+//                        Button(action: {
+//                            if let selected = selected {
+//                                print("---" + song.title)
+//                                song.toPlaylist(playlist: selected)
+//                            }
+//                            dismiss()
+//                        }) {
+//                            Text("Done")
+//                        }
+//                    }
+//                    ToolbarItem(placement: .cancellationAction) {
+//                        Button(action: {
+//                            dismiss()
+//                        }
+//                        ) {
+//                            Text("Abort")
+//                        }
+//                    }
+//                }
+//            }
+//            .frame(minWidth: 300, minHeight: 300)
+//            Spacer()
+//        }
+//        Spacer()
+//    }
+//}

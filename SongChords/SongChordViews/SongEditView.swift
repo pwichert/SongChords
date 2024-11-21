@@ -88,7 +88,7 @@ struct SongEditView: View {
                     }
                     
                     dismiss()
-                }.disabled(title.isEmpty)
+                }.disabled(title.isEmpty || !Song.isValidFilename(title))
             }
             ToolbarItem(placement: .cancellationAction) {
                 Button("Cancel") {

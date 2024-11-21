@@ -7,6 +7,7 @@
 
 import SwiftUI
 import SwiftData
+import UniformTypeIdentifiers
 
 struct PlayListView: View {
     @Environment(\.modelContext) private var modelContext
@@ -20,6 +21,12 @@ struct PlayListView: View {
     @State private var showPrintOptionsView: Bool = false
     @State private var showInfoView: Bool = false
     
+    @State private var showPlaylistImport: Bool = false
+    @State private var showSongImport: Bool = false
+    @State private var openUrl: URL?
+
+    @AppStorage("isOnboarding") var isOnboarding: Bool = true
+
     @Query(sort: \PlayList.seq, order: .forward) private var playlists: [PlayList]
     
     var body: some View {
@@ -35,7 +42,7 @@ struct PlayListView: View {
                                 showDeleteAlert.toggle()
                             }
                         }
-                    }
+                }
             }
             .onDelete { indexSet in
                 if !deletePlaylists(offsets: indexSet) {
@@ -46,10 +53,16 @@ struct PlayListView: View {
         }
         .navigationTitle("Playlists")
         .toolbar {
-            ToolbarItemGroup {
+            ToolbarItem {
                 Button(action: { showPlaylistNewView.toggle() }, label: { Image(systemName: "plus") })
+            }
+#if os(iOS)
+            ToolbarItem{//}(placement: .primaryAction) {
+                EditButton()
+            }
+#endif
             
-                // Menü-Button
+            ToolbarItem {
                 Menu {
                     Button(action: { showOptionsView.toggle() }) {
                         Label("Options", systemImage: "gear.circle")
@@ -64,12 +77,6 @@ struct PlayListView: View {
                     Label("Options", systemImage: "ellipsis.circle")
                 }
             }
-            
-            #if os(iOS)
-            ToolbarItem(placement: .primaryAction) {
-                EditButton()
-            }
-            #endif
         }
         .sheet(item: $selectedPlaylist) { pl in
             NavigationStack {
@@ -101,15 +108,41 @@ struct PlayListView: View {
             }
             .interactiveDismissDisabled()
         }
-        .alert(isPresented: $showDeleteAlert, content: {
-            Alert(title: Text("Info"),
-                  message: Text("Playlist must be empty"),
-                  dismissButton: Alert.Button.default (
-                    Text("Ok"), action: {
-                    }
-                  )
-            )
+        .alert("Playlist must be empty", isPresented: $showDeleteAlert) {
+            Button("Ok") {
+            }
+        }
+        .alert("For a brief introduction, please refer to menu item 'Info'", isPresented: $isOnboarding) {
+            Button("Ok") {
+                isOnboarding = false
+            }
+        }
+        .onOpenURL(perform: { url in
+            print("onOpenURL: \(url)")
+            let fileExtension = url.pathExtension
+            openUrl = url
+            
+            if fileExtension.lowercased() == (UTType.playlistJSON.preferredFilenameExtension ?? "nix").lowercased() {
+                showPlaylistImport.toggle()
+            } else if fileExtension.lowercased() == (UTType.songJSON.preferredFilenameExtension ?? "nix").lowercased() {
+                showSongImport.toggle()
+            }
         })
+        .sheet(isPresented: $showSongImport) {
+            NavigationStack {
+                PlaylistSelectionSheet(playlists: playlists, urlToInsert: openUrl)
+            }
+        }
+        .confirmationDialog(Text("Import Playlist?"), isPresented: $showPlaylistImport, titleVisibility: .visible) {
+            Button("Import") {
+                withAnimation {
+                    if let openUrl = openUrl {
+                        importPlaylist(url: openUrl)
+                        openUrl.stopAccessingSecurityScopedResource()
+                    }
+                }
+            }
+        }
     }
     
     private func deletePlaylist(playlist: PlayList) -> Bool {
@@ -146,6 +179,29 @@ struct PlayListView: View {
             if sortedPlaylists[index].seq != index { sortedPlaylists[index].seq = index }
         }
     }
+    
+    private func importPlaylist(url: URL?) {
+        if let url = url {
+            do {
+                let result = url.startAccessingSecurityScopedResource()
+                if result {
+                    let playlist = try PlayList.playlistFromData(url: url)
+                    url.stopAccessingSecurityScopedResource()
+
+                    let newPlaylist = PlayList(modelContext: modelContext, title: playlist.title)
+                    modelContext.insert(newPlaylist)
+                    newPlaylist.songs = []
+            
+                    for song in (playlist.songs ?? []) {
+                        modelContext.insert(song)
+                        song.toPlaylist(playlist: newPlaylist)
+                    }
+                }
+            } catch {
+                print(error)
+            }
+        }
+    }
 }
 
 struct PlaylistEditView: View {
@@ -176,7 +232,7 @@ struct PlaylistEditView: View {
                     }
                     dismiss()
                 }
-                .disabled(playlistTitle.isEmpty)
+                .disabled(playlistTitle.isEmpty || !PlayList.isValidPlaylistTitle(playlistTitle))
             }
             ToolbarItem(placement: .cancellationAction) {
                 Button("Cancel") {
@@ -187,6 +243,49 @@ struct PlaylistEditView: View {
         .onAppear {
             if let playlist {
                 playlistTitle = playlist.title
+            }
+        }
+    }
+}
+
+struct PlaylistSelectionSheet: View {
+    let playlists: [PlayList]
+    let urlToInsert: URL?
+    
+    @Environment(\.modelContext) private var modelContext
+    @Environment(\.dismiss) var dismiss
+        
+    var body: some View {
+        List(playlists) { playlist in
+            Button(action: {
+                do {
+                    if let url = urlToInsert {
+                        let result = url.startAccessingSecurityScopedResource()
+                        if result {
+                            let song = try Song.songFromData(url: url)
+                            url.stopAccessingSecurityScopedResource()
+                            
+                            let newSong = Song(title: song.title)
+                            modelContext.insert(newSong)
+                            newSong.toPlaylist(playlist: playlist)
+                            newSong.updateFromSong(other: song)
+                        }
+                    }
+                } catch {
+                    print(error)
+                }
+                
+                dismiss()
+            }) {
+                Text(playlist.title)
+            }
+        }
+        .navigationTitle("Import Song into Playlist")
+        .toolbar {
+            ToolbarItem(placement: .cancellationAction) {
+                Button("Cancel") {
+                    dismiss()
+                }
             }
         }
     }

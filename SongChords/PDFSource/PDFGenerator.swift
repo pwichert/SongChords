@@ -72,7 +72,7 @@ class PDFGenerator {
             .appendingPathExtension(for: .pdf)
         
         testUrl = cacheDirectoryURL
-                .appendingPathComponent(viewURL ? "outputvTest" : "outputTest")
+            .appendingPathComponent(viewURL ? "outputvTest" : "outputTest")
             .appendingPathExtension(for: .pdf)
 
         print(url.absoluteString)

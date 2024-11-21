@@ -9,6 +9,7 @@ import SwiftUI
 
 struct ContentView: View {
     @State private var visibility: NavigationSplitViewVisibility = .all
+
     @Environment(ViewModel.self) private var viewModel
 
     var body: some View {
