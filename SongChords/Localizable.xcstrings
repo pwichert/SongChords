@@ -190,12 +190,12 @@
         }
       }
     },
-    "For a brief introduction, please refer to menu item 'Info'" : {
+    "For a brief introduction, please refer to menu item 'Info'." : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Eine kurze Einführung gibt es unter dem Menüpunkt 'Info'"
+            "value" : "Eine kurze Einführung gibt es unter dem Menüpunkt 'Info'."
           }
         }
       }
@@ -235,7 +235,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Akkorde nicht darstellen"
+            "value" : "Keine Akkorde darstellen"
           }
         }
       }

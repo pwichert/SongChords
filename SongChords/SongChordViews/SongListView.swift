@@ -288,18 +288,18 @@ struct SongListView: View {
 }
 
 struct MovePlaylistView: View {
-    @Environment(\.dismiss) private var dismiss
-    
     let song: Song
     let fromPlaylist: PlayList?
-    
+
+    @Environment(\.dismiss) private var dismiss
+
     @State private var selected: PlayList?
     
     @Query(sort: \PlayList.seq, order: .forward) private var playlists: [PlayList]
     
     var body: some View {
         List(selection: $selected) {
-            ForEach(playlists.filter({ $0.persistentModelID != fromPlaylist!.persistentModelID })) { pl in
+            ForEach(playlists.filter({ $0.persistentModelID != fromPlaylist!.persistentModelID }), id: \.self) { pl in
                 Text(pl.title)
             }
         }

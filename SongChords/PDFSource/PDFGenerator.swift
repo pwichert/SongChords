@@ -62,10 +62,11 @@ class PDFGenerator {
         self.cols = cols
 
         let cacheDirectoryURL =
-            try FileManager.default.url(for: .cachesDirectory,
-                                        in: .userDomainMask,
-                                        appropriateFor: nil,
-                                        create: true)
+//        FileManager.default.temporaryDirectory
+        try FileManager.default.url(for: .cachesDirectory,
+                                    in: .userDomainMask,
+                                    appropriateFor: nil,
+                                    create: true)
         
         url = cacheDirectoryURL
             .appendingPathComponent(viewURL ? "outputv" : "output")
@@ -231,13 +232,13 @@ class PDFGenerator {
     }
 }
 
-struct testView: View {
+private struct testView: View {
     var body: some View {
         Text(Date.now.description)
     }
 }
 
-struct SimpleView: View {
+private struct SimpleView: View {
     var body: some View {
         ContainerView {
             Text("")
@@ -245,7 +246,7 @@ struct SimpleView: View {
     }
 }
 
-struct GreedyContainerView<Content: View>: View {
+private struct GreedyContainerView<Content: View>: View {
     @ViewBuilder let content: Content
     
     var body: some View {
@@ -254,7 +255,7 @@ struct GreedyContainerView<Content: View>: View {
     }
 }
 
-struct ContainerView<Content: View>: View {
+private struct ContainerView<Content: View>: View {
     @ViewBuilder let content: Content
     
     var body: some View {

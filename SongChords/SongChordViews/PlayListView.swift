@@ -112,9 +112,9 @@ struct PlayListView: View {
             Button("Ok") {
             }
         }
-        .alert("For a brief introduction, please refer to menu item 'Info'", isPresented: $isOnboarding) {
-            Button("Ok") {
-                isOnboarding = false
+        .sheet(isPresented: $isOnboarding) {
+            NavigationStack {
+                OnboardingSheet()
             }
         }
         .onOpenURL(perform: { url in
@@ -284,6 +284,37 @@ struct PlaylistSelectionSheet: View {
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
                 Button("Cancel") {
+                    dismiss()
+                }
+            }
+        }
+    }
+}
+
+struct OnboardingSheet: View {
+    @Environment(\.dismiss) var dismiss
+        
+    var body: some View {
+        Form {
+            VStack(alignment: .center) {
+                HStack {
+                    Image("AppIconInternal")
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .frame(width: 80, height: 80)
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                        .padding(10)
+             
+                    Text("For a brief introduction, please refer to menu item 'Info'.").padding(10)
+                }
+            }
+        }
+        #if os(macOS)
+        .frame(minHeight: 200)
+        #endif
+        .toolbar {
+            ToolbarItem(placement: .confirmationAction) {
+                Button("Ok") {
                     dismiss()
                 }
             }
