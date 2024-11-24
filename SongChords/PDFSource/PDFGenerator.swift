@@ -61,12 +61,7 @@ class PDFGenerator {
         self.vm = viewModel
         self.cols = cols
 
-        let cacheDirectoryURL =
-//        FileManager.default.temporaryDirectory
-        try FileManager.default.url(for: .cachesDirectory,
-                                    in: .userDomainMask,
-                                    appropriateFor: nil,
-                                    create: true)
+        let cacheDirectoryURL = try FileManager.default.url(for: .documentDirectory, in: .userDomainMask, appropriateFor: nil, create: true)
         
         url = cacheDirectoryURL
             .appendingPathComponent(viewURL ? "outputv" : "output")

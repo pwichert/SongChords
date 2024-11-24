@@ -7,6 +7,7 @@
 
 import SwiftUI
 import SwiftData
+import UniformTypeIdentifiers
 
 struct SongListView: View {
     let playlist: PlayList  // Übergebene Playlist
@@ -19,11 +20,9 @@ struct SongListView: View {
     @State private var showDeleteAlert: Bool = false
     @State private var showFileImport: Bool = false
     @State private var showFileExport: Bool = false
-//    @State private var showExportToFolder: Bool = false
-    @State private var contextSong: Song?
+    @State private var uttype: UTType = .pdf
 
-//    @State private var showOnOpenUrlImport: Bool = false
-    @State private var onOpenUrl: URL?
+    @State private var contextSong: Song?
 
     var body: some View {
         List {
@@ -93,14 +92,21 @@ struct SongListView: View {
             }
 
             ToolbarItem {
-                Button(action: { showFileExport.toggle() }) { Label("Export Playlist", systemImage: "arrow.up.doc") }.help("Export Playlist")
+                Button("Export PDF File", systemImage: "arrow.up.document.fill", action: { uttype = .pdf; showFileExport.toggle() }).help("Export PDF File")
             }
             
+            #if os(macOS) // ... solange der ShareLink auf macOS nicht funktioniert.
+            ToolbarItem {
+                Button("Export Playlist", systemImage: "arrow.up.document", action: { uttype = .playlistJSON; showFileExport.toggle() }).help("Export Playlist")
+            }
+            #endif
+            #if os(iOS) || DEBUG
             ToolbarItem {
                 ShareLink (
-                    item: playlist, preview: SharePreview(playlist.title, image: Image(systemName: "doc.text"))
+                    item: playlist, preview: SharePreview(playlist.title, image: Image(systemName: "text.page"))
                 )
             }
+            #endif
         }
         .sheet(isPresented: $showSongEditView) {
             NavigationStack {
@@ -113,7 +119,7 @@ struct SongListView: View {
                 MovePlaylistView(song: ctSong, fromPlaylist: playlist)
             }
         }
-        .fileExporter(isPresented: $showFileExport, item: playlist, contentTypes: [.playlistJSON], defaultFilename: playlist.title) { result in
+        .fileExporter(isPresented: $showFileExport, item: playlist, contentTypes: [uttype], defaultFilename: playlist.title) { result in
             switch result {
             case .success(let url):
                 print("Gespeichert: \(url)")

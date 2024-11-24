@@ -15,8 +15,9 @@ struct SongView: View {
 
     @State private var showSongEditView: Bool = false
     @State private var pdfUrl: URL?
+    
     @State private var showFileExport: Bool = false
-    @State private var uttype: UTType = .plainText
+    @State private var uttype: UTType = .pdf
     
     var body: some View {
         GeometryReader { viewSize in    // Größe des umgebenden Containers
@@ -41,16 +42,20 @@ struct SongView: View {
                 Button("Toggle PDF", systemImage: pdfUrl == nil ? "document.viewfinder.fill" : "text.alignleft", action: { if pdfUrl == nil { showPdf() } else { pdfUrl = nil } }).help("Toggle PDF")
             }
             ToolbarItem {
-                Button("Export PDF file", systemImage: "arrow.up.document.fill", action: { uttype = .pdf; showFileExport.toggle() }).help("Export PDF file")
+                Button("Export PDF File", systemImage: "arrow.up.document.fill", action: { uttype = .pdf; showFileExport.toggle() }).help("Export PDF File")
             }
-//            ToolbarItem {
-//                Button("Export ChordPro file", systemImage: "arrow.up.document", action: { uttype = .plainText; showFileExport.toggle() }).help("Export ChordPro file")
-//            }
+            #if os(macOS) // ... solange der ShareLink auf macOS nicht funktioniert.
+            ToolbarItem {
+                Button("Export ChordPro file", systemImage: "arrow.up.document", action: { uttype = .songJSON; showFileExport.toggle() }).help("Export ChordPro file")
+            }
+            #endif
+            #if os(iOS) || DEBUG
             ToolbarItem {
                 ShareLink (
-                    item: song, preview: SharePreview(song.title, image: Image(systemName: "doc.text"))
+                    item: song, preview: SharePreview(song.title, image: Image(systemName: "text.page"))
                 )
             }
+            #endif
         }
         .sheet(isPresented: $showSongEditView) {
             NavigationStack {

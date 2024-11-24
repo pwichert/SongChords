@@ -112,11 +112,30 @@ final class PlayList: Codable {
 }
 
 extension PlayList: Transferable {
+    
+    // Zum Drucken: siehe unten
+    
     static var transferRepresentation: some TransferRepresentation {
-        // Export/Import json per AirDrop etc. für Playlist
+        // Export/Import json per AirDrop und Speichern in Datei für Playlist
         // Endung .scplaylist
         CodableRepresentation(contentType: .playlistJSON)
             .suggestedFileName { $0.title }
+
+        // Export per FileDialog für PDF-Datei
+        // Endung .pdf
+        // uttype = .pdf
+        // .fileExporter(isPresented: $showFileExport, item: song, contentTypes: [uttype], defaultFilename: playlist.title)
+        FileRepresentation(exportedContentType: .pdf, exporting: { playlist in
+            print("FileRepresentation (.pdf) exported playlist \(playlist.title)")
+            let viewModel = ViewModel()
+            let delegate = await PrintSetlistDelegate(viewModel: viewModel, playlist: playlist)
+            let defaultPaper = MediaBoxes.getBox(name: viewModel.mediabox)
+            guard let pdfUrl = await delegate.createPDF(paperSize: defaultPaper) else {
+                throw NSError(domain: "PDFCreationError", code: 4, userInfo: ["reason": "Failed to create PDF"])
+            }
+
+            return SentTransferredFile(pdfUrl, allowAccessingOriginalFile: true)
+        }).suggestedFileName { $0.title }
     }
 }
 
@@ -353,48 +372,37 @@ final public class Song: Codable {
 }
 
 extension Song: Transferable {
+    // Das normale Drucken funktioniert in dieser Reihenfolge nicht (es geht nur, wenn FileRepresentation zuerst oder alleine ist).
+    // HP-Drucken, in Datei speichern und AirDrop funktioniert dagegen schon.
+    
     public static var transferRepresentation: some TransferRepresentation {
-        // Export/Import json per AirDrop etc. für Song
+        // Export/Import json per AirDrop und Speichern in Datei für Song
         // Endung .songchords
         CodableRepresentation(contentType: .songJSON)
             .suggestedFileName { $0.title }
-        
-        // wenn aktiv, geht AirDrop nicht mehr, da dann .txt als AirDrop-Transfortformat verwendet wird,
-        // also scheinbar die FileRepresentation bevorzugt wird.
-        // Daher bleibt es so, und der .txt-Export geht eben nicht mehr
-        #if false
-        // Export per FileDialog für ChordPro-Datei
-        // Endung .txt
-        // uttype = .plainText
-        // .fileExporter(isPresented: $showFileExport, item: song, contentTypes: [uttype], defaultFilename: song.title)
-        FileRepresentation(exportedContentType: .plainText, exporting: { song in
-            print("FileRepresentation (.plainText) exported song \(song.title)")
-            let cacheDirectoryURL =
-            try FileManager.default.url(for: .cachesDirectory,
-                                        in: .userDomainMask,
-                                        appropriateFor: nil,
-                                        create: true)
-            
-            let data = song.songToData()
-            let filename = song.title
-            let fileurl = cacheDirectoryURL.appending(component: filename)
-            try data.write(to: fileurl)
-            return SentTransferredFile(fileurl, allowAccessingOriginalFile: true)
-        }).suggestedFileName { $0.title }
-        #endif
-        
+
         // Export per FileDialog für PDF-Datei
         // Endung .pdf
         // uttype = .pdf
         // .fileExporter(isPresented: $showFileExport, item: song, contentTypes: [uttype], defaultFilename: song.title)
         FileRepresentation(exportedContentType: .pdf, exporting: { song in
-            print("FileRepresentation (.pdf) exported song \(song.title)")
-            let viewModel = ViewModel()
-            let delegate = await PrintSongDelegate(viewModel: viewModel, song: song)
-            let defaultPaper = MediaBoxes.getBox(name: viewModel.mediabox)
-            let pdfUrl = await delegate.createPDF(paperSize: defaultPaper)
-            return SentTransferredFile(pdfUrl!, allowAccessingOriginalFile: false)
-        }).suggestedFileName { $0.title }
+            do {
+                let viewModel = ViewModel()
+                let delegate = await PrintSongDelegate(viewModel: viewModel, song: song)
+                let defaultPaper = MediaBoxes.getBox(name: viewModel.mediabox)
+                guard let pdfUrl = await delegate.createPDF(paperSize: defaultPaper) else {
+                    throw NSError(domain: "PDFCreationError", code: 4, userInfo: ["reason": "Failed to create PDF"])
+                }
+                return SentTransferredFile(pdfUrl, allowAccessingOriginalFile: true)
+            } catch {
+                print("Fehler beim Exportieren von PDF: \(error.localizedDescription)")
+                throw error
+            }
+        })
+        .suggestedFileName { $0.title }
+        
+//        ProxyRepresentation(exporting: \.srcText)
+//            .suggestedFileName { $0.title }
     }
 }
 

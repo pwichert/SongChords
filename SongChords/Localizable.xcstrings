@@ -170,7 +170,17 @@
         }
       }
     },
-    "Export PDF file" : {
+    "Export ChordPro file" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ChordPro-Datei exportieren"
+          }
+        }
+      }
+    },
+    "Export PDF File" : {
       "localizations" : {
         "de" : {
           "stringUnit" : {

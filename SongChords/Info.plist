@@ -45,6 +45,8 @@
 			<key>UTTypeConformsTo</key>
 			<array>
 				<string>public.json</string>
+				<string>public.data</string>
+				<string>public.content</string>
 			</array>
 			<key>UTTypeDescription</key>
 			<string>SongChords Playlist</string>
@@ -64,6 +66,8 @@
 			<key>UTTypeConformsTo</key>
 			<array>
 				<string>public.json</string>
+				<string>public.data</string>
+				<string>public.content</string>
 			</array>
 			<key>UTTypeDescription</key>
 			<string>SongChords</string>
@@ -77,6 +81,8 @@
 				<array>
 					<string>songchords</string>
 				</array>
+				<key>public.mime-type</key>
+				<array/>
 			</dict>
 		</dict>
 	</array>
