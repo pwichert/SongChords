@@ -127,6 +127,16 @@
         }
       }
     },
+    "Detailed View" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Detailansicht"
+          }
+        }
+      }
+    },
     "Display Mode" : {
       "shouldTranslate" : false
     },

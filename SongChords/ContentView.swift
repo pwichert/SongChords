@@ -15,7 +15,7 @@ struct ContentView: View {
     var body: some View {
         NavigationSplitView(columnVisibility: $visibility) {
             
-            PlayListView().environment(viewModel)
+            PlayListView(visibility: $visibility).environment(viewModel)
             
         } content: {
             ContentUnavailableView("Select a playlist", systemImage: "doc.text.image.fill")

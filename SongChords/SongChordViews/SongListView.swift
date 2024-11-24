@@ -11,6 +11,7 @@ import UniformTypeIdentifiers
 
 struct SongListView: View {
     let playlist: PlayList  // Übergebene Playlist
+    @Binding var visibility: NavigationSplitViewVisibility
     
     @Environment(\.modelContext) private var modelContext
     @Environment(ViewModel.self) private var viewModel
@@ -27,7 +28,7 @@ struct SongListView: View {
     var body: some View {
         List {
             ForEach((playlist.songs?.sorted(by: { $0.seq < $1.seq }))!) { song in
-                NavigationLink(song.title, destination: SongView(song: song).environment(viewModel))
+                NavigationLink(song.title, destination: SongView(song: song, visibility: $visibility).environment(viewModel))
                     .contextMenu {
                         Button(action: { contextSong = song }) { Label("Move", systemImage: "arrow.uturn.left")}
 

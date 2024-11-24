@@ -10,8 +10,10 @@ import UniformTypeIdentifiers
 
 struct SongView: View {
     let song: Song
+    @Binding var visibility: NavigationSplitViewVisibility
 
     @Environment(ViewModel.self) private var viewModel
+    @Environment(\.horizontalSizeClass) var horizontalSizeClass
 
     @State private var showSongEditView: Bool = false
     @State private var pdfUrl: URL?
@@ -35,6 +37,13 @@ struct SongView: View {
             }
         }
         .toolbar {
+            #if os(iOS)
+            ToolbarItem(placement: .topBarLeading) {
+                if horizontalSizeClass == .regular && visibility != .detailOnly {
+                    Button("Detailed View", systemImage: "sidebar.left", action: { visibility = .detailOnly }).help("Detailed View")
+                }
+            }
+            #endif
             ToolbarItem {
                 Button("ChordPro Text", systemImage: "pencil", action: { showSongEditView.toggle() }).help("Edit ChordPro Text")
             }

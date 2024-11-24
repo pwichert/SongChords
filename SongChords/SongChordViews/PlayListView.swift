@@ -10,6 +10,8 @@ import SwiftData
 import UniformTypeIdentifiers
 
 struct PlayListView: View {
+    @Binding var visibility: NavigationSplitViewVisibility
+    
     @Environment(\.modelContext) private var modelContext
     @Environment(ViewModel.self) private var viewModel
 
@@ -32,7 +34,7 @@ struct PlayListView: View {
     var body: some View {
         List {
             ForEach(playlists) { playlist in
-                NavigationLink(playlist.title, destination: SongListView(playlist: playlist).environment(viewModel))
+                NavigationLink(playlist.title, destination: SongListView(playlist: playlist, visibility: $visibility).environment(viewModel))
                     .contextMenu {
                         Button("Rename") {
                             selectedPlaylist = playlist
