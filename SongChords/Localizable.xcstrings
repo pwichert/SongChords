@@ -439,6 +439,16 @@
         }
       }
     },
+    "Privacy Policy" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Datenschutz"
+          }
+        }
+      }
+    },
     "Rename" : {
       "localizations" : {
         "de" : {
@@ -564,6 +574,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Transponieren [%lld]"
+          }
+        }
+      }
+    },
+    "What data is collected?\n        \n'SongChords' does not collect any user-related data. Neither the developer nor third parties receive data from this app, ensuring the user’s privacy is preserved.\n        \nWhen using the app, only data necessary for its functionality is stored. This includes, for example, the names of songs and playlists. Users enter this data themselves while using the app, making the type and scope of the data transparent and apparent.\n        \nIn addition to being stored on the device, the data is also saved in iCloud to enable easy restoration of data when switching devices or synchronization across multiple devices. This feature requires an Apple account, iCloud to be enabled, and an internet connection.\n        \nNo user-specific accounts are used or created within the app.\n        \nNo data is used for tracking purposes.\n        \nNo data is shared with advertising networks.\n        \nTo better understand how this app is used and to improve it, the developer utilizes analytics information provided by the App Store. This service handles generic information and statistics that are anonymized and do not allow any personal conclusions about the user. Such analytics may include the number of installations and crashes.\n        \nAdditionally, it should be noted that both data storage and the app operate on platforms provided by a vendor based in the United States. It cannot be ruled out, and we have no control over, the possibility that this vendor processes data from the app’s user in the United States. We have no knowledge of, nor any influence on, what data may be involved or for what purpose this processing occurs." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Welche Daten werden gesammelt?\n\n\"SongChords\" sammelt keine benutzerbezogenen Daten. Weder der Entwickler noch Dritte erhalten Daten dieser App, wodurch die Privatsphäre des Benutzers gewahrt bleibt.\n\nBeim Benutzen der App werden ausschließlich Daten gespeichert, die dem Funktionieren der App dienen. Das sind z. B. Namen von Songs und Playlisten. Der Benutzer gibt diese Daten bei der Verwendung selbst ein, damit ist Art und Umfang der Daten transparent und offensichtlich.\n\nAußer auf dem Gerät werden die Daten zusätzlich in iCloud gespeichert, um einfaches Wiederherstellen der Daten bei Gerätewechsel oder zur Synchronisierung bei Verwendung mehrerer Geräte zu ermöglichen. Für diese Funktion ist ein Apple-Account, aktivierte iCloud und eine Internetverbindung notwendig.\n\nInnerhalb der App werden keine benutzerbezogenen Konten verwendet oder eingerichtet.\n\nEs werden keine Daten zwecks Tracking verwendet.\n\nEs werden keine Daten an Werbenetzwerke weitergeleitet.\n\nUm besser verstehen zu können, wie diese App verwendet wird und um sie zu verbessern, benutzt der Entwickler analytische Informationen des App-Stores. Dieser Dienst verwaltet generische Informationen und Statistiken, die anonym sind und keinerlei persönliche Rückschlüsse auf den Benutzer zulassen. Solche Analysen können z. B. Anzahl der Installationen und Abstürze sein.\n\nWeiterhin ist zu beachten, dass sich sowohl Datenspeicher als auch die App auf Plattformen eines Anbieters befindet, der seinen Sitz in den USA hat. Es ist nicht auszuschließen und wir haben keinen Einfluss darauf, dass dieser Anbieter Daten vom Benutzer der App in den USA verarbeitet. Wir haben keine Kenntnis davon und keinen Einfluss darauf, welche Daten das sind und zu welchem Zweck dies erfolgt."
           }
         }
       }

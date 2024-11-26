@@ -22,6 +22,7 @@ struct PlayListView: View {
     @State private var showOptionsView: Bool = false
     @State private var showPrintOptionsView: Bool = false
     @State private var showInfoView: Bool = false
+    @State private var showPrivacyView: Bool = false
     
     @State private var showPlaylistImport: Bool = false
     @State private var showSongImport: Bool = false
@@ -75,6 +76,9 @@ struct PlayListView: View {
                     Button(action: { showInfoView.toggle() }) {
                         Label("Info", systemImage: "info.circle")
                     }
+                    Button(action: { showPrivacyView.toggle() }) {
+                        Label("Privacy Policy", systemImage: "person.fill.questionmark")
+                    }
                 } label: {
                     Label("Options", systemImage: "ellipsis.circle")
                 }
@@ -108,15 +112,20 @@ struct PlayListView: View {
             NavigationStack {
                 InfoView()
             }
-            .interactiveDismissDisabled()
         }
-        .alert("Playlist must be empty", isPresented: $showDeleteAlert) {
-            Button("Ok") {
+        .sheet(isPresented: $showPrivacyView) {
+            NavigationStack {
+                PrivacyView()
             }
         }
         .sheet(isPresented: $isOnboarding) {
             NavigationStack {
                 OnboardingSheet()
+            }
+        }
+        .sheet(isPresented: $showSongImport) {
+            NavigationStack {
+                PlaylistSelectionSheet(playlists: playlists, urlToInsert: openUrl)
             }
         }
         .onOpenURL(perform: { url in
@@ -130,9 +139,8 @@ struct PlayListView: View {
                 showSongImport.toggle()
             }
         })
-        .sheet(isPresented: $showSongImport) {
-            NavigationStack {
-                PlaylistSelectionSheet(playlists: playlists, urlToInsert: openUrl)
+        .alert("Playlist must be empty", isPresented: $showDeleteAlert) {
+            Button("Ok") {
             }
         }
         .confirmationDialog(Text("Import Playlist?"), isPresented: $showPlaylistImport, titleVisibility: .visible) {
@@ -314,6 +322,50 @@ struct OnboardingSheet: View {
         #if os(macOS)
         .frame(minHeight: 200)
         #endif
+        .toolbar {
+            ToolbarItem(placement: .confirmationAction) {
+                Button("Ok") {
+                    dismiss()
+                }
+            }
+        }
+    }
+}
+
+struct PrivacyView: View {
+    @Environment(ViewModel.self) private var viewModel
+    @Environment(\.dismiss) private var dismiss
+    
+    var body: some View {
+        Form {
+            Text(
+            """
+            What data is collected?
+                    
+            'SongChords' does not collect any user-related data. Neither the developer nor third parties receive data from this app, ensuring the user’s privacy is preserved.
+                    
+            When using the app, only data necessary for its functionality is stored. This includes, for example, the names of songs and playlists. Users enter this data themselves while using the app, making the type and scope of the data transparent and apparent.
+                    
+            In addition to being stored on the device, the data is also saved in iCloud to enable easy restoration of data when switching devices or synchronization across multiple devices. This feature requires an Apple account, iCloud to be enabled, and an internet connection.
+                    
+            No user-specific accounts are used or created within the app.
+                    
+            No data is used for tracking purposes.
+                    
+            No data is shared with advertising networks.
+                    
+            To better understand how this app is used and to improve it, the developer utilizes analytics information provided by the App Store. This service handles generic information and statistics that are anonymized and do not allow any personal conclusions about the user. Such analytics may include the number of installations and crashes.
+                    
+            Additionally, it should be noted that both data storage and the app operate on platforms provided by a vendor based in the United States. It cannot be ruled out, and we have no control over, the possibility that this vendor processes data from the app’s user in the United States. We have no knowledge of, nor any influence on, what data may be involved or for what purpose this processing occurs.
+            """)
+            #if os(iOS)
+            .font(.footnote)
+            #endif
+        }
+        #if os(macOS)
+        .padding()
+        #endif
+        .navigationTitle("Privacy Policy")
         .toolbar {
             ToolbarItem(placement: .confirmationAction) {
                 Button("Ok") {
