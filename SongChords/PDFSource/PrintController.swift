@@ -78,59 +78,55 @@ class PrintSongDelegate: NSObject, PrintDelegateBase, UIPrintInteractionControll
             var topPadding: CGFloat = 0
             let title = mgr.getDirective("title") ?? song.title
             if !title.isEmpty {
-                gen.draw(col: 0, view: Text(title).font(.system(size: viewModel.chordsize+4, weight: .bold, design: .rounded)))
-                topPadding = 8
-            }
-            
-            for (dir,title) in [
-                (mgr.getDirective("subtitle"), ""),
-                (mgr.getDirective("artist"), "Artist: "),
-                (mgr.getDirective("album"), "Album: "),
-                (mgr.getDirective("composer"), "Composer: "),
-                (mgr.getDirective("year"), "Year: "),
-                (mgr.getDirective("copyright"), "Copyright: "),
-                (mgr.getDirective("tempo"), "Tempo: "),
-                (mgr.getDirective("time"), "Time: "),
-                (mgr.getDirective("duration"), "Duration: ")
-            ] {
-                if let dir = dir {
-                    gen.draw(col: 0, view: Text("\(title)\(dir)").font(.system(size: viewModel.chordsizepdf, weight: .bold, design: .rounded)).padding(.top, topPadding))
-                    topPadding = 3.5
-                }
+                gen.draw(col: 0, view: Text(title).font(.system(size: viewModel.chordsizepdf+4, weight: .bold, design: .rounded)))
             }
 
             gen.draw(col: 0, view: Color.clear.padding(.bottom, 2))
             gen.setColumnTop()
             
             topPadding = 0
-            
-            for section in songRepresentation.sections {
-                gen.draw(col: section.col, view:
-                            SectionHeaderView(section: section, lightColor: Color.init(red: 0.95, green: 0.95, blue: 0.95), darkColor: Color.init(red: 0.15, green: 0.15, blue: 0.15))
-                            .font(Font(viewModel.headerPDFUIFont))
-                            .padding(EdgeInsets(top: topPadding, leading: 0, bottom: viewModel.linespacingpdf, trailing: 0)))
-                                
-                var lineSpacing: CGFloat = 0
 
+            for section in songRepresentation.sections {
+                if song.showHeader && section.name.trimmingCharacters(in: .whitespaces).count > 0 {
+                    gen.draw(col: section.col, view:
+                                SectionHeaderView(section: section, lightColor: Color.init(red: 0.95, green: 0.95, blue: 0.95), darkColor: Color.init(red: 0.15, green: 0.15, blue: 0.15))
+                        .font(Font(viewModel.headerPDFUIFont))
+                        .padding(EdgeInsets(top: topPadding, leading: 0, bottom: 0, trailing: 0)))
+                }
+                
                 for line in section.splittedLines {
-                    if line.onNewPage { gen.setNewPage(); lineSpacing = 0 }
+                    if line.onNewPage { gen.setNewPage() }
+                    
+                    if viewModel.hidechords && line.texts.isEmpty && !line.chords.isEmpty { continue }
+                    
+                    // kein linespacing ganz oben in der Spalte
+                    var lineSpacing = gen.isColumnTop() ? 0 : viewModel.linespacingpdf
+
                     if line.chords.isEmpty && line.texts.isEmpty {
                         // Leerzeile
                         gen.draw(col: line.col, view: Text(" ").font(Font(viewModel.txtPDFUIFont))
                             .padding(EdgeInsets(top: lineSpacing, leading: 0, bottom: 0, trailing: 0)))
                     } else if viewModel.hidechords {
-                        if !line.texts.isEmpty { gen.draw(col: line.col, view: Text(line.plainText).font(Font(viewModel.txtPDFUIFont))
-                            .padding(EdgeInsets(top: lineSpacing, leading: 0, bottom: 0, trailing: 0))) }
-                    } else {
-                        gen.draw(col: line.col, view: ChordsLineView(line: line, lightColor: Color.init(red: 0.95, green: 0.95, blue: 0.95), darkColor: Color.init(red: 0.15, green: 0.15, blue: 0.15)).font(Font(viewModel.chordPDFUIFont))
+                        if !line.texts.isEmpty {
+                            gen.draw(col: line.col, view: Text(line.plainText).font(Font(viewModel.txtPDFUIFont))
                             .padding(EdgeInsets(top: lineSpacing, leading: 0, bottom: 0, trailing: 0)))
-                        gen.draw(col: line.col, view: TextsLineView(line: line).font(Font(viewModel.txtPDFUIFont)))
+                        }
+                    } else {
+                        if !line.chords.isEmpty {
+                            gen.draw(col: line.col, view: ChordsLineView(line: line, lightColor: Color.init(red: 0.95, green: 0.95, blue: 0.95), darkColor: Color.init(red: 0.15, green: 0.15, blue: 0.15)).font(Font(viewModel.chordPDFUIFont))
+                                .padding(EdgeInsets(top: lineSpacing, leading: 0, bottom: 0, trailing: 0)))
+                            
+                            // nur der erste von ChordsLineView oder TextsLineView soll linespacen
+                            lineSpacing = 0
+                        }
+                        if !line.texts.isEmpty {
+                            gen.draw(col: line.col, view: TextsLineView(line: line).font(Font(viewModel.txtPDFUIFont))
+                                .padding(EdgeInsets(top: lineSpacing, leading: 0, bottom: 0, trailing: 0)))
+                        }
                     }
-                    
-                    lineSpacing = viewModel.linespacingpdf
                 }
                 
-                topPadding = 8
+                topPadding = gen.isPageTop() ? 0 : 8
             }
             
             try gen.endPDF()
@@ -181,6 +177,7 @@ class PrintSetlistDelegate: NSObject, PrintDelegateBase, UIPrintInteractionContr
             gen.draw(col: 0, view: Text(playlist.title).font(.system(size: viewModel.txtsizepdf+8, weight: .bold, design: .rounded))
                 .padding(.bottom, viewModel.txtsizepdf+8))
             
+            gen.setColumnTop()
             let topPadding: CGFloat = 8
 
             var cnt = 1

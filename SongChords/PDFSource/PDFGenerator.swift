@@ -199,6 +199,14 @@ class PDFGenerator {
         }
     }
     
+    func isPageTop() -> Bool {
+        return isColumnTop() && currentCol == 0
+    }
+    
+    func isColumnTop() -> Bool {
+        return columnTop == vm.margintop
+    }
+    
     private func nextPage() {
         page += 1
         print("beginPDFPage \(page)")

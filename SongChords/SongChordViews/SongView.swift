@@ -117,7 +117,7 @@ struct DetailContent: View {
 
     var body: some View {
         VStack (alignment: .leading) {
-            Text(song.title).font(.title).fontWeight(.bold).padding(.bottom, 20)
+            Text(song.title).font(.title).fontWeight(.bold).padding(.bottom, 10)
 //            let _ = Self._printChanges()
             
             ForEach(representationHolder.songRepresentation.sections) { section in
@@ -125,17 +125,22 @@ struct DetailContent: View {
                     .padding(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0))
                 
                 ForEach(section.splittedLines) { line in
-                    VStack(alignment: .leading, spacing: 0) {
-                        if line.chords.isEmpty && line.texts.isEmpty {
-                            // Leerzeile
-                            Text(" ").font(Font(viewModel.txtUIFont))
-                        } else if viewModel.hidechords {
-                            if !line.texts.isEmpty { Text(line.plainText).font(Font(viewModel.txtUIFont)) }
-                        } else {
-                            ChordsLineView(line: line, lightColor: lightColor, darkColor: darkColor).font(Font(viewModel.chordUIFont))
-                            TextsLineView(line: line).font(Font(viewModel.txtUIFont))
-                        }
-                    }.padding(EdgeInsets(top: 0, leading: 0, bottom: viewModel.linespacing, trailing: 0))
+                    if viewModel.hidechords && line.texts.isEmpty && !line.chords.isEmpty {
+                        // bei hidechords sollen alle Zeilen verschwinden und auch kein linespacing machen, die nur chords haben 
+                        EmptyView()
+                    } else {
+                        VStack(alignment: .leading, spacing: 0) {
+                            if line.chords.isEmpty && line.texts.isEmpty {
+                                // Leerzeile
+                                Text(" ").font(Font(viewModel.txtUIFont))
+                            } else if viewModel.hidechords {
+                                if !line.texts.isEmpty { Text(line.plainText).font(Font(viewModel.txtUIFont)) }
+                            } else {
+                                ChordsLineView(line: line, lightColor: lightColor, darkColor: darkColor).font(Font(viewModel.chordUIFont))
+                                TextsLineView(line: line).font(Font(viewModel.txtUIFont))
+                            }
+                        }.padding(EdgeInsets(top: 0, leading: 0, bottom: viewModel.linespacing, trailing: 0))
+                    }
                 }
             }
         }.padding()
@@ -172,9 +177,7 @@ struct SectionHeaderView: View {
             .background(colorScheme == .dark ? darkColor : lightColor)
             .cornerRadius(5)
         } else {
-            HStack {
-                Spacer()
-            }
+            EmptyView()
         }
     }
 }
@@ -188,24 +191,28 @@ struct ChordsLineView: View {
     @Environment(\.colorScheme) var colorScheme
 
     var body: some View {
-        ZStack(alignment: .topLeading) {
-            ForEach(line.chords) { chord in
-                HStack(alignment: .center, spacing: 0) {
-                    if line.chords.last == chord {
-                        Color.clear.frame(width: chord.fontOffset, height: 0.1, alignment: .leading)
-                        
-                        Text(chord.txt)
-                            .lineLimit(1)
-                            .padding(.horizontal, 0.8)
-                            .background(chord.background ? (colorScheme == .dark ? darkColor : lightColor) : Color.clear)
-                            .clipShape(RoundedRectangle(cornerRadius: 4, style: .circular))
-                    } else {
-                        Text(chord.txt)
-                            .lineLimit(1)
-                            .padding(.horizontal, 0.8)
-                            .background(chord.background ? (colorScheme == .dark ? darkColor : lightColor) : Color.clear)
-                            .clipShape(RoundedRectangle(cornerRadius: 4, style: .circular))
-                            .offset(CGSize(width: chord.fontOffset, height: 0))
+        if line.chords.isEmpty {
+            EmptyView()
+        } else {
+            ZStack(alignment: .topLeading) {
+                ForEach(line.chords) { chord in
+                    HStack(alignment: .center, spacing: 0) {
+                        if line.chords.last == chord {
+                            Color.clear.frame(width: chord.fontOffset, height: 0.1, alignment: .leading)
+                            
+                            Text(chord.txt)
+                                .lineLimit(1)
+                                .padding(.horizontal, 0.8)
+                                .background(chord.background ? (colorScheme == .dark ? darkColor : lightColor) : Color.clear)
+                                .clipShape(RoundedRectangle(cornerRadius: 4, style: .circular))
+                        } else {
+                            Text(chord.txt)
+                                .lineLimit(1)
+                                .padding(.horizontal, 0.8)
+                                .background(chord.background ? (colorScheme == .dark ? darkColor : lightColor) : Color.clear)
+                                .clipShape(RoundedRectangle(cornerRadius: 4, style: .circular))
+                                .offset(CGSize(width: chord.fontOffset, height: 0))
+                        }
                     }
                 }
             }
@@ -219,18 +226,22 @@ struct TextsLineView: View {
     @Environment(ViewModel.self) private var viewModel
 
     var body: some View {
-        ZStack(alignment: .topLeading) {
-            ForEach(line.texts) { text in
-                HStack(alignment: .center, spacing: 0) {
-                    if line.texts.last == text {
-                        Color.clear.frame(width: text.fontOffset, height: 0.1, alignment: .center)
-                        
-                        Text(text.txt)
-                            .lineLimit(1)
-                    } else {
-                        Text(text.txt)
-                            .lineLimit(1)
-                            .offset(CGSize(width: text.fontOffset, height: 0))
+        if line.texts.isEmpty {
+            EmptyView()
+        } else {
+            ZStack(alignment: .topLeading) {
+                ForEach(line.texts) { text in
+                    HStack(alignment: .center, spacing: 0) {
+                        if line.texts.last == text {
+                            Color.clear.frame(width: text.fontOffset, height: 0.1, alignment: .leading)
+                            
+                            Text(text.txt)
+                                .lineLimit(1)
+                        } else {
+                            Text(text.txt)
+                                .lineLimit(1)
+                                .offset(CGSize(width: text.fontOffset, height: 0))
+                        }
                     }
                 }
             }
