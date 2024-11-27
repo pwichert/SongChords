@@ -27,7 +27,7 @@ class PrintSongDelegate: NSObject, PrintDelegateBase, UIPrintInteractionControll
         self.song = song
     }
     
-    // nur, um eine andere URL als beim Drucken zu haben Sicher ist sicher.
+    // nur, um eine andere URL als beim Drucken zu haben. Sicher ist sicher.
     func createViewPDF(paperSize: CGRect) -> URL? {
         return songToPdf(viewModel: viewModel, song: song, paperSize: paperSize, viewURL: true)
     }
@@ -108,19 +108,26 @@ class PrintSongDelegate: NSObject, PrintDelegateBase, UIPrintInteractionControll
                 gen.draw(col: section.col, view:
                             SectionHeaderView(section: section, lightColor: Color.init(red: 0.95, green: 0.95, blue: 0.95), darkColor: Color.init(red: 0.15, green: 0.15, blue: 0.15))
                             .font(Font(viewModel.headerPDFUIFont))
-                            .padding(EdgeInsets(top: topPadding, leading: 0, bottom: 4, trailing: 0)))
+                            .padding(EdgeInsets(top: topPadding, leading: 0, bottom: viewModel.linespacingpdf, trailing: 0)))
                                 
+                var lineSpacing: CGFloat = 0
+
                 for line in section.splittedLines {
-                    if line.onNewPage { gen.setNewPage() }
+                    if line.onNewPage { gen.setNewPage(); lineSpacing = 0 }
                     if line.chords.isEmpty && line.texts.isEmpty {
                         // Leerzeile
-                        gen.draw(col: line.col, view: Text(" ").font(Font(viewModel.txtPDFUIFont)))
+                        gen.draw(col: line.col, view: Text(" ").font(Font(viewModel.txtPDFUIFont))
+                            .padding(EdgeInsets(top: lineSpacing, leading: 0, bottom: 0, trailing: 0)))
                     } else if viewModel.hidechords {
-                        if !line.texts.isEmpty { gen.draw(col: line.col, view: Text(line.plainText).font(Font(viewModel.txtPDFUIFont))) }
+                        if !line.texts.isEmpty { gen.draw(col: line.col, view: Text(line.plainText).font(Font(viewModel.txtPDFUIFont))
+                            .padding(EdgeInsets(top: lineSpacing, leading: 0, bottom: 0, trailing: 0))) }
                     } else {
-                        gen.draw(col: line.col, view: ChordsLineView(line: line, lightColor: Color.init(red: 0.95, green: 0.95, blue: 0.95), darkColor: Color.init(red: 0.15, green: 0.15, blue: 0.15)).font(Font(viewModel.chordPDFUIFont)))
+                        gen.draw(col: line.col, view: ChordsLineView(line: line, lightColor: Color.init(red: 0.95, green: 0.95, blue: 0.95), darkColor: Color.init(red: 0.15, green: 0.15, blue: 0.15)).font(Font(viewModel.chordPDFUIFont))
+                            .padding(EdgeInsets(top: lineSpacing, leading: 0, bottom: 0, trailing: 0)))
                         gen.draw(col: line.col, view: TextsLineView(line: line).font(Font(viewModel.txtPDFUIFont)))
                     }
+                    
+                    lineSpacing = viewModel.linespacingpdf
                 }
                 
                 topPadding = 8
@@ -171,8 +178,8 @@ class PrintSetlistDelegate: NSObject, PrintDelegateBase, UIPrintInteractionContr
             let gen = try PDFGenerator(viewModel: viewModel, mediaBox: paperSize, cols: 2)
             gen.startPDF()
             
-            gen.draw(col: 0, view: Text(playlist.title).font(.system(size: viewModel.txtsizepdf+6, weight: .bold, design: .rounded))
-                .padding(.bottom, viewModel.chordsize))
+            gen.draw(col: 0, view: Text(playlist.title).font(.system(size: viewModel.txtsizepdf+8, weight: .bold, design: .rounded))
+                .padding(.bottom, viewModel.txtsizepdf+8))
             
             let topPadding: CGFloat = 8
 

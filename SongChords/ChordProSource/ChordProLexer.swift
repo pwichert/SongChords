@@ -27,7 +27,7 @@ public class ChordProLexer {
     private var position: String.Index
     
     public init(input: String) throws {
-        guard input.count < 10_000_000 else {
+        guard input.count < 50_000_000 else {
             throw LexerError.inputTooLarge
         }
         

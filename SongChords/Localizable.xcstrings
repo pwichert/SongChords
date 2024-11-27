@@ -180,16 +180,6 @@
         }
       }
     },
-    "Export ChordPro file" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ChordPro-Datei exportieren"
-          }
-        }
-      }
-    },
     "Export PDF File" : {
       "localizations" : {
         "de" : {
@@ -206,6 +196,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Playliste exportieren"
+          }
+        }
+      }
+    },
+    "Export Song" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Song exportieren"
           }
         }
       }

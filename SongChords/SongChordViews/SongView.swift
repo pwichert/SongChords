@@ -55,7 +55,7 @@ struct SongView: View {
             }
             #if os(macOS) // ... solange der ShareLink auf macOS nicht funktioniert.
             ToolbarItem {
-                Button("Export ChordPro file", systemImage: "arrow.up.document", action: { uttype = .songJSON; showFileExport.toggle() }).help("Export ChordPro file")
+                Button("Export Song", systemImage: "arrow.up.document", action: { uttype = .songJSON; showFileExport.toggle() }).help("Export Song")
             }
             #endif
             #if os(iOS) || DEBUG

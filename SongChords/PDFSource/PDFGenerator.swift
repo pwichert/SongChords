@@ -23,11 +23,20 @@ class MediaBoxes {
     ]
     
     static func getBox(name: String) -> CGRect {
+        var defaultBox: String = "A4"
+        
+        let currentRegion = Locale.current.region?.identifier
+        if let region = currentRegion {
+            if region.contains("US") || region.contains("CA") { defaultBox = "US Letter" }
+        } else {
+            print("Konnte die aktuelle Region nicht bestimmen.")
+        }
+        
         for (key,value) in MediaBoxes.mediaBoxes {
             if key == name { return value }
         }
         
-        return MediaBoxes.mediaBoxes["A4"]!
+        return MediaBoxes.mediaBoxes[defaultBox]!
     }
 }
 

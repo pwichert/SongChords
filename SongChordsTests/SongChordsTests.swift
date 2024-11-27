@@ -139,11 +139,17 @@ struct SongChordsTests {
         var pchord = parser.parseChord("C", convertGerman: false)
         #expect(pchord?.toString(transpose: 0, convertGerman: false) == "C")
 
+        pchord = parser.parseChord("Cmin7", convertGerman: false)
+        #expect(pchord?.toString(transpose: 0, convertGerman: false) == "Cm7")
+
         pchord = parser.parseChord("Cb", convertGerman: false)
         #expect(pchord?.toString(transpose: 0, convertGerman: false) == "Cb")
 
         pchord = parser.parseChord("C", convertGerman: false)
         #expect(pchord?.toString(transpose: 8, convertGerman: false) == "G#")
+
+        pchord = parser.parseChord("Fm", convertGerman: false)
+        #expect(pchord?.toString(transpose: -1, convertGerman: false) == "Em")
 
         pchord = parser.parseChord("C", convertGerman: false)
         #expect(pchord?.toString(transpose: -4, convertGerman: false) == "Ab")

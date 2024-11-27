@@ -85,7 +85,7 @@ public class ViewModel {
 
     // Printing
     
-    var mediabox: String = UserDefaults.standard.string(forKey: "prt_mediabox") ?? "A4"
+    var mediabox: String = UserDefaults.standard.string(forKey: "prt_mediabox") ?? ""
     { didSet { UserDefaults.standard.set(mediabox, forKey: "prt_mediabox") }}
 
     var printingscale: Double = UserDefaults.standard.double(forKey: "prt_printingscale") == 0.0 ? 70 : UserDefaults.standard.double(forKey: "prt_printingscale")

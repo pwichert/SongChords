@@ -18,6 +18,7 @@ public struct ParsedChord: Identifiable {
     let basston: Grundton?  // Slash-Akkorde
     let bassKreuz: Bool
     let bassB: Bool
+    let minMoll: Bool        // min als Moll-Schreibweise
 
     public func toString(transpose: Int, convertGerman: Bool) -> String {
         if transpose != 0 {
@@ -29,7 +30,7 @@ public struct ParsedChord: Identifiable {
         
         if hatKreuz { result.append(Versetzungszeichen.hash.rawValue) }
         if hatB { result.append(Versetzungszeichen.b.rawValue) }
-        if istMoll { result.append("m") }
+        if istMoll { result.append(minMoll ? "min" : "m") }
 
         if convertGerman { result = toGermanString(txt: result) }
         
@@ -112,7 +113,8 @@ public struct ParsedChord: Identifiable {
             mehrklang: chord.mehrklang,
             basston: newBasston,
             bassKreuz: newBassKreuz,
-            bassB: newBassB
+            bassB: newBassB,
+            minMoll: chord.minMoll
         )
     }
 }

@@ -239,7 +239,7 @@ public class ChordProParser: ChordsProBase {
             // neue Zeile oder Ende?
             if .newLine == token || position == tokens.endIndex - 1 {
                 // Zeileninhalt in den aktuellen Abschnitt einfügen.
-                if numChords == 1 && onlyWhitespaceOrChordComment(elements: &currentLineElements) {
+                if numChords == 1 && onlyWhitespaceOrChordCommentForSection(elements: &currentLineElements) {
                     // Section-Name [abc], einzelner ChordComment (ohne "*") in Zeile entdeckt:
                     
                     // neuen Sectionnamen festlegen
@@ -421,7 +421,7 @@ public class ChordProParser: ChordsProBase {
         }
     }
     
-    private func onlyWhitespaceOrChordComment(elements: inout [Element]) -> Bool {
+    private func onlyWhitespaceOrChordCommentForSection(elements: inout [Element]) -> Bool {
         return elements.allSatisfy { element in
             if case .text(let text, _) = element.type, text.trimmingCharacters(in: .whitespaces).isEmpty { return true }
             if case .chordcomment(_, _, let hasStar) = element.type, hasStar == false { return true }    // ohne "*"
@@ -455,7 +455,7 @@ public class ChordProParser: ChordsProBase {
             let sIndex = src.index(s1Index, offsetBy: -2)
             
             var repl: String?
-            if str.count < 200 && str.count > 0 {
+            if str.count < 10000 && str.count > 0 {
                 if let dirval = directiveManager.getDirective(str) {
                     repl = dirval
                 } else {
@@ -551,10 +551,15 @@ public class ChordsProBase {
             return nil
         }
         
-        // Folgt ein m für Moll
+        // Folgt ein min oder m für Moll
         var istMoll = false
+        var minMoll = false
         if index < input.endIndex {
-            if String(input[index]).lowercased() == "m" && !String(input[index...].lowercased()).starts(with: "maj") {
+            if String(input[index...].lowercased()).starts(with: "min") {
+                istMoll = true
+                minMoll = true
+                index = input.index(index, offsetBy: 3)
+            } else if String(input[index]).lowercased() == "m" && !String(input[index...].lowercased()).starts(with: "maj") {
                 istMoll = true
                 index = input.index(after: index)
             }
@@ -609,6 +614,6 @@ public class ChordsProBase {
         }
         
         // Akkord erstellen und zurückgeben
-        return ParsedChord(grundton: grundton, istMoll: istMoll, hatKreuz: hatKreuz, hatB: hatB, mehrklang: mk, basston: basston, bassKreuz: basskreuz, bassB: bassB)
+        return ParsedChord(grundton: grundton, istMoll: istMoll, hatKreuz: hatKreuz, hatB: hatB, mehrklang: mk, basston: basston, bassKreuz: basskreuz, bassB: bassB, minMoll: minMoll)
     }
 }
