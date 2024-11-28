@@ -399,7 +399,7 @@ struct PrivacyTextView: View {
 
 struct PrivacyView: View {    
     var body: some View {
-        InfoContentView {
+        InfoContentView("Datenschutz") {
             PrivacyTextView()
         }
     }

@@ -8,11 +8,13 @@
 import SwiftUI
 
 struct InfoContentView<Content: View>: View {
+    let navigationTitle: String
     @ViewBuilder let content: Content
 
     @Environment(\.dismiss) private var dismiss
     
-    init(@ViewBuilder content: () -> Content) {
+    init(_ navigationTitle: String, @ViewBuilder content: () -> Content) {
+        self.navigationTitle = navigationTitle
         self.content = content()
     }
     
@@ -23,7 +25,7 @@ struct InfoContentView<Content: View>: View {
                 .padding()
         }
         .frame(idealHeight: 500)
-        .navigationTitle("Info")
+        .navigationTitle(navigationTitle)
         .toolbar {
             ToolbarItem(placement: .confirmationAction) {
                 Button("Ok") {
@@ -37,7 +39,7 @@ struct InfoContentView<Content: View>: View {
                 .padding()
         }
         .font(.footnote)
-        .navigationTitle("Info")
+        .navigationTitle(navigationTitle)
         .toolbar {
             ToolbarItem(placement: .confirmationAction) {
                 Button("Ok") {

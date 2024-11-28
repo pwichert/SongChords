@@ -296,7 +296,7 @@ struct InfoTextView: View {
 
 struct InfoView: View {    
     var body: some View {
-        InfoContentView {
+        InfoContentView("Info") {
             InfoTextView()
         }
     }
