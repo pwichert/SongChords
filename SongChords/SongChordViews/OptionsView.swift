@@ -251,59 +251,53 @@ struct PrintOptionsView: View {
     }
 }
 
-struct InfoView: View {
+struct InfoTextView: View {
     @Environment(ViewModel.self) private var viewModel
-    @Environment(\.dismiss) private var dismiss
-    
+
     var body: some View {
-        Form {
-            VStack(alignment: .center) {
-                HStack(alignment: .center) {
-                    Spacer()
-                    Text(viewModel.getVersion()).font(.title)
-                    Spacer()
-                }.padding(.bottom, 20)
-                
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("How to create a song?").font(.headline)
-                    Text(" ")
-                    Section {
-                        Text("For all variants, you first create/select a playlist, as the new song will be associated with that playlist.")
-                    }
-                    Section(header: Text("1st Option")) {
-                        Text("If you have already displayed the song somewhere in the typical chord/text format, e.g., in a browser or PDF:")
-                        
-                        VStack(alignment: .leading) {
-                            Text("Am          C")
-                            Text("The sky was blue")
-                            Text("...")
-                        }.fontDesign(.monospaced).lineSpacing(0)
-                        
-                        Text("Then you can copy it to the clipboard by selecting/copying. In the app, you can import the song into a playlist by using 'Import Text Clipboard'. It will attempt to recognize as much as possible and display it in a meaningful format.")
-                    }
-                    Section(header: Text("2nd Option")) {
-                        Text("You can import a ChordPro file; the app understands the key directives. The song can be inserted into a playlist using 'Import ChordPro File'. The ChordPro file should have the extension .chpro")
-                    }
-                    Section(header: Text("3rd Option")) {
-                        Text("You create a new template by selecting 'New Song Template'. You can customize this template to your preferences using 'Edit ChordPro Text'.")
-                    }
-                    Text(" ")
-                    Section {
-                        Text("You initially see the live representation of the song. By toggling with 'Toggle PDF', the display switches to print view, taking ChordPro directives into account.")
-                    }
+        VStack(alignment: .center) {
+            HStack(alignment: .center) {
+                Spacer()
+                Text(viewModel.getVersion()).font(.title)
+                Spacer()
+            }.padding(.bottom, 20)
+            
+            VStack(alignment: .leading, spacing: 8) {
+                Text("How to create a song?").font(.headline)
+                Text(" ")
+                Section {
+                    Text("For all variants, you first create/select a playlist, as the new song will be associated with that playlist.")
                 }
-                #if os(iOS)
-                .font(.footnote)
-                #endif
-            }.padding()
-        }
-        .navigationTitle("Info")
-        .toolbar {
-            ToolbarItem(placement: .confirmationAction) {
-                Button("Ok") {
-                    dismiss()
+                Section(header: Text("1st Option")) {
+                    Text("If you have already displayed the song somewhere in the typical chord/text format, e.g., in a browser or PDF:")
+                    
+                    VStack(alignment: .leading) {
+                        Text("Am          C")
+                        Text("The sky was blue")
+                        Text("...")
+                    }.fontDesign(.monospaced).lineSpacing(0)
+                    
+                    Text("Then you can copy it to the clipboard by selecting/copying. In the app, you can import the song into a playlist by using 'Import Text Clipboard'. It will attempt to recognize as much as possible and display it in a meaningful format.")
+                }
+                Section(header: Text("2nd Option")) {
+                    Text("You can import a ChordPro file; the app understands the key directives. The song can be inserted into a playlist using 'Import ChordPro File'. The ChordPro file should have the extension .chpro")
+                }
+                Section(header: Text("3rd Option")) {
+                    Text("You create a new template by selecting 'New Song Template'. You can customize this template to your preferences using 'Edit ChordPro Text'.")
+                }
+                Text(" ")
+                Section {
+                    Text("You initially see the live representation of the song. By toggling with 'Toggle PDF', the display switches to print view, taking ChordPro directives into account.")
                 }
             }
+        }
+    }
+}
+
+struct InfoView: View {    
+    var body: some View {
+        InfoContentView {
+            InfoTextView()
         }
     }
 }

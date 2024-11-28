@@ -305,73 +305,101 @@ struct OnboardingSheet: View {
     @Environment(\.dismiss) var dismiss
         
     var body: some View {
-        Form {
-            VStack(alignment: .center) {
-                HStack {
-                    Image("AppIconInternal")
-                        .resizable()
-                        .aspectRatio(contentMode: .fit)
-                        .frame(width: 80, height: 80)
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
-                        .padding(10)
-             
-                    Text("For a brief introduction, please refer to menu item 'Info'.").padding(10)
-                }
-            }
-        }
-        #if os(macOS)
-        .frame(minHeight: 200)
-        #endif
-        .toolbar {
-            ToolbarItem(placement: .confirmationAction) {
-                Button("Ok") {
-                    dismiss()
-                }
-            }
-        }
+        InfoView()
     }
 }
 
-struct PrivacyView: View {
-    @Environment(ViewModel.self) private var viewModel
-    @Environment(\.dismiss) private var dismiss
-    
+struct PrivacyTextView: View {
     var body: some View {
-        Form {
-            Text(
-            """
-            What data is collected?
-                    
-            'SongChords' does not collect any user-related data. Neither the developer nor third parties receive data from this app, ensuring the user’s privacy is preserved.
-                    
-            When using the app, only data necessary for its functionality is stored. This includes, for example, the names of songs and playlists. Users enter this data themselves while using the app, making the type and scope of the data transparent and apparent.
-                    
-            In addition to being stored on the device, the data is also saved in iCloud to enable easy restoration of data when switching devices or synchronization across multiple devices. This feature requires an Apple account, iCloud to be enabled, and an internet connection.
-                    
-            No user-specific accounts are used or created within the app.
-                    
-            No data is used for tracking purposes.
-                    
-            No data is shared with advertising networks.
-                    
-            To better understand how this app is used and to improve it, the developer utilizes analytics information provided by the App Store. This service handles generic information and statistics that are anonymized and do not allow any personal conclusions about the user. Such analytics may include the number of installations and crashes.
-                    
-            Additionally, it should be noted that both data storage and the app operate on platforms provided by a vendor based in the United States. It cannot be ruled out, and we have no control over, the possibility that this vendor processes data from the app’s user in the United States. We have no knowledge of, nor any influence on, what data may be involved or for what purpose this processing occurs.
-            """)
-            #if os(iOS)
-            .font(.footnote)
-            #endif
-        }
-        #if os(macOS)
-        .padding()
-        #endif
-        .navigationTitle("Privacy Policy")
-        .toolbar {
-            ToolbarItem(placement: .confirmationAction) {
-                Button("Ok") {
-                    dismiss()
-                }
-            }
+        Text(
+        """
+        We, the SongChords team, take the protection of your personal data very seriously. This privacy policy explains how we collect, use, store, and protect your data when you use our app.
+
+        1. Data Controller
+
+        The responsible party for data processing is:
+
+        Peter Wichert
+        Brockenscheidter Straße 15c
+        45731 Waltrop
+
+        sc_app@icloud.com
+
+        2. Data Collected
+
+        a) Automatically collected data:
+
+        • Usage data: Information about the use of the app, such as device information, operating system version, and error logs.
+
+        • Analytics data: Anonymized usage data may be collected to improve the app (e.g., crash reports).
+
+        b) User-provided data:
+
+        • Song data: Song lyrics, chords, playlists, and other content you create or store in the app. These data are solely for the app’s functionality and are not accessible to us.
+
+        • iCloud synchronization: If enabled, your data is stored in your iCloud account.
+
+        3. Use of Data
+
+        Your data is used exclusively for the following purposes:
+
+        • Providing and improving app functionality.
+
+        • Synchronizing your data between your devices via iCloud.
+
+        • Fixing bugs and optimizing app performance.
+
+        4. Data Sharing
+
+        We do not share your personal data with third parties unless:
+
+        • You have explicitly consented.
+
+        • We are legally obligated to do so.
+
+        • It is necessary to provide technical services (e.g., iCloud by Apple).
+
+        No data is used for tracking purposes. No data is shared with advertising networks.
+
+        5. iCloud Synchronization
+
+        The iCloud synchronization is provided by Apple. Your data is securely stored and encrypted in your personal iCloud account. Please refer to Apple’s Privacy Policy as Apple is responsible for processing your data in connection with iCloud usage.
+
+        6. Data Security
+
+        We implement technical and organizational measures to protect your data from unauthorized access, loss, or misuse.
+
+        7. Your Rights
+
+        You have the right to:
+
+        • Access the data we store about you.
+
+        • Request the correction of incorrect data.
+
+        • Request the deletion of your data, provided there are no legal retention requirements.
+
+        Please contact us at: sc_app@icloud.com
+
+        8. Changes to the Privacy Policy
+
+        We reserve the right to update this privacy policy if necessary. Changes will be published in the app or on our website.
+
+        9. Contact
+
+        If you have any questions or concerns regarding privacy, please contact us at:
+
+        sc_app@icloud.com
+
+        Last updated: December 2024
+        """)
+    }
+}
+
+struct PrivacyView: View {    
+    var body: some View {
+        InfoContentView {
+            PrivacyTextView()
         }
     }
 }
