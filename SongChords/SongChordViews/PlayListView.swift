@@ -322,6 +322,7 @@ struct PrivacyTextView: View {
         Peter Wichert
         Brockenscheidter Straße 15c
         45731 Waltrop
+        +49 2309 569304
 
         sc_app@icloud.com
 
