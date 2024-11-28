@@ -21,11 +21,11 @@ enum DirectiveType: String, CaseIterable {
     case duration
     case capo
     case meta
-
+    
     case comment
     case comment_italic
     case comment_box
-
+    
     case start_of_verse
     case end_of_verse
     case start_of_bridge
@@ -39,26 +39,6 @@ enum DirectiveType: String, CaseIterable {
     case column_break
     case transpose
     case new_page
-    
-    // Soll in PDF als Überschrift dargestellt werden
-    func associatedValue() -> Bool {
-        switch self {
-        case .title: return true
-        case .subtitle: return true
-        case .artist: return true
-        case .composer: return true
-        case .lyricist: return true
-        case .copyright: return true
-        case .album: return true
-        case .year: return true
-        case .key: return true
-        case .time: return true
-        case .tempo: return true
-        case .duration: return true
-        case .capo: return true
-        default: return false
-        }
-    }
 }
 
 enum DirectiveNamesSpecial: String, CaseIterable {
@@ -70,8 +50,6 @@ enum DirectiveNamesSpecial: String, CaseIterable {
 class DirectiveManager {
     // Dictionary zur Speicherung der Direktiven und ihrer Werte
     private var directives: [DirectiveType: String] = [:]
-    // Reihenfolge des Auftauchens der Direktiven
-    private(set) var directivesSeq: [DirectiveType] = []
     
     private(set) var transpose: Int = 0
     private(set) var columns: Int = 1
@@ -115,9 +93,6 @@ class DirectiveManager {
         if let label { value = label }
 
         if let directive = parseDirective(dir) {
-            
-            directivesSeq.append(directive)
-            
             switch directive {
             case .transpose:
                 if let value, let intval = robustStringToInt(value), intval >= -11 && intval <= 11 {

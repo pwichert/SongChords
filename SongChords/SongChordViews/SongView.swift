@@ -134,7 +134,8 @@ struct DetailContent: View {
                                 // Leerzeile
                                 Text(" ").font(Font(viewModel.txtUIFont))
                             } else if viewModel.hidechords {
-                                if !line.texts.isEmpty { Text(line.plainText).font(Font(viewModel.txtUIFont)) }
+                                // ist nicht leer
+                                Text(line.plainText).font(Font(viewModel.txtUIFont))
                             } else {
                                 ChordsLineView(line: line, lightColor: lightColor, darkColor: darkColor).font(Font(viewModel.chordUIFont))
                                 TextsLineView(line: line).font(Font(viewModel.txtUIFont))

@@ -94,23 +94,21 @@ class PrintSongDelegate: NSObject, PrintDelegateBase, UIPrintInteractionControll
                         .padding(EdgeInsets(top: topPadding, leading: 0, bottom: 0, trailing: 0)))
                 }
                 
+                // siehe SongView, soll die gleiche Logik abbilden
                 for line in section.splittedLines {
                     if line.onNewPage { gen.setNewPage() }
-                    
+                                        
                     if viewModel.hidechords && line.texts.isEmpty && !line.chords.isEmpty { continue }
                     
-                    // kein linespacing ganz oben in der Spalte
-                    var lineSpacing = gen.isColumnTop() ? 0 : viewModel.linespacingpdf
+                    var lineSpacing = viewModel.linespacingpdf
 
                     if line.chords.isEmpty && line.texts.isEmpty {
                         // Leerzeile
                         gen.draw(col: line.col, view: Text(" ").font(Font(viewModel.txtPDFUIFont))
                             .padding(EdgeInsets(top: lineSpacing, leading: 0, bottom: 0, trailing: 0)))
                     } else if viewModel.hidechords {
-                        if !line.texts.isEmpty {
-                            gen.draw(col: line.col, view: Text(line.plainText).font(Font(viewModel.txtPDFUIFont))
+                        gen.draw(col: line.col, view: Text(line.plainText).font(Font(viewModel.txtPDFUIFont))
                             .padding(EdgeInsets(top: lineSpacing, leading: 0, bottom: 0, trailing: 0)))
-                        }
                     } else {
                         if !line.chords.isEmpty {
                             gen.draw(col: line.col, view: ChordsLineView(line: line, lightColor: Color.init(red: 0.95, green: 0.95, blue: 0.95), darkColor: Color.init(red: 0.15, green: 0.15, blue: 0.15)).font(Font(viewModel.chordPDFUIFont))
@@ -126,7 +124,7 @@ class PrintSongDelegate: NSObject, PrintDelegateBase, UIPrintInteractionControll
                     }
                 }
                 
-                topPadding = gen.isPageTop() ? 0 : 8
+                topPadding = 8
             }
             
             try gen.endPDF()
