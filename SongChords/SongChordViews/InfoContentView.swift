@@ -36,9 +36,9 @@ struct InfoContentView<Content: View>: View {
         #else
         Form {
             content
+                .font(.footnote)
                 .padding()
         }
-        .font(.footnote)
         .navigationTitle(navigationTitle)
         .toolbar {
             ToolbarItem(placement: .confirmationAction) {

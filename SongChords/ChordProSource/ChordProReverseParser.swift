@@ -5,9 +5,9 @@
 //  Created by Peter Wichert on 13.11.24.
 //
 
-public class ChordProReverseParser: ChordsProBase {
-    public override init() { super.init() }
-
+public class ChordProReverseParser {
+    public init() {}
+    
     public func toString(sections: [CPPSection]) -> String {
         var res: String = ""
 
@@ -23,7 +23,7 @@ public class ChordProReverseParser: ChordsProBase {
         return res
     }
     
-    public func parse(input: String) -> [CPPSection] {
+    public func parse(input: String, rootSystem: inout ChordRoot) -> [CPPSection] {
         var sections: [CPPSection] = []
         
         var lines = [String]()
@@ -42,7 +42,7 @@ public class ChordProReverseParser: ChordsProBase {
         for line in lines {
             cnt -= 1
             
-            let curLine = isChordline(line: line)
+            let curLine = isChordline(line: line, rootSystem: &rootSystem)
             
             if line.starts(with: "[") && line.last == "]" {
                 let s = line.index(after: line.startIndex)
@@ -90,7 +90,7 @@ public class ChordProReverseParser: ChordsProBase {
         return sections
     }
     
-    private func isChordline(line: String) -> (textElement: [TextElement], isChord: Bool) {
+    private func isChordline(line: String, rootSystem: inout ChordRoot) -> (textElement: [TextElement], isChord: Bool) {
         let spl = splitWords(line: line)
         
         var chords: [TextElement] = []
@@ -98,8 +98,8 @@ public class ChordProReverseParser: ChordsProBase {
         var numTexts: Int = 0
         
         for word in spl {
-            if let chord = parseChord(word.txt) {
-                chords.append(TextElement(txt: "[" + chord.toString(transpose: 0, convertGerman: false) + "]", fontOffset: Double(word.pos), background: false))
+            if let chord = ParsedChord.parse(word.txt, rootSystem: &rootSystem, strict: true) {
+                chords.append(TextElement(txt: "[" + chord.name + "]", fontOffset: Double(word.pos), background: false))
                 numChords += 1
             } else {
                 chords.append(TextElement(txt: word.txt, fontOffset: Double(word.pos), background: false))

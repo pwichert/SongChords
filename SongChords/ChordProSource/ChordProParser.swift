@@ -123,7 +123,7 @@ enum ElementType {
     case text(String, Double)
 }
 
-public class ChordProParser: ChordsProBase {
+public class ChordProParser {
     private let songTranspose: Int
     private let tokens: [Token]
     private let viewModel: ViewModel
@@ -164,6 +164,8 @@ public class ChordProParser: ChordsProBase {
         let showChords: Bool = !viewModel.hidechords
         let textFollowsChords: Bool = viewModel.textfollowschords
         
+        var root: ChordRoot = viewModel.isGermanNotation ? EnglishGermanRoot() : EnglishDutchRoot()
+        
         while position < tokens.count {
             if Task.isCancelled { print("cancelled"); break }
             
@@ -173,7 +175,7 @@ public class ChordProParser: ChordsProBase {
             case .curlyEnclosed(let directive):
                 numDirectives += 1
                 
-                if let d = directiveManager.addDirective(processReplace(viewModel: viewModel, srcline: directive)) {
+                if let d = directiveManager.addDirective(processReplace(viewModel: viewModel, srcline: directive, root: &root)) {
                     switch d {
                     case .column_break: lineIsColumnBreak = true
                     case .new_page:     lineIsNewPage = true
@@ -199,7 +201,7 @@ public class ChordProParser: ChordsProBase {
                     default: break
                     }
                 } else {
-                    let str = processReplace(viewModel: viewModel, srcline: directive)
+                    let str = processReplace(viewModel: viewModel, srcline: directive, root: &root)
                     let strLen = sizeOfString(string: str, font: txtf)
                     currentLineElements.append(Element(type: .text(str, strLen)))
                 }
@@ -207,28 +209,28 @@ public class ChordProParser: ChordsProBase {
             case .bracketEnclosed(let chord):
                 numChords += 1
                 if chord.starts(with: "*") {
-                    let str = processReplace(viewModel: viewModel, srcline: String(chord.dropFirst()))
+                    let str = processReplace(viewModel: viewModel, srcline: String(chord.dropFirst()), root: &root)
                     let strLen = sizeOfString(string: str, font: chordf)
                     currentLineElements.append(Element(type: .chordcomment(str, strLen, true)))  // "*" merken
                 } else {
-                    if let pchord = parseChord(chord, convertGerman: viewModel.isGermanNotation) {
-                        let str = pchord.toString(transpose: songTranspose + directiveManager.transpose, convertGerman: viewModel.isGermanNotation)
+                    if let pchord = ParsedChord.parse(chord, rootSystem: &root, strict: true) {
+                        let str = pchord.toString(transpose: songTranspose + directiveManager.transpose, rootSystem: &root)
                         let strLen = sizeOfString(string: str, font: chordf)
                         currentLineElements.append(Element(type: .chord(str, pchord, strLen)))
                     } else {
-                        let str = processReplace(viewModel: viewModel, srcline: chord)
+                        let str = processReplace(viewModel: viewModel, srcline: chord, root: &root)
                         let strLen = sizeOfString(string: str, font: chordf)
                         currentLineElements.append(Element(type: .chordcomment(str, strLen, false)))
                     }
                 }
                 
             case .text(let text):
-                let str = processReplace(viewModel: viewModel, srcline: text)
+                let str = processReplace(viewModel: viewModel, srcline: text, root: &root)
                 let strLen = sizeOfString(string: str, font: txtf)
                 currentLineElements.append(Element(type: .text(str, strLen)))
                 
             case .comment(let text):
-                let str = processReplace(viewModel: viewModel, srcline: text)
+                let str = processReplace(viewModel: viewModel, srcline: text, root: &root)
                 let strLen = sizeOfString(string: str, font: txtf)
                 currentLineElements.append(Element(type: .comment(str, strLen)))
                 
@@ -440,7 +442,7 @@ public class ChordProParser: ChordsProBase {
     }
     
     // Ersetzt Variablen durch ihren Wert: %{ variable }
-    private func processReplace(viewModel: ViewModel, srcline: String) -> String {
+    private func processReplace(viewModel: ViewModel, srcline: String, root: inout ChordRoot) -> String {
         if srcline.isEmpty { return srcline }
         
         var src: String = srcline
@@ -464,9 +466,9 @@ public class ChordProParser: ChordsProBase {
                         case DirectiveNamesSpecial.key_actual:
                             let key = directiveManager.getDirective(DirectiveType.key.rawValue)
                             if let key = key {
-                                let chord = parseChord(key)
+                                let chord = ParsedChord.parse(key, rootSystem: &root, strict: true)
                                 if let chord = chord {
-                                    repl = chord.toString(transpose: directiveManager.transpose, convertGerman: viewModel.isGermanNotation)
+                                    repl = chord.toString(transpose: directiveManager.transpose, rootSystem: &root)
                                 }
                             }
                             break
@@ -503,117 +505,3 @@ public class ChordProParser: ChordsProBase {
     }
 }
 
-public class ChordsProBase {
-    // Funktion zum Parsen des Akkord-Strings
-    public func parseChord(_ chordString: String, convertGerman: Bool = false) -> ParsedChord? {
-        let spl = chordString.components(separatedBy: "/")
-        if spl.count > 2 { return nil }
-        
-        var input = spl[0]
-        
-        var noSlash: Bool = false
-        // wegen / in SexteNone
-        if spl.count == 2 && (spl[1] == "9" || spl[1] == "11" || spl[1] == "13") {
-            input += "/" + spl[1]
-            noSlash = true
-        }
-        
-        var hatKreuz = false
-        var hatB = false
-        
-        // konvertieren in internationale Notation
-        if convertGerman {
-            if input.lowercased() == "b" { hatB = true }
-            if input.lowercased() == "h" { input = "b" }
-        }
-        
-        var index = input.startIndex
-        
-        // Grundton extrahieren
-        guard index < input.endIndex, let grundton = Grundton.allCases.first(where: { String(input[index]).lowercased() == $0.rawValue.lowercased() }) else {
-            return nil
-        }
-        index = input.index(after: index)
-        
-        // Prüfen, ob ein Kreuz (#) oder Be (b) folgt
-        if index < input.endIndex {
-            if String(input[index]) == Versetzungszeichen.hash.rawValue {
-                hatKreuz = true
-                index = input.index(after: index)
-            } else if String(input[index]) == Versetzungszeichen.b.rawValue {
-                hatB = true
-                index = input.index(after: index)
-            }
-        }
-        
-        // nichtexistente Akkorde
-        if ["B#", "E#", "Fb"].contains(grundton.rawValue.uppercased() + (hatKreuz ? Versetzungszeichen.hash.rawValue : (hatB ? Versetzungszeichen.b.rawValue : ""))) {
-            return nil
-        }
-        
-        // Folgt ein min oder m für Moll
-        var istMoll = false
-        var minMoll = false
-        if index < input.endIndex {
-            if String(input[index...].lowercased()).starts(with: "min") {
-                istMoll = true
-                minMoll = true
-                index = input.index(index, offsetBy: 3)
-            } else if String(input[index]).lowercased() == "m" && !String(input[index...].lowercased()).starts(with: "maj") {
-                istMoll = true
-                index = input.index(after: index)
-            }
-        }
-        
-        var mk: Mehrklang? = nil
-        if index < input.endIndex {
-            let rest = input[index...]
-            mk = Mehrklang.allCases.first { $0.rawValue.lowercased() == String(rest.lowercased()) }
-            if mk == nil {
-                return nil
-            }
-        }
-        
-        // Prüfen auf Slash-Akkord
-        var basston: Grundton? = nil
-        var basskreuz: Bool = false
-        var bassB: Bool = false
-        if spl.count == 2 && !noSlash {
-            input = spl[1]
-            
-            if convertGerman {
-                if input.lowercased() == "b" { bassB = true }
-                if input.lowercased() == "h" { input = "b" }
-            }
-            
-            index = input.startIndex
-            
-            if index < input.endIndex {
-                // Basston bestimmen
-                guard index < input.endIndex, let grundton = Grundton.allCases.first(where: { String(input[index]).lowercased() == $0.rawValue.lowercased() }) else {
-                    return nil
-                }
-                basston = grundton
-                index = input.index(after: index)
-                
-                // Optionales Kreuz (#) oder Be (b) für den Basston
-                if index < input.endIndex {
-                    if String(input[index]) == Versetzungszeichen.hash.rawValue {
-                        basskreuz = true
-                        index = input.index(after: index)
-                    } else if String(input[index]) == Versetzungszeichen.b.rawValue {
-                        bassB = true
-                        index = input.index(after: index)
-                    }
-                }
-            }
-            
-            if index != input.endIndex || basston == nil {
-                return nil
-            }
-        }
-        
-        // Akkord erstellen und zurückgeben
-        return ParsedChord(grundton: grundton, istMoll: istMoll, hatKreuz: hatKreuz, hatB: hatB, mehrklang: mk, basston: basston, bassKreuz: basskreuz, bassB: bassB, minMoll: minMoll)
-    }
-}

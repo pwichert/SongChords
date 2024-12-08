@@ -51,6 +51,7 @@ struct SongListView: View {
                         }) { Label("Delete", systemImage: "trash")}
                         #endif
                     }
+                    .draggable(song) { Text(song.title) }
             }
             .onMove(perform: moveSongs)
             .onDelete { indexSet in
@@ -185,7 +186,10 @@ struct SongListView: View {
         
         if !(cb ?? "").isEmpty {
             let chordProReverseParser = ChordProReverseParser()
-            let sections = chordProReverseParser.parse(input: cb!)
+            
+            var root: ChordRoot = viewModel.isGermanNotation ? EnglishGermanRoot() : EnglishDutchRoot()
+            
+            let sections = chordProReverseParser.parse(input: cb!, rootSystem: &root)
             let txt = chordProReverseParser.toString(sections: sections)
             
             let song = Song(title: "", playlist: playlist)

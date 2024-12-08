@@ -45,7 +45,15 @@ struct PlayListView: View {
                                 showDeleteAlert.toggle()
                             }
                         }
-                }
+                    }
+                    .dropDestination(for: Song.self) { receivedSongs, location in
+                        for song in receivedSongs {
+                            print(".dropDestination: received \(song.title) for playlist \(playlist.title)")
+                            song.toPlaylist(playlist: playlist)
+                        }
+                        
+                        return true
+                    }
             }
             .onDelete { indexSet in
                 if !deletePlaylists(offsets: indexSet) {
@@ -322,9 +330,8 @@ struct PrivacyTextView: View {
         Peter Wichert
         Brockenscheidter Straße 15c
         45731 Waltrop
-        +49 2309 569304
-
-        sc_app@icloud.com
+        Phone: +49 2309 569304
+        Email: sc_app@icloud.com
 
         2. Data Collected
 

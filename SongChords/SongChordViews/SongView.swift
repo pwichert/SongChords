@@ -16,6 +16,7 @@ struct SongView: View {
     @Environment(\.horizontalSizeClass) var horizontalSizeClass
 
     @State private var showSongEditView: Bool = false
+    @State private var showShareView: Bool = false
     @State private var pdfUrl: URL?
     
     @State private var showFileExport: Bool = false
@@ -58,17 +59,28 @@ struct SongView: View {
                 Button("Export Song", systemImage: "arrow.up.document", action: { uttype = .songJSON; showFileExport.toggle() }).help("Export Song")
             }
             #endif
-            #if os(iOS) || DEBUG
+            #if os(iOS)
             ToolbarItem {
                 ShareLink (
                     item: song, preview: SharePreview(song.title, image: Image(systemName: "text.page"))
                 )
             }
             #endif
+            #if DEBUG
+            ToolbarItem {
+                Button("Share View", systemImage: "square.and.arrow.up.circle.fill", action: { showShareView.toggle() }).help("Share")
+            }
+            #endif
         }
         .sheet(isPresented: $showSongEditView) {
             NavigationStack {
                 SongEditView(playlist: song.playlist!, song: song)
+            }
+            .interactiveDismissDisabled()
+        }
+        .sheet(isPresented: $showShareView) {
+            NavigationStack {
+                ShareView(song: song)
             }
             .interactiveDismissDisabled()
         }
@@ -244,6 +256,31 @@ struct TextsLineView: View {
                                 .offset(CGSize(width: text.fontOffset, height: 0))
                         }
                     }
+                }
+            }
+        }
+    }
+}
+
+
+struct ShareView: View {
+    let song: Song
+    @Environment(ViewModel.self) private var viewModel
+
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        Form {
+            ShareLink (item: song, preview: SharePreview(song.title, image: Image(systemName: "text.page")))
+            ShareLink (item: song.srcText, subject: Text(song.title), preview: SharePreview(song.title, image: Image(systemName: "text.page")))
+            ShareLink (item: song.songToData(), subject: Text(song.title), preview: SharePreview(song.title, image: Image(systemName: "text.page")))
+        }
+        .frame(idealHeight: 500)
+        .navigationTitle("Share")
+        .toolbar {
+            ToolbarItem(placement: .confirmationAction) {
+                Button("Ok") {
+                    dismiss()
                 }
             }
         }

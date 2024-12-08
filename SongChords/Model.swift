@@ -386,6 +386,8 @@ extension Song: Transferable {
         // uttype = .pdf
         // .fileExporter(isPresented: $showFileExport, item: song, contentTypes: [uttype], defaultFilename: song.title)
         FileRepresentation(exportedContentType: .pdf, exporting: { song in
+            print("FileRepresentation (.pdf) exported song \(song.title)")
+
             do {
                 let viewModel = ViewModel()
                 let delegate = await PrintSongDelegate(viewModel: viewModel, song: song)
@@ -401,6 +403,27 @@ extension Song: Transferable {
         })
         .suggestedFileName { $0.title }
         
+//        DataRepresentation(contentType: .songJSON, exporting: { song in
+//            return song.songToData()
+//        }
+//        , importing: { data in
+//            let decoder = JSONDecoder()
+//            return try decoder.decode(Song.self, from: data)
+//        })
+//        .suggestedFileName { $0.title }
+//
+//        FileRepresentation(contentType: .songJSON, exporting: { song in
+//            guard let url = song.saveDataToFile(filename: song.title) else {
+//                throw NSError(domain: "Transferable", code: 4, userInfo: ["reason": "Failed to create file"])
+//            }
+//            return SentTransferredFile(url)
+//        }
+//        , importing: { url in
+//            let song = try Song.songFromText(url: url.file)
+//            return song
+//        })
+//        .suggestedFileName { $0.title }
+
 //        ProxyRepresentation(exporting: \.srcText)
 //            .suggestedFileName { $0.title }
     }

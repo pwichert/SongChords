@@ -132,52 +132,56 @@ struct SongChordsTests {
         #expect(songRepresentation.toChordProString() == expectedResult)
     }
     
-    
     @Test func testChords() async throws {
-        let viewModel = ViewModel()
-        let parser = ChordProParser(viewModel: viewModel, songTranspose: 0, tokens: [], forPrinting: false)
-        var pchord = parser.parseChord("C", convertGerman: false)
-        #expect(pchord?.toString(transpose: 0, convertGerman: false) == "C")
+        var englishDutchRoot: any ChordRoot = EnglishDutchRoot()
+        var englishGermanRoot: any ChordRoot = EnglishGermanRoot()
+        
+        var pchord = ParsedChord.parse("D/F#", rootSystem: &englishDutchRoot, strict: true)
+        #expect(pchord?.toString(transpose: 0, rootSystem: &englishDutchRoot) == "D/F#")
 
-        pchord = parser.parseChord("Cmin7", convertGerman: false)
-        #expect(pchord?.toString(transpose: 0, convertGerman: false) == "Cm7")
+        pchord = ParsedChord.parse("C#maj7sus4/d#", rootSystem: &englishDutchRoot, strict: true)
+        #expect(pchord?.toString(transpose: 0, rootSystem: &englishDutchRoot) == "C#maj7sus4/D#")
 
-        pchord = parser.parseChord("Cb", convertGerman: false)
-        #expect(pchord?.toString(transpose: 0, convertGerman: false) == "Cb")
+        pchord = ParsedChord.parse("C", rootSystem: &englishDutchRoot, strict: true)
+        #expect(pchord?.toString(transpose: 0, rootSystem: &englishDutchRoot) == "C")
 
-        pchord = parser.parseChord("C", convertGerman: false)
-        #expect(pchord?.toString(transpose: 8, convertGerman: false) == "G#")
+        pchord = ParsedChord.parse("Cmin7", rootSystem: &englishDutchRoot, strict: true)
+        #expect(pchord?.toString(transpose: 0, rootSystem: &englishDutchRoot) == "Cmin7")
 
-        pchord = parser.parseChord("Fm", convertGerman: false)
-        #expect(pchord?.toString(transpose: -1, convertGerman: false) == "Em")
+        pchord = ParsedChord.parse("C", rootSystem: &englishDutchRoot, strict: true)
+        #expect(pchord?.toString(transpose: 8, rootSystem: &englishDutchRoot) == "G#")
 
-        pchord = parser.parseChord("C", convertGerman: false)
-        #expect(pchord?.toString(transpose: -4, convertGerman: false) == "Ab")
+        pchord = ParsedChord.parse("Fm", rootSystem: &englishDutchRoot, strict: true)
+        #expect(pchord?.toString(transpose: -1, rootSystem: &englishDutchRoot) == "Em")
 
-        pchord = parser.parseChord("H", convertGerman: false)
-        #expect(pchord == nil)
+        pchord = ParsedChord.parse("C", rootSystem: &englishDutchRoot, strict: true)
+        #expect(pchord?.toString(transpose: -4, rootSystem: &englishDutchRoot) == "Ab")
 
-        pchord = parser.parseChord("H", convertGerman: true)
-        #expect(pchord?.toString(transpose: 0, convertGerman: false) == "B")
+        pchord = ParsedChord.parse("H", rootSystem: &englishGermanRoot, strict: true)
+        #expect(pchord?.toString(transpose: 0, rootSystem: &englishDutchRoot) == "B")
 
-        pchord = parser.parseChord("B", convertGerman: false)
-        #expect(pchord?.toString(transpose: 0, convertGerman: true) == "H")
+        pchord = ParsedChord.parse("B", rootSystem: &englishDutchRoot, strict: true)
+        #expect(pchord?.toString(transpose: 0, rootSystem: &englishGermanRoot) == "H")
 
-        pchord = parser.parseChord("B", convertGerman: true)
-        #expect(pchord?.toString(transpose: 0, convertGerman: false) == "Bb")
+        pchord = ParsedChord.parse("B", rootSystem: &englishGermanRoot, strict: true)
+        #expect(pchord?.toString(transpose: 0, rootSystem: &englishDutchRoot) == "Bb")
 
-        pchord = parser.parseChord("H", convertGerman: true)
-        #expect(pchord?.toString(transpose: 4, convertGerman: true) == "D#")
+        pchord = ParsedChord.parse("H", rootSystem: &englishGermanRoot, strict: true)
+        #expect(pchord?.toString(transpose: 4, rootSystem: &englishGermanRoot) == "Dis")
 
-        pchord = parser.parseChord("B", convertGerman: true)
-        #expect(pchord?.toString(transpose: 0, convertGerman: true) == "B")
+        pchord = ParsedChord.parse("B", rootSystem: &englishDutchRoot, strict: true)
+        #expect(pchord?.toString(transpose: 0, rootSystem: &englishDutchRoot) == "B")
 
-        pchord = parser.parseChord("Bb", convertGerman: true)
-        #expect(pchord?.toString(transpose: 0, convertGerman: true) == "B")
+        pchord = ParsedChord.parse("Bb", rootSystem: &englishDutchRoot, strict: true)
+        #expect(pchord?.toString(transpose: 0, rootSystem: &englishGermanRoot) == "B")
+
+        pchord = ParsedChord.parse("Bb", rootSystem: &englishDutchRoot, strict: true)
+        #expect(pchord?.toString(transpose: 0, rootSystem: &englishDutchRoot) == "Bb")
     }
     
     @Test func testReverse() async throws {
         let chordProReverseParser = ChordProReverseParser()
+        var englishDutchRoot: any ChordRoot = EnglishDutchRoot()
 
         var inputText = """
               C                            F   Gsus4
@@ -189,7 +193,7 @@ struct SongChordsTests {
         
         """
         
-        var sections = chordProReverseParser.parse(input: inputText)
+        var sections = chordProReverseParser.parse(input: inputText, rootSystem: &englishDutchRoot)
         #expect(chordProReverseParser.toString(sections: sections) == expectedResult)
         
         inputText = """
@@ -203,7 +207,7 @@ struct SongChordsTests {
         
         """
         
-        sections = chordProReverseParser.parse(input: inputText)
+        sections = chordProReverseParser.parse(input: inputText, rootSystem: &englishDutchRoot)
         #expect(chordProReverseParser.toString(sections: sections) == expectedResult)
         
         inputText = """
@@ -225,7 +229,7 @@ struct SongChordsTests {
         You've g[C]ot to roll with the punches to get to what'[F]s real [Gsus4]
         
         """
-        sections = chordProReverseParser.parse(input: inputText)
+        sections = chordProReverseParser.parse(input: inputText, rootSystem: &englishDutchRoot)
         #expect(chordProReverseParser.toString(sections: sections) == expectedResult)
         
         inputText = """
@@ -242,7 +246,7 @@ struct SongChordsTests {
         (Keyboard Solo)
         
         """
-        sections = chordProReverseParser.parse(input: inputText)
+        sections = chordProReverseParser.parse(input: inputText, rootSystem: &englishDutchRoot)
         #expect(chordProReverseParser.toString(sections: sections) == expectedResult)
         
         inputText = """
@@ -259,6 +263,6 @@ struct SongChordsTests {
         [C#m]
         
         """
-        sections = chordProReverseParser.parse(input: inputText)
+        sections = chordProReverseParser.parse(input: inputText, rootSystem: &englishDutchRoot)
     }
 }
