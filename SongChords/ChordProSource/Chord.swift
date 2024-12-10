@@ -7,12 +7,6 @@
 
 import Foundation
 
-public enum ChordSystems: String {
-    case english
-    case german
-    case dutch
-}
-
 public enum ChordQuality: String, CaseIterable {
     case min
     case m
@@ -81,6 +75,8 @@ public enum ChordExt: String, CaseIterable {
     case eAdd2 = "add2"
     case eAdd4 = "add4"
     case eAdd9 = "add9"
+    case eAdd11 = "add11"
+    case eAdd13 = "add13"
     case eSus2 = "sus2"
     case eSus4 = "sus4"
     case eSus9 = "sus9"
@@ -117,8 +113,8 @@ private struct DutchRoot: ChordRoot {
 
 public struct EnglishDutchRoot: ChordRoot {
     public init() {}
-    public let sharps = [ ["c", "bis"], ["c#", "cis"], ["d"], ["d#", "dis"], ["e"], ["f", "eis"], ["f#", "fis"], ["g"], ["g#", "gis"], ["a"], ["a#", "ais"], ["b"] ]
-    public let flats = [ ["c"], ["db", "des"], ["d"], ["eb", "es", "ees"], ["e", "fes"], ["f"], ["gb", "ges"], ["g"], ["ab", "as", "aes"], ["a"], ["bb", "bes"], ["b", "cb", "ces"] ]
+    public let sharps = [ ["c", "bis"], ["c#", "cis"], ["d"], ["d#", "dis"], ["e"], ["f", "eis"], ["f#", "fis"], ["g"], ["g#", "gis"], ["a"], ["a#", "ais"], ["b", "h"] ]
+    public let flats = [ ["c"], ["db", "des"], ["d"], ["eb", "es", "ees"], ["e", "fes"], ["f"], ["gb", "ges"], ["g"], ["ab", "as", "aes"], ["a"], ["bb", "bes"], ["b", "cb", "ces", "h"] ]
 }
 
 private struct GermanRoot: ChordRoot {
@@ -133,34 +129,50 @@ public struct EnglishGermanRoot: ChordRoot {
     public let flats = [ ["c"], ["des", "db"], ["d"], ["es", "ees", "eb"], ["e", "fes"], ["f"], ["ges", "gb"], ["g"], ["as", "aes", "ab"], ["a"], ["b", "bb"], ["h", "cb", "ces"] ]
 }
 
+/// ChordRoot Arrays "sharps" und "flats"
+///
+/// Jedes SubArray ist eine Sequenz von Synonymen für die jeweilige Tonstufe. Der erste Eintrag erscheint bei der Darstellung für dieses Rootsystem,
+/// das gesamte SubArray wird als Suchmuster für die Tonstufe verwendet.
+///
+/// Darstellung nach Transponieren: positiv verwendet das "sharps"-Array, negativ das "flats"-Array
+///
+/// International/Common
+/// EnglishDutchRoot: steht für das englische System (A, A#, B, Bb ...) mit dutch Erweiterung (Bis, Bes, B ...).
+///
+/// Deutsch
+/// EnglichGermanRoot: steht für das deutsche System (His, B, H ...) mit english Erweiterung (A, A#, B, Bb ...).
+///
+
 public struct ParsedChord: Identifiable {
     public let id = UUID()
     
     // ursprünglicher Akkordtext
     public let name: String
         
+    // Akkordgrundtonwert: Tonstufe und sharps/flats-Array
     private let grundton: Int?
     private let isFlat: Bool
     
     private let quality: ChordQuality?
     private let ext: ChordExt?
     
+    // Akkordbasstonwert: Tonstufe und sharps/flats-Array
     private let basston: Int?
     private let isBassFlat: Bool
     
     public static func parse(_ chordString: String, rootSystem: inout ChordRoot, strict: Bool) -> ParsedChord? {
         if chordString.isEmpty { return nil }
-                
+        
         // Grundton
         let str = chordString.lowercased()
-        var gtIndex: Int?
-        var grundtonString: String?
-        var isFlat: Bool = false
-        (gtIndex, grundtonString, isFlat) = findTone(tone: str, rootSystem: &rootSystem)
-
+        let gtIndex: Int?
+        let grundtonLen: Int
+        let isFlat: Bool
+        (gtIndex, grundtonLen, isFlat) = findTone(tone: str, rootSystem: &rootSystem)
+        
         if gtIndex == nil { return nil }
         
-        var index = chordString.index(chordString.startIndex, offsetBy: grundtonString!.count)
+        var index = chordString.index(chordString.startIndex, offsetBy: grundtonLen)
         
         var quality: ChordQuality?
         if index < chordString.endIndex && !String(chordString[index...]).lowercased().starts(with: "maj") {
@@ -185,10 +197,10 @@ public struct ParsedChord: Identifiable {
             
             if index < chordString.endIndex {
                 // Basston extrahieren
-                var bassString: String?
+                let bassLen: Int
                 let str = chordString[index...].lowercased()
-                (bsIndex, bassString, bassFlat) = findTone(tone: str, rootSystem: &rootSystem)
-                index = chordString.index(index, offsetBy: bassString?.count ?? 0)
+                (bsIndex, bassLen, bassFlat) = findTone(tone: str, rootSystem: &rootSystem)
+                index = chordString.index(index, offsetBy: bassLen)
             }
             if bsIndex == nil && strict { return nil }
         }
@@ -198,37 +210,39 @@ public struct ParsedChord: Identifiable {
         }
         
         return ParsedChord(name: chordString, grundton: gtIndex, isFlat: isFlat, quality: quality, ext: ext, basston: bsIndex, isBassFlat: bassFlat)
-        
-        func findTone(tone: String, rootSystem: inout ChordRoot) -> (Int?, String?, isFlat: Bool) {
-            var idx = 0
-            var sharpString: String?
-            var sharpIdx: Int?
-            
-            for rootElem in rootSystem.sharps {
-                for enharmonic in rootElem {
-                    if tone.starts(with: enharmonic) && enharmonic.count > sharpString?.count ?? 0 {
-                        sharpString = enharmonic
-                        sharpIdx = idx
-                    }
+    }
+    
+    /// Sucht einen Ton im Notationssystem, Ergebnis ist der Index
+    /// Dabei wird vermerkt, ob der Ton aus der sharp- oder flat-Liste ist.
+    /// Es wird der längste passende String gewählt
+    private static func findTone(tone: String, rootSystem: inout ChordRoot) -> (Int?, Int, isFlat: Bool) {
+        var idx = 0
+        var sharpIdx: Int?
+        var sharpLen = 0
+        for rootElem in rootSystem.sharps {
+            for enharmonic in rootElem {
+                if tone.starts(with: enharmonic) && enharmonic.count > sharpLen {
+                    sharpLen = enharmonic.count
+                    sharpIdx = idx
                 }
-                idx += 1
             }
-
-            var flatString: String?
-            var flatIdx: Int?
-            idx = 0
-            for rootElem in rootSystem.flats {
-                for enharmonic in rootElem {
-                    if tone.starts(with: enharmonic) && enharmonic.count > flatString?.count ?? 0 {
-                        flatString = enharmonic
-                        flatIdx = idx
-                    }
-                }
-                idx += 1
-            }
-
-            return (flatString?.count ?? 0) > (sharpString?.count ?? 0) ? (flatIdx, flatString, true) : (sharpIdx, sharpString,false)
+            idx += 1
         }
+        
+        var flatIdx: Int?
+        var flatLen = 0
+        idx = 0
+        for rootElem in rootSystem.flats {
+            for enharmonic in rootElem {
+                if tone.starts(with: enharmonic) && enharmonic.count > flatLen {
+                    flatLen = enharmonic.count
+                    flatIdx = idx
+                }
+            }
+            idx += 1
+        }
+        
+        return flatLen > sharpLen ? (flatIdx, flatLen, true) : (sharpIdx, sharpLen, false)
     }
     
     public func toString(transpose: Int, rootSystem: inout ChordRoot) -> String {
@@ -236,21 +250,24 @@ public struct ParsedChord: Identifiable {
             let tChord = transposeChord(by: transpose, rootSystem: &rootSystem)
             
             if let tChord = tChord {
-                return tChord.toString_(transpose: 0, rootSystem: &rootSystem, isTransposed: true, useFlats: transpose < 0)
+                return tChord.toString_(transpose: transpose, rootSystem: &rootSystem)
             }
             
             return "?"
         }
         
-        return toString_(transpose: 0, rootSystem: &rootSystem, isTransposed: false, useFlats: false)
+        return toString_(transpose: transpose, rootSystem: &rootSystem)
     }
     
-    private func toString_(transpose: Int, rootSystem: inout ChordRoot, isTransposed: Bool, useFlats: Bool) -> String {
+    private func toString_(transpose: Int, rootSystem: inout ChordRoot) -> String {
         var res = ""
                 
         if let grundton = grundton {
-            let tone = (useFlats || isFlat ? rootSystem.flats : rootSystem.sharps)[grundton].first!.capitalized
-            res.append(tone)
+            if transpose < 0 || isFlat {
+                res.append(rootSystem.flats[grundton].first!.capitalized)
+            } else {
+                res.append(rootSystem.sharps[grundton].first!.capitalized)
+            }
         }
         
         if let quality = quality {
@@ -262,8 +279,11 @@ public struct ParsedChord: Identifiable {
         }
         
         if let basston = basston {
-            let tone = (useFlats || isBassFlat ? rootSystem.flats : rootSystem.sharps)[basston].first!.capitalized
-            res.append("/" + tone)
+            if transpose < 0 || isBassFlat {
+                res.append("/" + rootSystem.flats[basston].first!.capitalized)
+            } else {
+                res.append("/" + rootSystem.sharps[basston].first!.capitalized)
+            }
         }
         
         return res

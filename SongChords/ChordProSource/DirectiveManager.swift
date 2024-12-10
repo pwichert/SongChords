@@ -97,6 +97,7 @@ class DirectiveManager {
             case .transpose:
                 if let value, let intval = robustStringToInt(value), intval >= -11 && intval <= 11 {
                     transpose = intval
+                    directives[.transpose] = String(transpose)
 //                    print("\(directive) = <\(intval)>")
                 } else {
                     return nil
@@ -105,6 +106,7 @@ class DirectiveManager {
             case .duration:
                 if let value, let intval = timeVal(timeStr: value), intval >= 0 && intval <= 5000 {
                     duration = intval
+                    directives[.duration] = String(duration)
 //                    print("\(directive) = <\(intval)>")
                 } else {
                     return nil
@@ -113,6 +115,7 @@ class DirectiveManager {
             case .columns:
                 if let value, let intval = robustStringToInt(value), intval >= 1 && intval <= 4 {
                     columns = intval
+                    directives[.columns] = String(columns)
 //                    print("\(directive) = <\(intval)>")
                 } else {
                     return nil

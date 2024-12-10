@@ -49,24 +49,20 @@ struct SongView: View {
                 Button("ChordPro Text", systemImage: "pencil", action: { showSongEditView.toggle() }).help("Edit ChordPro Text")
             }
             ToolbarItem {
-                Button("Toggle PDF", systemImage: pdfUrl == nil ? "document.viewfinder.fill" : "text.alignleft", action: { if pdfUrl == nil { showPdf() } else { pdfUrl = nil } }).help("Toggle PDF")
+                Button("Toggle PDF", systemImage: pdfUrl == nil ? "text.rectangle.page" : "text.page", action: { if pdfUrl == nil { showPdf() } else { pdfUrl = nil } }).help("Toggle PDF")
             }
             ToolbarItem {
                 Button("Export PDF File", systemImage: "arrow.up.document.fill", action: { uttype = .pdf; showFileExport.toggle() }).help("Export PDF File")
             }
-            #if os(macOS) // ... solange der ShareLink auf macOS nicht funktioniert.
             ToolbarItem {
                 Button("Export Song", systemImage: "arrow.up.document", action: { uttype = .songJSON; showFileExport.toggle() }).help("Export Song")
             }
-            #endif
-            #if os(iOS)
             ToolbarItem {
                 ShareLink (
                     item: song, preview: SharePreview(song.title, image: Image(systemName: "text.page"))
                 )
             }
-            #endif
-            #if DEBUG
+            #if false
             ToolbarItem {
                 Button("Share View", systemImage: "square.and.arrow.up.circle.fill", action: { showShareView.toggle() }).help("Share")
             }

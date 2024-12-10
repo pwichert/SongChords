@@ -164,7 +164,7 @@ public class ChordProParser {
         let showChords: Bool = !viewModel.hidechords
         let textFollowsChords: Bool = viewModel.textfollowschords
         
-        var root: ChordRoot = viewModel.isGermanNotation ? EnglishGermanRoot() : EnglishDutchRoot()
+        var rootSystem: ChordRoot = viewModel.isGermanNotation ? EnglishGermanRoot() : EnglishDutchRoot()
         
         while position < tokens.count {
             if Task.isCancelled { print("cancelled"); break }
@@ -175,7 +175,7 @@ public class ChordProParser {
             case .curlyEnclosed(let directive):
                 numDirectives += 1
                 
-                if let d = directiveManager.addDirective(processReplace(viewModel: viewModel, srcline: directive, root: &root)) {
+                if let d = directiveManager.addDirective(processReplace(viewModel: viewModel, srcline: directive, root: &rootSystem)) {
                     switch d {
                     case .column_break: lineIsColumnBreak = true
                     case .new_page:     lineIsNewPage = true
@@ -201,7 +201,7 @@ public class ChordProParser {
                     default: break
                     }
                 } else {
-                    let str = processReplace(viewModel: viewModel, srcline: directive, root: &root)
+                    let str = processReplace(viewModel: viewModel, srcline: directive, root: &rootSystem)
                     let strLen = sizeOfString(string: str, font: txtf)
                     currentLineElements.append(Element(type: .text(str, strLen)))
                 }
@@ -209,28 +209,28 @@ public class ChordProParser {
             case .bracketEnclosed(let chord):
                 numChords += 1
                 if chord.starts(with: "*") {
-                    let str = processReplace(viewModel: viewModel, srcline: String(chord.dropFirst()), root: &root)
+                    let str = processReplace(viewModel: viewModel, srcline: String(chord.dropFirst()), root: &rootSystem)
                     let strLen = sizeOfString(string: str, font: chordf)
                     currentLineElements.append(Element(type: .chordcomment(str, strLen, true)))  // "*" merken
                 } else {
-                    if let pchord = ParsedChord.parse(chord, rootSystem: &root, strict: true) {
-                        let str = pchord.toString(transpose: songTranspose + directiveManager.transpose, rootSystem: &root)
+                    if let pchord = ParsedChord.parse(chord, rootSystem: &rootSystem, strict: true) {
+                        let str = pchord.toString(transpose: songTranspose + directiveManager.transpose, rootSystem: &rootSystem)
                         let strLen = sizeOfString(string: str, font: chordf)
                         currentLineElements.append(Element(type: .chord(str, pchord, strLen)))
                     } else {
-                        let str = processReplace(viewModel: viewModel, srcline: chord, root: &root)
+                        let str = processReplace(viewModel: viewModel, srcline: chord, root: &rootSystem)
                         let strLen = sizeOfString(string: str, font: chordf)
                         currentLineElements.append(Element(type: .chordcomment(str, strLen, false)))
                     }
                 }
                 
             case .text(let text):
-                let str = processReplace(viewModel: viewModel, srcline: text, root: &root)
+                let str = processReplace(viewModel: viewModel, srcline: text, root: &rootSystem)
                 let strLen = sizeOfString(string: str, font: txtf)
                 currentLineElements.append(Element(type: .text(str, strLen)))
                 
             case .comment(let text):
-                let str = processReplace(viewModel: viewModel, srcline: text, root: &root)
+                let str = processReplace(viewModel: viewModel, srcline: text, root: &rootSystem)
                 let strLen = sizeOfString(string: str, font: txtf)
                 currentLineElements.append(Element(type: .comment(str, strLen)))
                 
@@ -447,6 +447,9 @@ public class ChordProParser {
         
         var src: String = srcline
 
+        // TODO
+        // Maskiertes \%{ fehlt hier noch. Außerdem sollte die Schleife sicherer werden.
+        
         while true {
             let dirRepl = findSubstringBetweenDelimiters(mainString: src, startDelimiter: "%{", endDelimiter: "}")
             

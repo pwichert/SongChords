@@ -42,7 +42,7 @@ struct SongListView: View {
                         
                         #if os(macOS)
                         Button(role: .destructive, action: {
-                                let indexOfSong = (playlist.songs ?? []).sorted(by: { $0.seq < $1.seq }).firstIndex { $0 === song }
+                            let indexOfSong = (playlist.songs ?? []).sorted(by: { $0.seq < $1.seq }).firstIndex { $0 === song }
                             if let indexOfSong = indexOfSong {
                                 deleteIndexset = IndexSet()
                                 deleteIndexset!.insert(indexOfSong)
@@ -97,18 +97,14 @@ struct SongListView: View {
                 Button("Export PDF File", systemImage: "arrow.up.document.fill", action: { uttype = .pdf; showFileExport.toggle() }).help("Export PDF File")
             }
             
-            #if os(macOS) // ... solange der ShareLink auf macOS nicht funktioniert.
             ToolbarItem {
                 Button("Export Playlist", systemImage: "arrow.up.document", action: { uttype = .playlistJSON; showFileExport.toggle() }).help("Export Playlist")
             }
-            #endif
-            #if os(iOS) || DEBUG
             ToolbarItem {
                 ShareLink (
                     item: playlist, preview: SharePreview(playlist.title, image: Image(systemName: "text.page"))
                 )
             }
-            #endif
         }
         .sheet(isPresented: $showSongEditView) {
             NavigationStack {

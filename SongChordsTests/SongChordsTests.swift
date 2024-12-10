@@ -157,11 +157,11 @@ struct SongChordsTests {
         pchord = ParsedChord.parse("C", rootSystem: &englishDutchRoot, strict: true)
         #expect(pchord?.toString(transpose: -4, rootSystem: &englishDutchRoot) == "Ab")
 
-        pchord = ParsedChord.parse("H", rootSystem: &englishGermanRoot, strict: true)
-        #expect(pchord?.toString(transpose: 0, rootSystem: &englishDutchRoot) == "B")
-
         pchord = ParsedChord.parse("B", rootSystem: &englishDutchRoot, strict: true)
         #expect(pchord?.toString(transpose: 0, rootSystem: &englishGermanRoot) == "H")
+
+        pchord = ParsedChord.parse("H", rootSystem: &englishGermanRoot, strict: true)
+        #expect(pchord?.toString(transpose: 0, rootSystem: &englishDutchRoot) == "B")
 
         pchord = ParsedChord.parse("B", rootSystem: &englishGermanRoot, strict: true)
         #expect(pchord?.toString(transpose: 0, rootSystem: &englishDutchRoot) == "Bb")
@@ -174,6 +174,9 @@ struct SongChordsTests {
 
         pchord = ParsedChord.parse("Bb", rootSystem: &englishDutchRoot, strict: true)
         #expect(pchord?.toString(transpose: 0, rootSystem: &englishGermanRoot) == "B")
+
+        pchord = ParsedChord.parse("C/B", rootSystem: &englishGermanRoot, strict: true)
+        #expect(pchord?.toString(transpose: -2, rootSystem: &englishGermanRoot) == "B/As")
 
         pchord = ParsedChord.parse("Bb", rootSystem: &englishDutchRoot, strict: true)
         #expect(pchord?.toString(transpose: 0, rootSystem: &englishDutchRoot) == "Bb")

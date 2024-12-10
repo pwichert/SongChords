@@ -25,7 +25,13 @@ public enum Token: Equatable {
 public class ChordProLexer {
     private let input: String
     private var position: String.Index
+
+    private var tokens: [Token] = []
     
+    /// Initialisiert den Lexer mit Eingabetext.
+    ///
+    /// - Parameter input: Der zu analysierende Text.
+    /// - Throws: `LexerError.inputTooLarge`, wenn der Text größer als 50 MB ist.
     public init(input: String) throws {
         guard input.count < 50_000_000 else {
             throw LexerError.inputTooLarge
@@ -35,33 +41,27 @@ public class ChordProLexer {
         self.position = input.startIndex
     }
     
-    /// Analysiert und extrahiert Textinhalte, Akkorde und Direktiven aus dem Eingabetext.
+    /// Hauptmethode, um den Eingabetext in Tokens zu zerlegen.
     ///
-    /// Diese Methode durchsucht den Eingabetext und gibt eine Liste von `Token`-Werten zurück, die den verschiedenen Elementen im Text entsprechen. Beendet die Verarbeitung nicht bei Fehlern.
-    ///
-    /// - Returns: Eine Liste von `Token`-Werten, die den analysierten Elementen entsprechen.
-    ///
-    /// - Important: Die Methode behandelt `%{...}` als normalen Text und erkennt Kommentare nur am Anfang einer neuen Zeile.
-    ///
-    /// - SeeAlso: `parseBrackets()`, `parseCurly()`, `parseText()`
+    /// - Returns: Eine Liste von erkannten Tokens.
     public func tokenize() -> [Token] {
-        var tokens: [Token] = []
+        tokens = []
         
-        while position < input.endIndex {
+        while let ch = getChar() {
             let token: Token? = {
-                switch input[position] {
+                switch ch {
                 case "[":
                     return parseBrackets()
                 case "{":
                     return parseCurly()
                 case "\n":
-                    advance()
                     return .newLine
                 default:
+                    pushChar()
                     return parseText()
                 }
             }()
-
+            
             if let token = token {
                 tokens.append(token)
             }
@@ -70,28 +70,28 @@ public class ChordProLexer {
         return tokens
     }
     
-    // Helfermethoden zur Analyse. Alle Methoden lassen die Eingabeposition auf dem Stoppkriterium oder "\n" stehen. Ausnahme ist der Kommentar mit "#" (nicht "#:"): die Position steht NACH dem "\n".
+    /// Helfermethoden zur Analyse. Alle Methoden lassen die Eingabeposition auf dem Stoppkriterium stehen.
+    /// "\n" wird zurückgepusht, weil es in der Hauptschleife als eigenes Token erkannt werden muss. Grundsätzlich
+    /// wird immer gepusht, wenn das Zeichen in der Hauptschleife noch erkannt werden muss.
     
-    // Falls eine Klammer nicht geschlossen wird, wird der Inhalt als regulärer Text (`.text`) behandelt.
-
+    /// Falls eine Klammer nicht geschlossen wird, wird der Inhalt als regulärer Text (`.text`) behandelt.
+    
     private func parseBrackets() -> Token  {
-        advance() // Überspringt die öffnende Klammer
         var chord = ""
         
         // Stoppkriterium "]" und "\n"
-
-        while position < input.endIndex {
-            let char = input[position]
-
-            if char == "\n" { break }
-
+        
+        while let escaped = parseEscapedChar() {
+            if let esc = escaped.esc { chord.append(esc); continue }
+            guard let char = escaped.ch else { break }
+            
+            if char == "\n" { pushChar(); break }
+            
             if char == "]" {
-                advance() // Überspringt die schließende Klammer
                 return .bracketEnclosed(chord)
             }
-
+            
             chord.append(char)
-            advance()
         }
         
         print("Warning: missing closing bracket [ at position \(input.distance(from: input.startIndex, to: position))")
@@ -99,59 +99,49 @@ public class ChordProLexer {
     }
     
     private func parseCurly() -> Token {
-        advance() // Überspringt die öffnende geschweifte Klammer
         var directive = ""
         var stack: [Character] = []
-
+        
         // Stoppkriterium "}" und "\n"
-
-        while position < input.endIndex {
-            let char = input[position]
+        
+        while let escaped = parseEscapedChar() {
+            if let esc = escaped.esc { directive.append(esc); continue }
+            guard let char = escaped.ch else { break }
             
-            if char == "\n" { break }
-
+            if char == "\n" { pushChar(); break }
+            
             if char == "{" && directive.last == "%" {
                 stack.append("{")
             } else if char == "}" && !stack.isEmpty {
                 stack.removeLast()
             } else if char == "}" && stack.isEmpty {
-                advance() // Überspringt die schließende Klammer
                 return .curlyEnclosed(directive)
             }
-
+            
             directive.append(char)
-            advance()
         }
         
         print("Warning: missing closing curly brace { at position \(input.distance(from: input.startIndex, to: position))")
         return .text("{" + directive)
     }
     
-    /// Analysiert und extrahiert Textinhalte, die zwischen Akkorden und Direktiven liegen, und erkennt Kommentare im Songtext.
-    ///
-    /// Die Methode durchsucht den Eingabetext und gibt entweder einen `Token.text`-Wert zurück, wenn regulärer Text gefunden wird, oder `Token.comment`, wenn eine Kommentarzeile (beginnend mit `#:`) erkannt wird. Außerdem behandelt sie `{}`- und `[]`-Strukturen korrekt, indem sie den Text-Parsing-Prozess beendet, sobald solche Strukturen gefunden werden.
-    ///
-    /// - Returns:
-    /// Ein `Token`, der entweder regulären Text (`.text`) oder einen Kommentar (`.comment`) enthält. Gibt `nil` zurück, wenn mit `#` die Zeile komplett ignoriert werden soll.
-    ///
-    /// - Important:
-    /// Die Methode erkennt nur Kommentare, die am Anfang einer neuen Zeile beginnen und mit einem  `#:` eingeleitet werden. Variablen mit `%{...}` werden als normaler Text behandelt, nicht ersetzt und nicht als Stoppkriterium interpretiert.
-    ///
-    /// - Precondition:
-    /// Die Methode erwartet, dass der Lexer bereits an einer gültigen Textposition startet. Sie wird nicht aufgerufen, wenn `{` oder `[` direkt an der aktuellen Position stehen.
-    ///
+    /// Analysiert regulären Text zwischen Akkorden und Direktiven.
+    /// Kommentare müssen am Zeilenanfang stehen, es dürfen whitespaces davor stehen
     private func parseText() -> Token? {
         var text = ""
-        let isNewLine: Bool = position == input.startIndex || input[input.index(before: position)] == "\n"
         
-        while position < input.endIndex {
-            let char = input[position]
+        while let escaped = parseEscapedChar() {
+            if let esc = escaped.esc { text.append(esc); continue }
+            guard let char = escaped.ch else { break }
             
             // Stoppkriterium "\n"
-            if char == "\n" { break }
-
-            // # oder #:
-            if char == "#" && text.trimmingCharacters(in: .whitespaces).isEmpty && isNewLine {
+            if char == "\n" {
+                pushChar()
+                break
+            }
+            
+            // "#" oder "#:", aber nur am Zeilenanfang
+            if char == "#" && text.trimmingCharacters(in: .whitespaces).isEmpty && (tokens.isEmpty || tokens.last == .newLine) {
                 if let songComment = parseComment() {
                     return .comment(songComment)
                 } else {
@@ -160,51 +150,72 @@ public class ChordProLexer {
             }
             
             // Stoppkriterium "{": Prüfen, ob ein '{' folgt und NICHT Teil von '%{' ist.
-            if char == "{" && (position == input.startIndex || input[input.index(before: position)] != "%") {
+            if char == "{" && text.last != "%" {
+                pushChar()
                 break  // Beende das Parsen, wenn es kein '%{' ist.
             }
             // Stoppkriterium: "["
             if char == "[" {
+                pushChar()
                 break
             }
             
             text.append(char)
-            advance()
         }
         
         return .text(text)
     }
     
     private func parseComment() -> String? {
-        advance()   // "#"
         var comment = ""
         
         // Stoppkriterium: "\n"
-
-        if input[position] == ":" {
-            advance()   // ":"
-            // Kommentar-Token
-            while position < input.endIndex && input[position] != "\n" {
-                comment.append(input[position])
-                advance()
+        
+        let char = getChar()
+        
+        if char == ":" {
+            // Kommentar-Token, Zeile bleibt erhalten
+            while let char = getChar() {
+                if char == "\n" { pushChar(); break }
+                comment.append(char)
             }
         } else {
             // Zeile verschwindet komplett
-            while position < input.endIndex && input[position] != "\n" {
-                advance()
-            }
-            advance()   // "\n"
+            if char == "\n" { return nil }
+            while let nextChar = getChar(), nextChar != "\n" {}
             return nil
         }
         
         return comment
     }
     
-    private func advance() {
-        if position < input.endIndex {
-            position = input.index(after: position)
-        } else {
-            print("Error: End of input reached")
+    /// Liefert entweder den nächsten "normalen" Character (ch) oder einen "escape"-Character (esc)
+    /// Maskiertes \n wird überlesen
+    private func parseEscapedChar() -> (ch: Character?, esc: Character?)? {
+        guard let current = getChar() else { return nil }
+        
+        if current == "\\" {
+            guard let escaped = getChar() else { return ("\\", nil) }
+            if escaped == "\n" {
+                return (getChar(), nil)
+            }
+            return (nil, escaped)
         }
+        
+        return (current, nil)
+    }
+    
+    private func getChar() -> Character? {
+        guard position < input.endIndex else { return  nil}
+
+        let res = input[position]
+        position = input.index(after: position)
+
+        return res
+    }
+    
+    private func pushChar() {
+        guard position > input.startIndex else { return }
+        position = input.index(before: position)
     }
 }

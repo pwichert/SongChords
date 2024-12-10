@@ -480,10 +480,10 @@
       }
     },
     "Share" : {
-
+      "shouldTranslate" : false
     },
     "Share View" : {
-
+      "shouldTranslate" : false
     },
     "Song..." : {
       "localizations" : {
