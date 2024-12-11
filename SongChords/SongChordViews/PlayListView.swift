@@ -75,8 +75,7 @@ struct PlayListView: View {
             
             ToolbarItem {
                 Menu {
-//                    Button(action: { showOptionsView.toggle() }) {
-                    Button(action: { showSongImport.toggle() }) {
+                    Button(action: { showOptionsView.toggle() }) {
                         Label("Options", systemImage: "gear.circle")
                     }
                     Button(action: { showPrintOptionsView.toggle() }) {
