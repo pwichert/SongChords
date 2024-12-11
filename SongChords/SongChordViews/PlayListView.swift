@@ -75,7 +75,8 @@ struct PlayListView: View {
             
             ToolbarItem {
                 Menu {
-                    Button(action: { showOptionsView.toggle() }) {
+//                    Button(action: { showOptionsView.toggle() }) {
+                    Button(action: { showSongImport.toggle() }) {
                         Label("Options", systemImage: "gear.circle")
                     }
                     Button(action: { showPrintOptionsView.toggle() }) {
@@ -297,7 +298,11 @@ struct PlaylistSelectionSheet: View {
             }) {
                 Text(playlist.title)
             }
+            .buttonStyle(.plain)
         }
+        #if os(macOS)
+        .frame(idealHeight: 400)
+        #endif
         .navigationTitle("Import Song into Playlist")
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
