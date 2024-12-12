@@ -51,17 +51,20 @@ struct SongView: View {
             ToolbarItem {
                 Button("Toggle PDF", systemImage: pdfUrl == nil ? "text.rectangle.page" : "text.page", action: { if pdfUrl == nil { showPdf() } else { pdfUrl = nil } }).help("Toggle PDF")
             }
+            #if os(macOS) // in iOS durch ShareLink ersetzt
             ToolbarItem {
-                Button("Export PDF File", systemImage: "arrow.up.document.fill", action: { uttype = .pdf; showFileExport.toggle() }).help("Export PDF File")
+                Button("Export PDF File", systemImage: "arrow.up.document.fill", action: { uttype = .pdf; song.setTransAll(); showFileExport.toggle() }).help("Export PDF File")
             }
             ToolbarItem {
-                Button("Export Song", systemImage: "arrow.up.document", action: { uttype = .songJSON; showFileExport.toggle() }).help("Export Song")
+                Button("Export Song", systemImage: "arrow.up.document", action: { uttype = .songJSON; song.setTransAll();showFileExport.toggle() }).help("Export Song")
             }
+            #else
             ToolbarItem {
                 ShareLink (
-                    item: song, preview: SharePreview(song.title, image: Image(systemName: "text.page"))
+                    item: pdfUrl != nil ? song.setTransPDF() : song.setTransCodable(), preview: SharePreview(Text(song.title), image: Image("AppIconInternal"))
                 )
             }
+            #endif
             #if false
             ToolbarItem {
                 Button("Share View", systemImage: "square.and.arrow.up.circle.fill", action: { showShareView.toggle() }).help("Share")

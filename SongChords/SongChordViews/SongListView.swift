@@ -51,7 +51,7 @@ struct SongListView: View {
                         }) { Label("Delete", systemImage: "trash")}
                         #endif
                     }
-                    .draggable(song) { Text(song.title) }
+                    .draggable(song.setTransCodable()) { Text(song.title) }
             }
             .onMove(perform: moveSongs)
             .onDelete { indexSet in
@@ -94,17 +94,20 @@ struct SongListView: View {
             }
 
             ToolbarItem {
-                Button("Export PDF File", systemImage: "arrow.up.document.fill", action: { uttype = .pdf; showFileExport.toggle() }).help("Export PDF File")
+                Button("Export PDF File", systemImage: "arrow.up.document.fill", action: { uttype = .pdf; playlist.setTransAll(); showFileExport.toggle() }).help("Export PDF File")
             }
             
+            #if os(macOS) // in iOS durch ShareLink ersetzt
             ToolbarItem {
-                Button("Export Playlist", systemImage: "arrow.up.document", action: { uttype = .playlistJSON; showFileExport.toggle() }).help("Export Playlist")
+                Button("Export Playlist", systemImage: "arrow.up.document", action: { uttype = .playlistJSON; playlist.setTransAll(); showFileExport.toggle() }).help("Export Playlist")
             }
+            #else
             ToolbarItem {
                 ShareLink (
-                    item: playlist, preview: SharePreview(playlist.title, image: Image(systemName: "text.page"))
+                    item: playlist.setTransCodable(), preview: SharePreview(Text(playlist.title), image: Image("AppIconInternal"))
                 )
             }
+            #endif
         }
         .sheet(isPresented: $showSongEditView) {
             NavigationStack {

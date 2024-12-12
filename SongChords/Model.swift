@@ -109,6 +109,23 @@ final class PlayList: Codable {
         try container.encode(title, forKey: .title)
         try container.encode(songs, forKey: .songs)
     }
+    
+    @Transient var hideCodable: Bool = false
+    @Transient var hidePDF: Bool = false
+    func setTransCodable() -> PlayList {
+        hidePDF = true
+        hideCodable = false
+        return self
+    }
+    func setTransPDF() -> PlayList {
+        hideCodable = true
+        hidePDF = false
+        return self
+    }
+    func setTransAll() {
+        hidePDF = false
+        hideCodable = false
+    }
 }
 
 extension PlayList: Transferable {
@@ -120,6 +137,9 @@ extension PlayList: Transferable {
         // Endung .scplaylist
         CodableRepresentation(contentType: .playlistJSON)
             .suggestedFileName { $0.title }
+            .exportingCondition { playlist in
+                return !playlist.hideCodable
+            }
 
         // Export per FileDialog für PDF-Datei
         // Endung .pdf
@@ -135,12 +155,16 @@ extension PlayList: Transferable {
             }
 
             return SentTransferredFile(pdfUrl, allowAccessingOriginalFile: true)
-        }).suggestedFileName { $0.title }
+        })
+        .suggestedFileName { $0.title }
+        .exportingCondition { playlist in
+            return !playlist.hidePDF
+        }
     }
 }
 
 extension UTType {
-    static let playlistJSON = UTType(exportedAs: "com.wichert.songchordslist")
+    static let playlistJSON = UTType(exportedAs: "com.wichert.songchordslist", conformingTo: .json)
 }
 
 class RepresentationHolder: ObservableObject {
@@ -369,10 +393,27 @@ final public class Song: Codable {
 //        try container.encode(duration, forKey: .duration)
 //        try container.encode(musicItemId, forKey: .musicitemid)
     }
+
+    @Transient var hideCodable: Bool = false
+    @Transient var hidePDF: Bool = false
+    func setTransCodable() -> Song {
+        hidePDF = true
+        hideCodable = false
+        return self
+    }
+    func setTransPDF() -> Song {
+        hideCodable = true
+        hidePDF = false
+        return self
+    }
+    func setTransAll() {
+        hidePDF = false
+        hideCodable = false
+    }
 }
 
 extension Song: Transferable {
-    // Das normale Drucken funktioniert in dieser Reihenfolge nicht (es geht nur, wenn FileRepresentation zuerst oder alleine ist).
+    // Das normale Drucken funktioniert ohne exportingCondition in dieser Reihenfolge nicht (es geht nur, wenn FileRepresentation zuerst oder alleine ist).
     // HP-Drucken, in Datei speichern und AirDrop funktioniert dagegen schon.
     
     public static var transferRepresentation: some TransferRepresentation {
@@ -380,6 +421,9 @@ extension Song: Transferable {
         // Endung .songchords
         CodableRepresentation(contentType: .songJSON)
             .suggestedFileName { $0.title }
+            .exportingCondition { song in
+                return !song.hideCodable
+            }
 
         // Export per FileDialog für PDF-Datei
         // Endung .pdf
@@ -402,7 +446,10 @@ extension Song: Transferable {
             }
         })
         .suggestedFileName { $0.title }
-        
+        .exportingCondition { song in
+            return !song.hidePDF
+        }
+
 //        DataRepresentation(contentType: .songJSON, exporting: { song in
 //            return song.songToData()
 //        }
@@ -430,5 +477,5 @@ extension Song: Transferable {
 }
 
 extension UTType {
-    static let songJSON = UTType(exportedAs: "com.wichert.songchords")
+    static let songJSON = UTType(exportedAs: "com.wichert.songchords", conformingTo: .json)
 }
