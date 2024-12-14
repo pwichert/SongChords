@@ -117,12 +117,12 @@
         }
       }
     },
-    "Delete Song" : {
+    "Delete %lld Song(s)" : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Song löschen"
+            "value" : "%lld Song(s) löschen"
           }
         }
       }
@@ -418,6 +418,9 @@
           }
         }
       }
+    },
+    "Print All" : {
+      "shouldTranslate" : false
     },
     "Print Setlist" : {
       "localizations" : {

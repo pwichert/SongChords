@@ -270,9 +270,9 @@ struct ShareView: View {
 
     var body: some View {
         Form {
-            ShareLink (item: song, preview: SharePreview(song.title, image: Image(systemName: "text.page")))
-            ShareLink (item: song.srcText, subject: Text(song.title), preview: SharePreview(song.title, image: Image(systemName: "text.page")))
-            ShareLink (item: song.songToData(), subject: Text(song.title), preview: SharePreview(song.title, image: Image(systemName: "text.page")))
+            ShareLink (item: song, preview: SharePreview(Text(song.title), image: Image("AppIconInternal")))
+            ShareLink (item: song.srcText, subject: Text(song.title), preview: SharePreview(Text(song.title), image: Image("AppIconInternal")))
+            ShareLink (item: song.songToData(), subject: Text(song.title), preview: SharePreview(Text(song.title), image: Image("AppIconInternal")))
         }
         .frame(idealHeight: 500)
         .navigationTitle("Share")

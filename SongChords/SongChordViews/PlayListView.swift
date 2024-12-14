@@ -49,7 +49,7 @@ struct PlayListView: View {
                     .dropDestination(for: Song.self) { receivedSongs, location in
                         for song in receivedSongs {
                             print(".dropDestination: received \(song.title) for playlist \(playlist.title)")
-                            song.toPlaylist(playlist: playlist)
+                            song.toPlaylist(playlist: playlist, move: true)
                         }
                         
                         return true
@@ -87,6 +87,11 @@ struct PlayListView: View {
                     Button(action: { showPrivacyView.toggle() }) {
                         Label("Privacy Policy", systemImage: "person.fill.questionmark")
                     }
+                    #if DEBUG
+                    Button(action: { printAll() }) {
+                        Label("Print All", systemImage: "list.number")
+                    }
+                    #endif
                 } label: {
                     Label("Options", systemImage: "ellipsis.circle")
                 }
@@ -212,13 +217,36 @@ struct PlayListView: View {
             
                     for song in (playlist.songs ?? []) {
                         modelContext.insert(song)
-                        song.toPlaylist(playlist: newPlaylist)
+                        song.toPlaylist(playlist: newPlaylist, move: false)
                     }
                 }
             } catch {
                 print(error)
             }
         }
+    }
+    
+    private func printAll() {
+        var cnt1: Int = 0
+        for p in playlists {
+            for s in (p.songs ?? []).sorted(by: { a, b in a.seq < b.seq }) {
+                cnt1 += 1
+                print("\(p.title) \(s.seq) \(s.title)")
+            }
+        }
+        
+        print("\(cnt1) Songs in Playlisten ----------")
+        
+        let allSongs = try! modelContext.fetch(FetchDescriptor<Song>())
+        
+        var cnt2 = 0
+        for s in allSongs.sorted(by: { a, b in a.seq < b.seq }).filter({ $0.playlist == nil}) {
+            cnt2 += 1
+            print("nil \(s.seq) \(s.title)")
+//            modelContext.delete(s)
+        }
+
+        print("\(cnt2) Songs NICHT in Playlisten ----------")
     }
 }
 
@@ -285,7 +313,7 @@ struct PlaylistSelectionSheet: View {
                             
                             let newSong = Song(title: song.title)
                             modelContext.insert(newSong)
-                            newSong.toPlaylist(playlist: playlist)
+                            newSong.toPlaylist(playlist: playlist, move: false)
                             newSong.updateFromSong(other: song)
                         }
                     }

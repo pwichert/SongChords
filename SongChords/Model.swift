@@ -195,7 +195,7 @@ final public class Song: Codable {
     init(title: String = "", playlist: PlayList) {
         self.title = title.trimmingCharacters(in: .whitespaces)
         //        self.seq = playlist.nextSongSeq()
-        toPlaylist(playlist: playlist)
+        toPlaylist(playlist: playlist, move: false)
     }
     
     func processSongInBackground(viewModel: ViewModel, forPrinting: Bool) {
@@ -249,13 +249,13 @@ final public class Song: Codable {
         self.musicItemId = musicItemId
     }
     
-    func toPlaylist(playlist: PlayList, after: Song? = nil) {
-        if (playlist.songs ?? []).contains(self) { return }
-        
-        // aus alter Playlist entfernen
-        if let myplaylist = self.playlist {
-            if myplaylist.songs != nil {
-                myplaylist.songs!.removeAll { $0 == self }
+    func toPlaylist(playlist: PlayList, move: Bool, after: Song? = nil) {        
+        if move {
+            // aus alter Playlist entfernen
+            if let myplaylist = self.playlist {
+                if myplaylist.songs != nil {
+                    myplaylist.songs!.removeAll { $0 == self }
+                }
             }
         }
         
@@ -268,8 +268,7 @@ final public class Song: Codable {
         
         if let after = after {
             seq = after.seq
-            let idx = playlist.songs!.firstIndex(of: after)
-            if let idx = idx {
+            if let idx = playlist.songs!.firstIndex(of: after) {
                 let idxafter = playlist.songs!.index(after: idx)
                 playlist.songs!.insert(self, at: idxafter)
                 playlist.reNumber()
@@ -458,14 +457,16 @@ extension Song: Transferable {
 //            return try decoder.decode(Song.self, from: data)
 //        })
 //        .suggestedFileName { $0.title }
-//
+
 //        FileRepresentation(contentType: .songJSON, exporting: { song in
+//            print("FileRepresentation (.songJSON) exported song \(song.title)")
 //            guard let url = song.saveDataToFile(filename: song.title) else {
 //                throw NSError(domain: "Transferable", code: 4, userInfo: ["reason": "Failed to create file"])
 //            }
 //            return SentTransferredFile(url)
 //        }
 //        , importing: { url in
+//            print("FileRepresentation (.songJSON) imported song \(url.file.absoluteString)")
 //            let song = try Song.songFromText(url: url.file)
 //            return song
 //        })

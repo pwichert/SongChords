@@ -16,38 +16,58 @@ struct SongListView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(ViewModel.self) private var viewModel
     
+    @State private var selectedSongs: Set<Song> = []
+    
     @State private var showSongEditView: Bool = false
-    @State private var deleteIndexset: IndexSet?
+    @State private var showMoveToPlaylist: Bool = false
+    @State private var deleteIndexset = IndexSet()
     @State private var showDeleteAlert: Bool = false
     @State private var showFileImport: Bool = false
     @State private var showFileExport: Bool = false
     @State private var uttype: UTType = .pdf
-
-    @State private var contextSong: Song?
-
+    
+//    @Query private var songs: [Song]
+//    
+//    init(playlist: PlayList, visibility: Binding<NavigationSplitViewVisibility>) {
+//        self.playlist = playlist
+//        self._visibility = visibility
+//        
+//        let id = playlist.persistentModelID
+//        let pred = #Predicate<Song> { song in
+//            song.playlist?.persistentModelID == id
+//        }
+//            
+//        _songs = Query(filter: pred, sort: \.seq, order: .forward)
+//    }
+    
     var body: some View {
-        List {
-            ForEach((playlist.songs?.sorted(by: { $0.seq < $1.seq }))!) { song in
+        List(selection: $selectedSongs) {
+            ForEach((playlist.songs?.sorted(by: { $0.seq < $1.seq })) ?? []) { song in
                 NavigationLink(song.title, destination: SongView(song: song, visibility: $visibility).environment(viewModel))
                     .contextMenu {
-                        Button(action: { contextSong = song }) { Label("Move", systemImage: "arrow.uturn.left")}
+                        Button(action: { showMoveToPlaylist.toggle() }) { Label("Move", systemImage: "arrow.uturn.left")}
 
                         Button(action: {
-                            let sng = Song(title: song.title)
-                            sng.seq = song.seq
-                            sng.updateFromSong(other: song)
-                            sng.toPlaylist(playlist: playlist, after: song)
-                            modelContext.insert(sng)
+                            print("Count: \(selectedSongs.count)")
+                            for song in selectedSongs {
+                                let sng = Song(title: song.title)
+                                sng.seq = song.seq
+                                sng.updateFromSong(other: song)
+                                modelContext.insert(sng)
+                                sng.toPlaylist(playlist: playlist, move: false, after: song)                                
+                            }
                         }) { Label("Duplicate", systemImage: "doc.on.doc")}
                         
                         #if os(macOS)
                         Button(role: .destructive, action: {
-                            let indexOfSong = (playlist.songs ?? []).sorted(by: { $0.seq < $1.seq }).firstIndex { $0 === song }
-                            if let indexOfSong = indexOfSong {
-                                deleteIndexset = IndexSet()
-                                deleteIndexset!.insert(indexOfSong)
-                                showDeleteAlert.toggle()
+                            deleteIndexset = IndexSet()
+                            for song in selectedSongs {
+                                let indexOfSong = (playlist.songs ?? []).sorted(by: { $0.seq < $1.seq }).firstIndex { $0 === song }
+                                if let indexOfSong = indexOfSong {
+                                    deleteIndexset.insert(indexOfSong)
+                                }
                             }
+                            if !deleteIndexset.isEmpty { showDeleteAlert.toggle() }
                         }) { Label("Delete", systemImage: "trash")}
                         #endif
                     }
@@ -115,9 +135,9 @@ struct SongListView: View {
             }
             .interactiveDismissDisabled()
         }
-        .sheet(item: $contextSong) { ctSong in
+        .sheet(isPresented: $showMoveToPlaylist) {
             NavigationStack {
-                MovePlaylistView(song: ctSong, fromPlaylist: playlist)
+                MoveToPlaylistView(songs: selectedSongs, fromPlaylist: playlist)
             }
         }
         .fileExporter(isPresented: $showFileExport, item: playlist, contentTypes: [uttype], defaultFilename: playlist.title) { result in
@@ -140,9 +160,9 @@ struct SongListView: View {
                 print("Playlist: \(playlist.title): .fileImporter: " + error.localizedDescription)
             }
         }
-        .confirmationDialog(Text("Delete Song"), isPresented: $showDeleteAlert, titleVisibility: .visible) {
+        .confirmationDialog(Text("Delete \(deleteIndexset.count) Song(s)"), isPresented: $showDeleteAlert, titleVisibility: .visible) {
             Button("Delete", role: .destructive) {
-                if let deleteIndexset = deleteIndexset {
+                if !deleteIndexset.isEmpty {
                     deleteSongs(playlist: playlist, offsets: deleteIndexset)
                 }
             }
@@ -202,7 +222,7 @@ struct SongListView: View {
         let new = String(localized: "New")
         let song = Song(title: new + " " + Date.now.formatted(date: .numeric, time: .shortened))
         modelContext.insert(song)
-        song.toPlaylist(playlist: playlist)
+        song.toPlaylist(playlist: playlist, move: false)
 
         song.srcText.append("{st: Subtitle of Song}\n")
         song.srcText.append("[*%{st}]\n")
@@ -225,20 +245,17 @@ struct SongListView: View {
         
         do {
             let song = try Song.songFromText(url: url)
+            if startSecurityScope { url.stopAccessingSecurityScopedResource() }
             let newSong = Song(title: song.title)
-            modelContext.insert(newSong)
-            newSong.toPlaylist(playlist: playlist)
             newSong.updateFromSong(other: song)
+            modelContext.insert(newSong)
+            newSong.toPlaylist(playlist: playlist, move: false)
 
             success = true
         } catch {
             print(error.localizedDescription)
         }
 
-        if startSecurityScope {
-            url.stopAccessingSecurityScopedResource()
-        }
-        
         return success
     }
     
@@ -247,58 +264,10 @@ struct SongListView: View {
         let delegate = PrintSetlistDelegate(viewModel: viewModel, playlist: playlist)
         PrintController.onPrint(viewModel: viewModel, title: playlist.title, delegate: delegate)
     }
-    
-//#if os(macOS)
-//    private func exportPlaylist(playlist: PlayList) {
-//        var dirname: String = ""
-//        var errtxt: String?
-//        
-//        let panel = NSOpenPanel()
-//        panel.allowsMultipleSelection = false
-//        panel.canChooseDirectories = true
-//        panel.canCreateDirectories = true
-//        panel.canChooseFiles = false
-//        
-//        if panel.runModal() == .OK {
-//            if let url = panel.url {
-//                dirname = panel.url!.path()
-//                print(dirname)
-//                
-//                let startSecurityScope = url.startAccessingSecurityScopedResource()
-//
-//                do {
-//                    var cnt = 0
-//                    for song in playlist.songs ?? [] {
-//                        cnt += 1
-//                        let data = song.songToData()
-//                        let filename = song.title.count > 0 ? song.title : "title " + String(cnt)
-//                        var fileurl = url.appending(component: filename)
-//                        fileurl.appendPathExtension(for: .plainText)
-//                        
-//                        try data.write(to: fileurl, options: Data.WritingOptions.withoutOverwriting)
-//                    }
-//                } catch {
-//                    print("Error exporting Playlist: \(error.localizedDescription)")
-//                    errtxt = error.localizedDescription
-//                }
-//                
-//                if startSecurityScope {
-//                    url.stopAccessingSecurityScopedResource()
-//                }
-//            }
-//        }
-//        
-//        if let errtxt = errtxt {
-//            let alert = NSAlert()
-//            alert.messageText = "Aborted: " + errtxt
-//            _ = alert.runModal()
-//        }
-//    }
-//#endif
 }
 
-struct MovePlaylistView: View {
-    let song: Song
+struct MoveToPlaylistView: View {
+    let songs: Set<Song>?
     let fromPlaylist: PlayList?
 
     @Environment(\.dismiss) private var dismiss
@@ -316,9 +285,11 @@ struct MovePlaylistView: View {
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 Button(action: {
-                    if let selected = selected {
-                        print("---" + song.title)
-                        song.toPlaylist(playlist: selected)
+                    if let selected = selected, let songs = songs {
+                        for song in songs {
+                            print("---" + song.title)
+                            song.toPlaylist(playlist: selected, move: true)
+                        }
                     }
                     dismiss()
                 }) {
@@ -342,62 +313,3 @@ struct MovePlaylistView: View {
         #endif
     }
 }
-
-//struct MacMovePlaylistView: View {
-//    @Environment(\.dismiss) private var dismiss
-//    @Environment(\.colorScheme) var colorScheme
-//
-//    let song: Song
-//    let fromPlaylist: PlayList?
-//
-//    @State private var selected: PlayList?
-//    
-//    @Query(sort: \PlayList.seq, order: .forward) private var playlists: [PlayList]
-//
-//    var body: some View {
-//        Spacer()
-//        HStack {
-//            Spacer()
-//            Form {
-//                #if os(macOS)
-//                HStack(alignment: .center) {
-//                    Text("Move to Playlist").font(.subheadline).bold().foregroundStyle(Color(NSColor.labelColor)).padding(.leading, 3)
-//                }.padding(3)
-//                    .background(colorScheme == .dark ? Color.init(red: 0.1, green: 0.1, blue: 0.1) : Color.init(red: 0.9, green: 0.9, blue: 0.9))
-//                    .cornerRadius(5)
-//                #endif
-//                Text(" ")
-//                
-//                List(selection: $selected) {
-//                    ForEach(playlists.filter({ $0.persistentModelID != fromPlaylist!.persistentModelID }), id: \.self) { pl in
-//                        Text(pl.title)
-//                    }
-//                }
-//                .toolbar {
-//                    ToolbarItem(placement: .primaryAction) {
-//                        Button(action: {
-//                            if let selected = selected {
-//                                print("---" + song.title)
-//                                song.toPlaylist(playlist: selected)
-//                            }
-//                            dismiss()
-//                        }) {
-//                            Text("Done")
-//                        }
-//                    }
-//                    ToolbarItem(placement: .cancellationAction) {
-//                        Button(action: {
-//                            dismiss()
-//                        }
-//                        ) {
-//                            Text("Abort")
-//                        }
-//                    }
-//                }
-//            }
-//            .frame(minWidth: 300, minHeight: 300)
-//            Spacer()
-//        }
-//        Spacer()
-//    }
-//}
