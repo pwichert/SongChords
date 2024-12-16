@@ -148,7 +148,24 @@
       }
     },
     "Copy" : {
-      "shouldTranslate" : false
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kopieren"
+          }
+        }
+      }
+    },
+    "Copy to Playlist" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "nach Playliste kopieren"
+          }
+        }
+      }
     },
     "dark" : {
       "localizations" : {
@@ -400,6 +417,7 @@
       }
     },
     "Move to Playlist" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {

@@ -80,14 +80,14 @@ struct SongListView: View {
         .toolbar {
             #if os(macOS)
             ToolbarItem {
-                Button(action: { showSongEditView.toggle() }, label: { Image(systemName: "plus") })
+                Button(action: { showSongEditView.toggle() }, label: { Image(systemName: "plus.circle") })
             }
             ToolbarItem {
                 Button(action: { prepareDelete() }, label: { Image(systemName: "trash")} ).help("Delete Song(s)")
             }
             #else
             ToolbarItemGroup(placement: .bottomBar) { // Fügt Menü unten hinzu
-                if selectedSongs.isEmpty {
+                if !isEditing {
                     HStack {
                         if !isEditing {
                             ShareLink (
@@ -98,7 +98,7 @@ struct SongListView: View {
                             Spacer()
                             Button(action: { showSongEditView.toggle() }, label: { Image(systemName: "plus.circle") })
                         }
-                    }.padding(.horizontal)
+                    }
                 } else {
                     HStack {
                         // selectedSongs ist de-selektiert, wenn das .sheet started, daher vorher kopieren
@@ -111,7 +111,7 @@ struct SongListView: View {
                         Button(action: { prepareDelete() }) {
                             Text("Delete")
                         }
-                    }.padding(.horizontal)
+                    }
                 }
             }
             ToolbarItem {//}(placement: .primaryAction) {
@@ -363,7 +363,7 @@ struct MoveToPlaylistView: View {
                 }
                 
             }
-        }.navigationTitle("Move to Playlist")
+        }.navigationTitle("Copy to Playlist")
         #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
         #else

@@ -24,7 +24,7 @@ struct SongView: View {
     
     var body: some View {
         GeometryReader { viewSize in    // Größe des umgebenden Containers
-            ScrollView(viewModel.hidechords ? .vertical : [.horizontal, .vertical]) {
+            ScrollView(viewModel.hidechords ? .vertical : [.horizontal, .vertical], showsIndicators: false) {
                 ZStack(alignment: .topLeading) {
                     if let pdfUrl = pdfUrl {
                         PDFKitView(url: pdfUrl)

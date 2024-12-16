@@ -36,6 +36,7 @@ struct ContentView: View {
             }
             
         }
+        .onChange(of: selectedPlaylist) { selectedSongs = [] }
         .navigationSplitViewStyle(.automatic)
         .preferredColorScheme(viewModel.displayMode == .dark ? .dark : (viewModel.displayMode == .light ? .light : nil))
     }
