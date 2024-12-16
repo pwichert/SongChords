@@ -509,7 +509,6 @@ extension UTType {
     static let songJSON = UTType(exportedAs: "com.wichert.songchords", conformingTo: .json)
 }
 
-
 //extension UTType {
 //    public static var persistentModelID: UTType { UTType(exportedAs: "com.wichert.persistentModelID", conformingTo: .json) }
 //}

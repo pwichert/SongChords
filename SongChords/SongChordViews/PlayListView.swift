@@ -104,36 +104,40 @@ struct PlayListView: View {
             }
             #else
             ToolbarItem(placement: .bottomBar) { // Fügt Menü unten hinzu
-                HStack {
-                    Spacer()
-                    Button(action: { showPlaylistNewView.toggle() }, label: { Image(systemName: "plus.circle") })
-                }.padding(.horizontal)
+                if !isEditing {
+                    HStack {
+                        Spacer()
+                        Button(action: { showPlaylistNewView.toggle() }, label: { Image(systemName: "plus.circle") })
+                    }
+                }
             }
             ToolbarItem {//}(placement: .primaryAction) {
                 EditButton()
             }
             #endif
             ToolbarItem {
-                Menu {
-                    Button(action: { showOptionsView.toggle() }) {
-                        Label("Options", systemImage: "gear.circle")
+                if !isEditing {
+                    Menu {
+                        Button(action: { showOptionsView.toggle() }) {
+                            Label("Options", systemImage: "gear.circle")
+                        }
+                        Button(action: { showPrintOptionsView.toggle() }) {
+                            Label("PDF Options", systemImage: "printer")
+                        }
+                        Button(action: { showInfoView.toggle() }) {
+                            Label("Info", systemImage: "info.circle")
+                        }
+                        Button(action: { showPrivacyView.toggle() }) {
+                            Label("Privacy Policy", systemImage: "person.fill.questionmark")
+                        }
+                        #if DEBUG
+                        Button(action: { printAll() }) {
+                            Label("Print All", systemImage: "list.number")
+                        }
+                        #endif
+                    } label: {
+                        Label("Options", systemImage: "ellipsis.circle")
                     }
-                    Button(action: { showPrintOptionsView.toggle() }) {
-                        Label("PDF Options", systemImage: "printer")
-                    }
-                    Button(action: { showInfoView.toggle() }) {
-                        Label("Info", systemImage: "info.circle")
-                    }
-                    Button(action: { showPrivacyView.toggle() }) {
-                        Label("Privacy Policy", systemImage: "person.fill.questionmark")
-                    }
-                    #if DEBUG
-                    Button(action: { printAll() }) {
-                        Label("Print All", systemImage: "list.number")
-                    }
-                    #endif
-                } label: {
-                    Label("Options", systemImage: "ellipsis.circle")
                 }
             }
         }
