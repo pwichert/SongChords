@@ -16,6 +16,16 @@
     "%@" : {
       "shouldTranslate" : false
     },
+    "%@ selected" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ ausgewählt"
+          }
+        }
+      }
+    },
     "%@: %@" : {
       "localizations" : {
         "en" : {
@@ -26,6 +36,46 @@
         }
       },
       "shouldTranslate" : false
+    },
+    "%lld Song" : {
+      "localizations" : {
+        "de" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld Song"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld Songs"
+                }
+              }
+            }
+          }
+        },
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld Song"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld Songs"
+                }
+              }
+            }
+          }
+        }
+      }
     },
     "%lld.  %@" : {
       "localizations" : {
@@ -97,6 +147,9 @@
         }
       }
     },
+    "Copy" : {
+      "shouldTranslate" : false
+    },
     "dark" : {
       "localizations" : {
         "de" : {
@@ -123,6 +176,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%lld Song(s) löschen"
+          }
+        }
+      }
+    },
+    "Delete Song(s)" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Song(s) löschen"
           }
         }
       }

@@ -40,6 +40,19 @@ class MediaBoxes {
     }
 }
 
+enum PDFGeneratorError: Error {
+    case invalidMediaBox
+    case invalidPageSize
+    case invalidPageOrientation
+    case invalidPageLayout
+    case invalidPageMargins
+    case invalidPageContent
+    case invalidPageContentSize
+    case invalidPageContentPosition
+    case invalidPageContentScale
+    case securityScopedResource
+}
+
 class PDFGenerator {
     private var vm: ViewModel
     private var cols: Int = 1
@@ -83,6 +96,13 @@ class PDFGenerator {
         print(url.absoluteString)
         print(testUrl.absoluteString)
 
+//        let urlSec = url.startAccessingSecurityScopedResource()
+//        let testUrlSec = testUrl.startAccessingSecurityScopedResource()
+        
+//        if !urlSec || !testUrlSec {
+//            throw PDFGeneratorError.securityScopedResource
+//        }
+        
         scale = vm.printingscale / 100
         reScale = 1 / scale
         
@@ -111,6 +131,9 @@ class PDFGenerator {
 
         testContext.endPDFPage()
         testContext.closePDF()
+        
+//        url.stopAccessingSecurityScopedResource()
+//        testUrl.stopAccessingSecurityScopedResource()
         
         try FileManager.default.removeItem(at: testUrl)
     }

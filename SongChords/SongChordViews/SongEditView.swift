@@ -82,7 +82,7 @@ struct SongEditView: View {
                         modelContext.insert(song)
                         song.srcText = srcText
                         song.transpose = Int(transpose)
-                        song.toPlaylist(playlist: playlist, move: false)
+                        song.toPlaylist(playlist: playlist)
 
                         song.processSongInBackground(viewModel: viewModel, forPrinting: false)
                     }

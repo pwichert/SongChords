@@ -68,7 +68,7 @@ final class PlayList: Codable {
         }
     }
     
-    static func isValidPlaylistTitle(_ playlistTitle: String) -> Bool {
+    static func isValidTitle(_ playlistTitle: String) -> Bool {
         // Liste der ungültigen Zeichen für Playliste
         let invalidCharacters = CharacterSet(charactersIn: "/\\|\"")
             .union(.illegalCharacters)
@@ -84,8 +84,11 @@ final class PlayList: Codable {
         return true
     }
     
-    static func playlistFromData(url: URL) throws -> PlayList {
+    static func fromUrl(url: URL) throws -> PlayList {
+        let startSecurityScope = url.startAccessingSecurityScopedResource()
         let playlistData = try Data(contentsOf: url)
+        if startSecurityScope { url.stopAccessingSecurityScopedResource() }
+
         let decoder = JSONDecoder()
         return try decoder.decode(PlayList.self, from: playlistData)
     }
@@ -195,7 +198,7 @@ final public class Song: Codable {
     init(title: String = "", playlist: PlayList) {
         self.title = title.trimmingCharacters(in: .whitespaces)
         //        self.seq = playlist.nextSongSeq()
-        toPlaylist(playlist: playlist, move: false)
+        toPlaylist(playlist: playlist)
     }
     
     func processSongInBackground(viewModel: ViewModel, forPrinting: Bool) {
@@ -249,13 +252,11 @@ final public class Song: Codable {
         self.musicItemId = musicItemId
     }
     
-    func toPlaylist(playlist: PlayList, move: Bool, after: Song? = nil) {        
-        if move {
-            // aus alter Playlist entfernen
-            if let myplaylist = self.playlist {
-                if myplaylist.songs != nil {
-                    myplaylist.songs!.removeAll { $0 == self }
-                }
+    func toPlaylist(playlist: PlayList, after: Song? = nil) {
+        // aus alter Playlist entfernen
+        if let myplaylist = self.playlist {
+            if myplaylist.songs != nil {
+                myplaylist.songs!.removeAll { $0 == self }
             }
         }
         
@@ -280,40 +281,52 @@ final public class Song: Codable {
         }
     }
     
-    static func songFromData(url: URL) throws -> Song {
+    static func fromUrl(url: URL) throws -> Song {
+        let startSecurityScope = url.startAccessingSecurityScopedResource()
         let songData = try Data(contentsOf: url)
-        let decoder = JSONDecoder()
-        return try decoder.decode(Song.self, from: songData)
+        if startSecurityScope { url.stopAccessingSecurityScopedResource() }
+        return try fromData(data: songData)
     }
     
-    static func songFromText(url: URL) throws -> Song {
-        let songData = try Data(contentsOf: url)
-        let fileName = url.deletingPathExtension().lastPathComponent
+    func toUrl(url: URL) throws {
+        let data = try toData()
         
+        let startSecurityScope = url.startAccessingSecurityScopedResource()
+        try data.write(to: url)
+        if startSecurityScope { url.stopAccessingSecurityScopedResource() }
+    }
+    
+    static func fromData(data: Data) throws -> Song {
+        let decoder = JSONDecoder()
+        return try decoder.decode(Song.self, from: data)
+    }
+    
+    func toData() throws -> Data {
+        let encoder = JSONEncoder()
+        return try encoder.encode(self)
+    }
+    
+    static func fromSrcText(url: URL) throws -> Song {
+        let startSecurityScope = url.startAccessingSecurityScopedResource()
+        let songData = try Data(contentsOf: url)
+        if startSecurityScope { url.stopAccessingSecurityScopedResource() }
+
+        let srcText = String(decoding: songData, as: UTF8.self)
+
+        let fileName = url.deletingPathExtension().lastPathComponent
         if !Song.isValidFilename(fileName) { throw SongError.illegalSongname }
         
-        let src = String(decoding: songData, as: UTF8.self)
         let song = Song(title: fileName)
-        song.srcText = src
+        song.srcText = srcText
         return song
     }
     
-    func songToData() -> Data {
-        return srcText.data(using: .utf8)!
-    }
-    
-    func saveDataToFile(filename: String) -> URL? {
+    func toTempFile(filename: String) throws -> URL {
         let tempDirectory = FileManager.default.temporaryDirectory
         let fileURL = tempDirectory.appendingPathComponent(filename)
-
-        do {
-            let data = songToData()
-            try data.write(to: fileURL)
-            return fileURL
-        } catch {
-            print("Fehler beim Speichern der Datei: \(error)")
-            return nil
-        }
+        print(fileURL.absoluteString)
+        try toUrl(url: fileURL)
+        return fileURL
     }
     
     static func findObject(modelContext: ModelContext, song: Song) -> Song? {
@@ -395,19 +408,29 @@ final public class Song: Codable {
 
     @Transient var hideCodable: Bool = false
     @Transient var hidePDF: Bool = false
+    @Transient var hideData: Bool = false
     func setTransCodable() -> Song {
-        hidePDF = true
         hideCodable = false
+        hidePDF = true
+        hideData = true
+        return self
+    }
+    func setTransData() -> Song {
+        hideData = false
+        hidePDF = true
+        hideCodable = true
         return self
     }
     func setTransPDF() -> Song {
-        hideCodable = true
         hidePDF = false
+        hideCodable = true
+        hideData = true
         return self
     }
     func setTransAll() {
         hidePDF = false
         hideCodable = false
+        hideData = false
     }
 }
 
@@ -449,28 +472,33 @@ extension Song: Transferable {
             return !song.hidePDF
         }
 
-//        DataRepresentation(contentType: .songJSON, exporting: { song in
-//            return song.songToData()
-//        }
-//        , importing: { data in
-//            let decoder = JSONDecoder()
-//            return try decoder.decode(Song.self, from: data)
-//        })
-//        .suggestedFileName { $0.title }
+        DataRepresentation(contentType: .songJSON, exporting: { song in
+            return try song.toData()
+        }
+        , importing: { data in
+            return try fromData(data: data)
+        })
+        .suggestedFileName { $0.title }
+        .exportingCondition { song in
+            return !song.hideData
+        }
 
 //        FileRepresentation(contentType: .songJSON, exporting: { song in
 //            print("FileRepresentation (.songJSON) exported song \(song.title)")
-//            guard let url = song.saveDataToFile(filename: song.title) else {
+//            guard let url = song.toTempFile(filename: song.title) else {
 //                throw NSError(domain: "Transferable", code: 4, userInfo: ["reason": "Failed to create file"])
 //            }
 //            return SentTransferredFile(url)
 //        }
-//        , importing: { url in
-//            print("FileRepresentation (.songJSON) imported song \(url.file.absoluteString)")
-//            let song = try Song.songFromText(url: url.file)
+//        , importing: { received in
+//            print("FileRepresentation (.songJSON) imported song \(received.file.absoluteString)")
+//            let song = try Song.fromUrl(url: received.file)
 //            return song
 //        })
 //        .suggestedFileName { $0.title }
+//        .exportingCondition { song in
+//            return !song.hideFile
+//        }
 
 //        ProxyRepresentation(exporting: \.srcText)
 //            .suggestedFileName { $0.title }
@@ -480,3 +508,14 @@ extension Song: Transferable {
 extension UTType {
     static let songJSON = UTType(exportedAs: "com.wichert.songchords", conformingTo: .json)
 }
+
+
+//extension UTType {
+//    public static var persistentModelID: UTType { UTType(exportedAs: "com.wichert.persistentModelID", conformingTo: .json) }
+//}
+//extension PersistentIdentifier: @retroactive Transferable {
+//    public static var transferRepresentation: some TransferRepresentation {
+//        CodableRepresentation(for: PersistentIdentifier.self, contentType: .json)
+//    }
+//}
+

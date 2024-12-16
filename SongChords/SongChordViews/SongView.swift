@@ -44,6 +44,13 @@ struct SongView: View {
                     Button("Detailed View", systemImage: "sidebar.left", action: { visibility = .detailOnly }).help("Detailed View")
                 }
             }
+            ToolbarItem(placement: .bottomBar) {
+                HStack {
+                    ShareLink (
+                        item: pdfUrl != nil ? song.setTransPDF() : song.setTransCodable(), preview: SharePreview(Text(song.title), image: Image("AppIconInternal"))
+                    )
+                }.padding(.horizontal)   // TODO funktioniert nicht
+            }
             #endif
             ToolbarItem {
                 Button("ChordPro Text", systemImage: "pencil", action: { showSongEditView.toggle() }).help("Edit ChordPro Text")
@@ -57,12 +64,6 @@ struct SongView: View {
             }
             ToolbarItem {
                 Button("Export Song", systemImage: "arrow.up.document", action: { uttype = .songJSON; song.setTransAll();showFileExport.toggle() }).help("Export Song")
-            }
-            #else
-            ToolbarItem {
-                ShareLink (
-                    item: pdfUrl != nil ? song.setTransPDF() : song.setTransCodable(), preview: SharePreview(Text(song.title), image: Image("AppIconInternal"))
-                )
             }
             #endif
             #if false
@@ -272,7 +273,7 @@ struct ShareView: View {
         Form {
             ShareLink (item: song, preview: SharePreview(Text(song.title), image: Image("AppIconInternal")))
             ShareLink (item: song.srcText, subject: Text(song.title), preview: SharePreview(Text(song.title), image: Image("AppIconInternal")))
-            ShareLink (item: song.songToData(), subject: Text(song.title), preview: SharePreview(Text(song.title), image: Image("AppIconInternal")))
+            ShareLink (item: try! song.toData(), subject: Text(song.title), preview: SharePreview(Text(song.title), image: Image("AppIconInternal")))
         }
         .frame(idealHeight: 500)
         .navigationTitle("Share")

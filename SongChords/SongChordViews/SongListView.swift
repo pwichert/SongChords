@@ -12,12 +12,15 @@ import UniformTypeIdentifiers
 struct SongListView: View {
     let playlist: PlayList  // Übergebene Playlist
     @Binding var visibility: NavigationSplitViewVisibility
+    @Binding var selectedSongs: Set<Song>
     
     @Environment(\.modelContext) private var modelContext
     @Environment(ViewModel.self) private var viewModel
     
-    @State private var selectedSongs: Set<Song> = []
-    
+    #if os(iOS)
+    @State private var editMode: EditMode = .inactive
+    #endif
+    @State private var selectedCopy: Set<Song> = []
     @State private var showSongEditView: Bool = false
     @State private var showMoveToPlaylist: Bool = false
     @State private var deleteIndexset = IndexSet()
@@ -42,8 +45,8 @@ struct SongListView: View {
     
     var body: some View {
         List(selection: $selectedSongs) {
-            ForEach((playlist.songs?.sorted(by: { $0.seq < $1.seq })) ?? []) { song in
-                NavigationLink(song.title, destination: SongView(song: song, visibility: $visibility).environment(viewModel))
+            ForEach((playlist.songs?.sorted(by: { $0.seq < $1.seq })) ?? [], id: \.self) { song in
+                Text(song.title)
                     .contextMenu {
                         Button(action: { showMoveToPlaylist.toggle() }) { Label("Move", systemImage: "arrow.uturn.left")}
 
@@ -54,24 +57,18 @@ struct SongListView: View {
                                 sng.seq = song.seq
                                 sng.updateFromSong(other: song)
                                 modelContext.insert(sng)
-                                sng.toPlaylist(playlist: playlist, move: false, after: song)                                
+                                sng.toPlaylist(playlist: playlist, after: song)                                
                             }
                         }) { Label("Duplicate", systemImage: "doc.on.doc")}
                         
-                        #if os(macOS)
-                        Button(role: .destructive, action: {
-                            deleteIndexset = IndexSet()
-                            for song in selectedSongs {
-                                let indexOfSong = (playlist.songs ?? []).sorted(by: { $0.seq < $1.seq }).firstIndex { $0 === song }
-                                if let indexOfSong = indexOfSong {
-                                    deleteIndexset.insert(indexOfSong)
-                                }
-                            }
-                            if !deleteIndexset.isEmpty { showDeleteAlert.toggle() }
-                        }) { Label("Delete", systemImage: "trash")}
-                        #endif
+                        Button(role: .destructive, action: { prepareDelete() }) { Label("Delete", systemImage: "trash")}
                     }
-                    .draggable(song.setTransCodable()) { Text(song.title) }
+                    #if os(macOS)
+                    .draggable(try! song.toTempFile(filename: song.title)) { Text(song.title) }
+//                    .draggable(song.persistentModelID) { Text(song.title) }
+                    #else
+                    .draggable(song.setTransData()) { Text(song.title) }
+                    #endif
             }
             .onMove(perform: moveSongs)
             .onDelete { indexSet in
@@ -81,14 +78,46 @@ struct SongListView: View {
         }
         .navigationTitle(playlist.title)
         .toolbar {
+            #if os(macOS)
             ToolbarItem {
                 Button(action: { showSongEditView.toggle() }, label: { Image(systemName: "plus") })
             }
-#if os(iOS)
-            ToolbarItem{//}(placement: .primaryAction) {
+            ToolbarItem {
+                Button(action: { prepareDelete() }, label: { Image(systemName: "trash")} ).help("Delete Song(s)")
+            }
+            #else
+            ToolbarItemGroup(placement: .bottomBar) { // Fügt Menü unten hinzu
+                if selectedSongs.isEmpty {
+                    HStack {
+                        if !isEditing {
+                            ShareLink (
+                                item: playlist.setTransCodable(), preview: SharePreview(Text(playlist.title), image: Image("AppIconInternal"))
+                            )
+                            Spacer()
+                            Text("\(playlist.songs?.count ?? 0) Song").font(.footnote)
+                            Spacer()
+                            Button(action: { showSongEditView.toggle() }, label: { Image(systemName: "plus.circle") })
+                        }
+                    }.padding(.horizontal)
+                } else {
+                    HStack {
+                        // selectedSongs ist de-selektiert, wenn das .sheet started, daher vorher kopieren
+                        Button(action: { selectedCopy = selectedSongs; showMoveToPlaylist.toggle() }) {
+                            Text("Copy")
+                        }
+                        Spacer()
+                        Text("\(String(selectedSongs.count)) selected").font(.footnote)
+                        Spacer()
+                        Button(action: { prepareDelete() }) {
+                            Text("Delete")
+                        }
+                    }.padding(.horizontal)
+                }
+            }
+            ToolbarItem {//}(placement: .primaryAction) {
                 EditButton()
             }
-#endif
+            #endif
             ToolbarItem {
                 Menu {
                     Button(action: {
@@ -100,11 +129,6 @@ struct SongListView: View {
                     Button(action: {
                         importSongClipboard()
                     }) { Label("Import Text Clipboard", systemImage: "pencil.and.list.clipboard") }.help("Import Text Clipboard")
-//                    #if os(macOS)
-//                    Button(action: { exportPlaylist(playlist: playlist) }) { Label("Export Playlist", systemImage: "arrow.up.doc") }.help("Export Playlist")
-//                    #else
-//                    Button(action: { showExportToFolder.toggle() }) { Label("Export Playlist", systemImage: "arrow.up.doc") }.help("Export Playlist")
-//                    #endif
                     #if false   // kein Drucken
                     Button(action: { Task { await printSetlist() }}) { Label("Print Setlist", systemImage: "printer.dotmatrix") }.help("Print Setlist")
                     #endif
@@ -121,12 +145,6 @@ struct SongListView: View {
             ToolbarItem {
                 Button("Export Playlist", systemImage: "arrow.up.document", action: { uttype = .playlistJSON; playlist.setTransAll(); showFileExport.toggle() }).help("Export Playlist")
             }
-            #else
-            ToolbarItem {
-                ShareLink (
-                    item: playlist.setTransCodable(), preview: SharePreview(Text(playlist.title), image: Image("AppIconInternal"))
-                )
-            }
             #endif
         }
         .sheet(isPresented: $showSongEditView) {
@@ -137,7 +155,11 @@ struct SongListView: View {
         }
         .sheet(isPresented: $showMoveToPlaylist) {
             NavigationStack {
-                MoveToPlaylistView(songs: selectedSongs, fromPlaylist: playlist)
+                #if os(macOS)
+                MoveToPlaylistView(songs: selectedCopy, fromPlaylist: playlist)
+                #else
+                MoveToPlaylistView(songs: selectedCopy, fromPlaylist: playlist, editMode: $editMode)
+                #endif
             }
         }
         .fileExporter(isPresented: $showFileExport, item: playlist, contentTypes: [uttype], defaultFilename: playlist.title) { result in
@@ -167,6 +189,17 @@ struct SongListView: View {
                 }
             }
         }
+        #if os(iOS)
+        .environment(\.editMode, $editMode)
+        #endif
+    }
+    
+    private var isEditing: Bool {
+        #if os(macOS)
+        return false
+        #else
+        return editMode.isEditing
+        #endif
     }
     
     private func moveSongs(from source: IndexSet, to destination: Int) {
@@ -181,8 +214,23 @@ struct SongListView: View {
         }
         
         playlist.songs = sortedSongs
+        #if os(iOS)
+        editMode = .inactive
+        #endif
     }
     
+    private func prepareDelete() {
+        deleteIndexset = IndexSet()
+        for song in selectedSongs {
+            let indexOfSong = (playlist.songs ?? []).sorted(by: { $0.seq < $1.seq }).firstIndex { $0 === song }
+            if let indexOfSong = indexOfSong {
+                deleteIndexset.insert(indexOfSong)
+            }
+        }
+        
+        if !deleteIndexset.isEmpty { showDeleteAlert.toggle() }
+    }
+
     private func deleteSongs(playlist: PlayList, offsets: IndexSet) {
         if offsets.isEmpty || (playlist.songs ?? []).count == 0 { return }
         
@@ -192,6 +240,9 @@ struct SongListView: View {
             modelContext.delete(s)
             playlist.songs?.removeAll(where: { $0.seq == s.seq })
         }
+        #if os(iOS)
+        editMode = .inactive
+        #endif
     }
     
     private func importSongClipboard() {
@@ -222,7 +273,7 @@ struct SongListView: View {
         let new = String(localized: "New")
         let song = Song(title: new + " " + Date.now.formatted(date: .numeric, time: .shortened))
         modelContext.insert(song)
-        song.toPlaylist(playlist: playlist, move: false)
+        song.toPlaylist(playlist: playlist)
 
         song.srcText.append("{st: Subtitle of Song}\n")
         song.srcText.append("[*%{st}]\n")
@@ -240,16 +291,13 @@ struct SongListView: View {
     private func importTextSong(url: URL) -> Bool {
         print("importTextSong URL: \(url.absoluteString)")
         var success = false
-
-        let startSecurityScope = url.startAccessingSecurityScopedResource()
         
         do {
-            let song = try Song.songFromText(url: url)
-            if startSecurityScope { url.stopAccessingSecurityScopedResource() }
+            let song = try Song.fromSrcText(url: url)
             let newSong = Song(title: song.title)
             newSong.updateFromSong(other: song)
             modelContext.insert(newSong)
-            newSong.toPlaylist(playlist: playlist, move: false)
+            newSong.toPlaylist(playlist: playlist)
 
             success = true
         } catch {
@@ -269,7 +317,11 @@ struct SongListView: View {
 struct MoveToPlaylistView: View {
     let songs: Set<Song>?
     let fromPlaylist: PlayList?
-
+    #if os(iOS)
+    @Binding var editMode: EditMode
+    #endif
+    
+    @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
 
     @State private var selected: PlayList?
@@ -288,9 +340,15 @@ struct MoveToPlaylistView: View {
                     if let selected = selected, let songs = songs {
                         for song in songs {
                             print("---" + song.title)
-                            song.toPlaylist(playlist: selected, move: true)
+                            let newSong = Song(title: song.title)
+                            newSong.updateFromSong(other: song)
+                            modelContext.insert(newSong)
+                            newSong.toPlaylist(playlist: selected)
                         }
                     }
+                    #if os(iOS)
+                    editMode = .inactive
+                    #endif
                     dismiss()
                 }) {
                     Text("Done")

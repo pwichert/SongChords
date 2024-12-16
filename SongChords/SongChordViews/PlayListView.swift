@@ -10,14 +10,18 @@ import SwiftData
 import UniformTypeIdentifiers
 
 struct PlayListView: View {
+    @Binding var selectedPlaylist: PlayList?
     @Binding var visibility: NavigationSplitViewVisibility
     
     @Environment(\.modelContext) private var modelContext
     @Environment(ViewModel.self) private var viewModel
-
+    
+    #if os(iOS)
+    @State private var editMode: EditMode = .inactive
+    #endif
     @State private var showPlaylistNewView: Bool = false
+    @State private var renamePlaylist: PlayList?
     @State private var showDeleteAlert: Bool = false
-    @State private var selectedPlaylist: PlayList?
     
     @State private var showOptionsView: Bool = false
     @State private var showPrintOptionsView: Bool = false
@@ -33,12 +37,12 @@ struct PlayListView: View {
     @Query(sort: \PlayList.seq, order: .forward) private var playlists: [PlayList]
     
     var body: some View {
-        List {
-            ForEach(playlists) { playlist in
-                NavigationLink(playlist.title, destination: SongListView(playlist: playlist, visibility: $visibility).environment(viewModel))
+        List(selection: $selectedPlaylist) {
+            ForEach(playlists, id: \.self) { playlist in
+                Text(playlist.title)
                     .contextMenu {
                         Button("Rename") {
-                            selectedPlaylist = playlist
+                            renamePlaylist = playlist
                         }
                         Button("Delete", role: .destructive) {
                             if !deletePlaylist(playlist: playlist) {
@@ -46,12 +50,42 @@ struct PlayListView: View {
                             }
                         }
                     }
+//                    .dropDestination(for: PersistentIdentifier.self) { receivedIDs, location in
+//                        print(".dropDestination: received \(receivedIDs) for playlist \(playlist.title)")
+//                        return true
+//                    }
+                    .dropDestination(for: Data.self) { receivedDatas, location in
+                        for data in receivedDatas {
+                            print(".dropDestination: received (Data) \(data) for playlist \(playlist.title)")
+                            do {
+                                let song = try Song.fromData(data: data)
+                                modelContext.insert(song)
+                                song.toPlaylist(playlist: playlist)
+                            } catch {
+                                print(error)
+                            }
+                        }
+                        return true
+                    }
+                    .dropDestination(for: URL.self) { receivedUrls, location in
+                        for url in receivedUrls {
+                            print(".dropDestination: received \(url) for playlist \(playlist.title)")
+                            do {
+                                let song = try Song.fromUrl(url: url)
+                                modelContext.insert(song)
+                                song.toPlaylist(playlist: playlist)
+                            } catch {
+                                print(error)
+                            }
+                        }
+                        return true
+                    }
                     .dropDestination(for: Song.self) { receivedSongs, location in
                         for song in receivedSongs {
                             print(".dropDestination: received \(song.title) for playlist \(playlist.title)")
-                            song.toPlaylist(playlist: playlist, move: true)
+                            modelContext.insert(song)
+                            song.toPlaylist(playlist: playlist)
                         }
-                        
                         return true
                     }
             }
@@ -64,15 +98,21 @@ struct PlayListView: View {
         }
         .navigationTitle("Playlists")
         .toolbar {
+            #if os(macOS)
             ToolbarItem {
-                Button(action: { showPlaylistNewView.toggle() }, label: { Image(systemName: "plus") })
+                Button(action: { showPlaylistNewView.toggle() }, label: { Image(systemName: "plus.circle") })
             }
-#if os(iOS)
-            ToolbarItem{//}(placement: .primaryAction) {
+            #else
+            ToolbarItem(placement: .bottomBar) { // Fügt Menü unten hinzu
+                HStack {
+                    Spacer()
+                    Button(action: { showPlaylistNewView.toggle() }, label: { Image(systemName: "plus.circle") })
+                }.padding(.horizontal)
+            }
+            ToolbarItem {//}(placement: .primaryAction) {
                 EditButton()
             }
-#endif
-            
+            #endif
             ToolbarItem {
                 Menu {
                     Button(action: { showOptionsView.toggle() }) {
@@ -97,15 +137,15 @@ struct PlayListView: View {
                 }
             }
         }
-        .sheet(item: $selectedPlaylist) { pl in
-            NavigationStack {
-                PlaylistEditView(playlist: pl)
-            }
-            .interactiveDismissDisabled()
-        }
         .sheet(isPresented: $showPlaylistNewView) {
             NavigationStack {
                 PlaylistEditView(playlist: nil)
+            }
+            .interactiveDismissDisabled()
+        }
+        .sheet(item: $renamePlaylist) {playlist in
+            NavigationStack {
+                PlaylistEditView(playlist: playlist)
             }
             .interactiveDismissDisabled()
         }
@@ -161,11 +201,21 @@ struct PlayListView: View {
                 withAnimation {
                     if let openUrl = openUrl {
                         importPlaylist(url: openUrl)
-                        openUrl.stopAccessingSecurityScopedResource()
                     }
                 }
             }
         }
+        #if os(iOS)
+        .environment(\.editMode, $editMode)
+        #endif
+    }
+    
+    private var isEditing: Bool {
+        #if os(macOS)
+        return false
+        #else
+        return editMode.isEditing
+        #endif
     }
     
     private func deletePlaylist(playlist: PlayList) -> Bool {
@@ -203,26 +253,19 @@ struct PlayListView: View {
         }
     }
     
-    private func importPlaylist(url: URL?) {
-        if let url = url {
-            do {
-                let result = url.startAccessingSecurityScopedResource()
-                if result {
-                    let playlist = try PlayList.playlistFromData(url: url)
-                    url.stopAccessingSecurityScopedResource()
+    private func importPlaylist(url: URL) {
+        do {
+            let playlist = try PlayList.fromUrl(url: url)
+            let newPlaylist = PlayList(modelContext: modelContext, title: playlist.title)
+            modelContext.insert(newPlaylist)
 
-                    let newPlaylist = PlayList(modelContext: modelContext, title: playlist.title)
-                    modelContext.insert(newPlaylist)
-                    newPlaylist.songs = []
-            
-                    for song in (playlist.songs ?? []) {
-                        modelContext.insert(song)
-                        song.toPlaylist(playlist: newPlaylist, move: false)
-                    }
-                }
-            } catch {
-                print(error)
+            for song in (playlist.songs?.sorted(by: { $0.seq < $1.seq }) ?? []) {
+                let newSong = Song(title: song.title)
+                modelContext.insert(newSong)
+                newSong.toPlaylist(playlist: newPlaylist)
             }
+        } catch {
+            print(error)
         }
     }
     
@@ -278,7 +321,7 @@ struct PlaylistEditView: View {
                     }
                     dismiss()
                 }
-                .disabled(playlistTitle.isEmpty || !PlayList.isValidPlaylistTitle(playlistTitle))
+                .disabled(playlistTitle.isEmpty || !PlayList.isValidTitle(playlistTitle))
             }
             ToolbarItem(placement: .cancellationAction) {
                 Button("Cancel") {
@@ -306,16 +349,11 @@ struct PlaylistSelectionSheet: View {
             Button(action: {
                 do {
                     if let url = urlToInsert {
-                        let result = url.startAccessingSecurityScopedResource()
-                        if result {
-                            let song = try Song.songFromData(url: url)
-                            url.stopAccessingSecurityScopedResource()
-                            
-                            let newSong = Song(title: song.title)
-                            modelContext.insert(newSong)
-                            newSong.toPlaylist(playlist: playlist, move: false)
-                            newSong.updateFromSong(other: song)
-                        }
+                        let song = try Song.fromUrl(url: url)
+                        let newSong = Song(title: song.title)
+                        modelContext.insert(newSong)
+                        newSong.toPlaylist(playlist: playlist)
+                        newSong.updateFromSong(other: song)
                     }
                 } catch {
                     print(error)
