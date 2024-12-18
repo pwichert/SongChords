@@ -18,7 +18,7 @@ final class PlayList: Codable {
     var seq: Int = 0
     var title: String = ""
     
-    @Relationship(deleteRule: .cascade, inverse: \Song.playlist) var songs: [Song]?
+    @Relationship(deleteRule: .cascade, inverse: \Song.playlist) var songs: [Song]? = [Song]()
     
     init(modelContext: ModelContext, title: String, songs: [Song] = []) {
         self.seq = nextPlaylistSeq(modelContext: modelContext)
@@ -44,15 +44,16 @@ final class PlayList: Codable {
     }
     
     func nextSongSeq() -> Int {
-        var maxSeq = -1
+        if (songs ?? []).isEmpty { print("seq: 0"); return 0 }
         
+        var maxSeq = 0
         if let songs = songs {
-            for s in songs.indices {
-                maxSeq = max(maxSeq, songs[s].seq)
+            for s in songs {
+                maxSeq = max(maxSeq, s.seq)
             }
         }
         
-        print("max: \(maxSeq + 1)")
+        print("seq: \(maxSeq+1)")
         return maxSeq + 1
     }
     
@@ -66,6 +67,25 @@ final class PlayList: Codable {
             if song.seq != newSeq { song.seq = newSeq }
             newSeq += 1
         }
+    }
+    
+    public func sortedInsert(songs: [Song]?) {
+        for song in (songs ?? []).sorted(by: { $0.seq < $1.seq }) {
+            let newSong = Song(title: song.title)
+            newSong.updateFromSong(other: song)
+            newSong.toPlaylist(playlist: self)
+        }
+    }
+    
+    static func fetchPlaylists(with ids: Set<PlayList.ID>, in context: ModelContext) -> [PlayList] {
+        if ids.isEmpty { return [] }
+            
+        let descriptor = FetchDescriptor<PlayList>(
+            predicate: #Predicate { playlist in
+                ids.contains(playlist.persistentModelID)
+            }
+        )
+        return (try? context.fetch(descriptor)) ?? []
     }
     
     static func isValidTitle(_ playlistTitle: String) -> Bool {
@@ -260,12 +280,7 @@ final public class Song: Codable {
             }
         }
         
-        // zu neuer hinzufügen
-        self.playlist = playlist
-        
-        if playlist.songs == nil {
-            playlist.songs = []
-        }
+        if playlist.songs == nil { playlist.songs = [] }
         
         if let after = after {
             seq = after.seq
@@ -275,10 +290,13 @@ final public class Song: Codable {
                 playlist.reNumber()
             }
         } else {
-            playlist.songs!.append(self)
             seq = playlist.nextSongSeq()
+            playlist.songs!.append(self)
             playlist.reNumber()
         }
+
+        // zu neuer hinzufügen
+        self.playlist = playlist
     }
     
     static func fromUrl(url: URL) throws -> Song {
@@ -329,7 +347,7 @@ final public class Song: Codable {
         return fileURL
     }
     
-    static func findObject(modelContext: ModelContext, song: Song) -> Song? {
+    static func findObject(song: Song, in context: ModelContext) -> Song? {
         do {
             let id = song.persistentModelID
             let pred = #Predicate<Song> { object in
@@ -339,11 +357,22 @@ final public class Song: Codable {
             var desc = FetchDescriptor(predicate: pred)
             desc.fetchLimit = 1
             
-            let res = try modelContext.fetch(desc)
+            let res = try context.fetch(desc)
             return res.first
         } catch {
             return nil
         }
+    }
+    
+    static func fetchSongs(with ids: Set<Song.ID>, in context: ModelContext) -> [Song] {
+        if ids.isEmpty { return [] }
+            
+        let descriptor = FetchDescriptor<Song>(
+            predicate: #Predicate { song in
+                ids.contains(song.persistentModelID)
+            }
+        )
+        return (try? context.fetch(descriptor)) ?? []
     }
     
     static func isValidFilename(_ filename: String) -> Bool {

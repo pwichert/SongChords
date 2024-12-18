@@ -12,6 +12,7 @@ import UniformTypeIdentifiers
 struct SongListView: View {
     let playlist: PlayList  // Übergebene Playlist
     @Binding var visibility: NavigationSplitViewVisibility
+//    @Binding var selectedSongIDs: Set<Song.ID>
     @Binding var selectedSongs: Set<Song>
     
     @Environment(\.modelContext) private var modelContext
@@ -20,7 +21,8 @@ struct SongListView: View {
     #if os(iOS)
     @State private var editMode: EditMode = .inactive
     #endif
-    @State private var selectedCopy: Set<Song> = []
+    @State private var selectedSongIDs: Set<Song.ID> = []
+
     @State private var showSongEditView: Bool = false
     @State private var showMoveToPlaylist: Bool = false
     @State private var deleteIndexset = IndexSet()
@@ -45,9 +47,8 @@ struct SongListView: View {
     }
     
     var body: some View {
-        List(selection: $selectedSongs) {
-//            ForEach((playlist.songs?.sorted(by: { $0.seq < $1.seq })) ?? [], id: \.self) { song in
-            ForEach(songs, id: \.self) { song in
+        List(selection: $selectedSongIDs) {
+            ForEach(songs) { song in
                 Text(song.title)
                     .contextMenu {
                         Button(action: { showMoveToPlaylist.toggle() }) { Label("Move", systemImage: "arrow.uturn.left")}
@@ -88,7 +89,7 @@ struct SongListView: View {
                 Button(action: { prepareDelete() }, label: { Image(systemName: "trash")} ).help("Delete Song(s)")
             }
             #else
-            ToolbarItemGroup(placement: .bottomBar) { // Fügt Menü unten hinzu
+            ToolbarItem(placement: .bottomBar) { // Fügt Menü unten hinzu
                 if !isEditing {
                     HStack {
                         ShareLink (
@@ -102,14 +103,14 @@ struct SongListView: View {
                 } else {
                     HStack {
                         // selectedSongs ist de-selektiert, wenn das .sheet started, daher vorher kopieren
-                        Button(action: { selectedCopy = selectedSongs; showMoveToPlaylist.toggle() }) {
-                            Text("Copy")
+                        Button(action: { showMoveToPlaylist.toggle() }) {
+                            Text("Copy To").disabled(selectedSongIDs.isEmpty)
                         }
                         Spacer()
-                        Text("\(String(selectedSongs.count)) selected").font(.footnote)
+                        Text("\(String(selectedSongIDs.count)) selected").font(.footnote)
                         Spacer()
                         Button(action: { prepareDelete() }) {
-                            Text("Delete")
+                            Text("Delete").disabled(selectedSongIDs.isEmpty)
                         }
                     }
                 }
@@ -138,13 +139,11 @@ struct SongListView: View {
                     }
                 }
             }
-
             ToolbarItem {
                 if !isEditing {
                     Button("Export PDF File", systemImage: "arrow.up.document.fill", action: { uttype = .pdf; playlist.setTransAll(); showFileExport.toggle() }).help("Export PDF File")
                 }
             }
-            
             #if os(macOS) // in iOS durch ShareLink ersetzt
             ToolbarItem {
                 Button("Export Playlist", systemImage: "arrow.up.document", action: { uttype = .playlistJSON; playlist.setTransAll(); showFileExport.toggle() }).help("Export Playlist")
@@ -160,9 +159,9 @@ struct SongListView: View {
         .sheet(isPresented: $showMoveToPlaylist) {
             NavigationStack {
                 #if os(macOS)
-                MoveToPlaylistView(songs: selectedCopy, fromPlaylist: playlist)
+                MoveToPlaylistView(songIDs: selectedSongIDs, fromPlaylist: playlist)
                 #else
-                MoveToPlaylistView(songs: selectedCopy, fromPlaylist: playlist, editMode: $editMode)
+                MoveToPlaylistView(songIDs: selectedSongIDs, fromPlaylist: playlist, editMode: $editMode)
                 #endif
             }
         }
@@ -193,8 +192,18 @@ struct SongListView: View {
                 }
             }
         }
+        .onChange(of: selectedSongIDs) {
+            // das alles nur, weil Set<Song.ID> nicht als @Binding nach ContentView funktioniert. Daher Umweg über selectedSongs
+            if selectedSongIDs.count == 1 {
+                let s = Song.fetchSongs(with: selectedSongIDs, in: modelContext)
+                if !s.isEmpty {
+                    selectedSongs = [s.first!]
+                }
+            }
+        }
         #if os(iOS)
         .environment(\.editMode, $editMode)
+        .onChange(of: editMode) { selectedSongIDs = [] }
         #endif
     }
     
@@ -207,7 +216,7 @@ struct SongListView: View {
     }
     
     private func moveSongs(from source: IndexSet, to destination: Int) {
-        var sortedSongs = songs // (playlist.songs ?? []).sorted(by: { $0.seq < $1.seq })
+        var sortedSongs = songs
         
         // Die Song-Reihenfolge anpassen
         sortedSongs.move(fromOffsets: source, toOffset: destination)
@@ -225,7 +234,10 @@ struct SongListView: View {
     
     private func prepareDelete() {
         deleteIndexset = IndexSet()
-        for song in selectedSongs {
+        
+        let sSongs = Song.fetchSongs(with: selectedSongIDs, in: modelContext)
+        
+        for song in sSongs {
 //            let indexOfSong = (playlist.songs ?? []).sorted(by: { $0.seq < $1.seq }).firstIndex { $0 === song }
             let indexOfSong = songs.firstIndex { $0 === song }
             if let indexOfSong = indexOfSong {
@@ -269,17 +281,16 @@ struct SongListView: View {
             let txt = chordProReverseParser.toString(sections: sections)
             
             let song = Song(title: "", playlist: playlist)
-            modelContext.insert(song)
             song.title = "Import \(song.seq)"
             song.srcText = txt
+            playlist.sortedInsert(songs: [song])
         }
     }
     
     private func importSongTemplate() {
         let new = String(localized: "New")
         let song = Song(title: new + " " + Date.now.formatted(date: .numeric, time: .shortened))
-        modelContext.insert(song)
-        song.toPlaylist(playlist: playlist)
+        playlist.sortedInsert(songs: [song])
 
         song.srcText.append("{st: Subtitle of Song}\n")
         song.srcText.append("[*%{st}]\n")
@@ -300,11 +311,7 @@ struct SongListView: View {
         
         do {
             let song = try Song.fromSrcText(url: url)
-            let newSong = Song(title: song.title)
-            newSong.updateFromSong(other: song)
-            modelContext.insert(newSong)
-            newSong.toPlaylist(playlist: playlist)
-
+            playlist.sortedInsert(songs: [song])
             success = true
         } catch {
             print(error.localizedDescription)
@@ -321,8 +328,8 @@ struct SongListView: View {
 }
 
 struct MoveToPlaylistView: View {
-    let songs: Set<Song>?
-    let fromPlaylist: PlayList?
+    let songIDs: Set<Song.ID>?
+    let fromPlaylist: PlayList
     #if os(iOS)
     @Binding var editMode: EditMode
     #endif
@@ -330,26 +337,26 @@ struct MoveToPlaylistView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
 
-    @State private var selected: PlayList?
+    @State private var selectedPlaylist: PlayList.ID?
     
     @Query(sort: \PlayList.seq, order: .forward) private var playlists: [PlayList]
-    
+    @Query private var allSongs: [Song]
+
     var body: some View {
-        List(selection: $selected) {
-            ForEach(playlists.filter({ $0.persistentModelID != fromPlaylist!.persistentModelID }), id: \.self) { pl in
+        List(selection: $selectedPlaylist) {
+            ForEach(playlists.filter({ $0.persistentModelID != fromPlaylist.persistentModelID })) { pl in
                 Text(pl.title)
             }
         }
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 Button(action: {
-                    if let selected = selected, let songs = songs {
-                        for song in songs {
-                            print("---" + song.title)
-                            let newSong = Song(title: song.title)
-                            newSong.updateFromSong(other: song)
-                            modelContext.insert(newSong)
-                            newSong.toPlaylist(playlist: selected)
+                    let fetchedSongs = Song.fetchSongs(with: songIDs ?? [], in: modelContext)
+
+                    print("songs to copy: \(String(fetchedSongs.count))")
+                    if let selected = selectedPlaylist {
+                        if let pl = PlayList.fetchPlaylists(with: [selected], in: modelContext).first {
+                            pl.sortedInsert(songs: fetchedSongs)
                         }
                     }
                     #if os(iOS)

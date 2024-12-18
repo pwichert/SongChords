@@ -19,6 +19,8 @@ struct PlayListView: View {
     #if os(iOS)
     @State private var editMode: EditMode = .inactive
     #endif
+    @State private var selectedPlaylistID: PlayList.ID?
+
     @State private var showPlaylistNewView: Bool = false
     @State private var renamePlaylist: PlayList?
     @State private var showDeleteAlert: Bool = false
@@ -37,8 +39,8 @@ struct PlayListView: View {
     @Query(sort: \PlayList.seq, order: .forward) private var playlists: [PlayList]
     
     var body: some View {
-        List(selection: $selectedPlaylist) {
-            ForEach(playlists, id: \.self) { playlist in
+        List(selection: $selectedPlaylistID) {
+            ForEach(playlists) { playlist in
                 Text(playlist.title)
                     .contextMenu {
                         Button("Rename") {
@@ -55,37 +57,24 @@ struct PlayListView: View {
 //                        return true
 //                    }
                     .dropDestination(for: Data.self) { receivedDatas, location in
-                        for data in receivedDatas {
-                            print(".dropDestination: received (Data) \(data) for playlist \(playlist.title)")
-                            do {
-                                let song = try Song.fromData(data: data)
-                                modelContext.insert(song)
-                                song.toPlaylist(playlist: playlist)
-                            } catch {
-                                print(error)
-                            }
+                        print(".dropDestination: received (Data) \(receivedDatas) for playlist \(playlist.title)")
+                        let songs: [Song]? = receivedDatas.compactMap { data in
+                            try? Song.fromData(data: data)
                         }
+                        playlist.sortedInsert(songs: songs)
                         return true
                     }
                     .dropDestination(for: URL.self) { receivedUrls, location in
-                        for url in receivedUrls {
-                            print(".dropDestination: received \(url) for playlist \(playlist.title)")
-                            do {
-                                let song = try Song.fromUrl(url: url)
-                                modelContext.insert(song)
-                                song.toPlaylist(playlist: playlist)
-                            } catch {
-                                print(error)
-                            }
+                        print(".dropDestination: received \(receivedUrls) for playlist \(playlist.title)")
+                        let songs: [Song]? = receivedUrls.compactMap { url in
+                            try? Song.fromUrl(url: url)
                         }
+                        playlist.sortedInsert(songs: songs)
                         return true
                     }
                     .dropDestination(for: Song.self) { receivedSongs, location in
-                        for song in receivedSongs {
-                            print(".dropDestination: received \(song.title) for playlist \(playlist.title)")
-                            modelContext.insert(song)
-                            song.toPlaylist(playlist: playlist)
-                        }
+                        print(".dropDestination: received \(receivedSongs) for playlist \(playlist.title)")
+                        playlist.sortedInsert(songs: receivedSongs)
                         return true
                     }
             }
@@ -209,8 +198,18 @@ struct PlayListView: View {
                 }
             }
         }
+        .onChange(of: selectedPlaylistID) {
+            // das alles nur, weil PlayList.ID nicht als @Binding nach ContentView funktioniert. Daher Umweg über selectedPlaylist
+            if let selectedPlaylistID = selectedPlaylistID {
+                let s = PlayList.fetchPlaylists(with: [selectedPlaylistID], in: modelContext)
+                if !s.isEmpty {
+                    selectedPlaylist = s.first!
+                }
+            }
+        }
         #if os(iOS)
         .environment(\.editMode, $editMode)
+        .onChange(of: editMode) { selectedPlaylistID = nil }
         #endif
     }
     
@@ -241,7 +240,7 @@ struct PlayListView: View {
                 return false
             }
         }
-        
+
         return true
     }
     
@@ -262,12 +261,7 @@ struct PlayListView: View {
             let playlist = try PlayList.fromUrl(url: url)
             let newPlaylist = PlayList(modelContext: modelContext, title: playlist.title)
             modelContext.insert(newPlaylist)
-
-            for song in (playlist.songs?.sorted(by: { $0.seq < $1.seq }) ?? []) {
-                let newSong = Song(title: song.title)
-                modelContext.insert(newSong)
-                newSong.toPlaylist(playlist: newPlaylist)
-            }
+            playlist.sortedInsert(songs: playlist.songs)
         } catch {
             print(error)
         }
@@ -290,10 +284,10 @@ struct PlayListView: View {
         for s in allSongs.sorted(by: { a, b in a.seq < b.seq }).filter({ $0.playlist == nil}) {
             cnt2 += 1
             print("nil \(s.seq) \(s.title)")
-//            modelContext.delete(s)
+            modelContext.delete(s)
         }
 
-        print("\(cnt2) Songs NICHT in Playlisten ----------")
+        print("\(cnt2) Songs waren NICHT in Playlisten ----------")
     }
 }
 
@@ -354,11 +348,7 @@ struct PlaylistSelectionSheet: View {
                 do {
                     if let url = urlToInsert {
                         let song = try Song.fromUrl(url: url)
-                        let newSong = Song(title: song.title)
-                        modelContext.insert(newSong)
-                        newSong.toPlaylist(playlist: playlist)
-                        newSong.updateFromSong(other: song)
-                    }
+                        playlist.sortedInsert(songs: [song])                    }
                 } catch {
                     print(error)
                 }
