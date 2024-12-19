@@ -102,8 +102,11 @@ struct PlayListView: View {
                     }
                 }
             }
-            ToolbarItem {//}(placement: .primaryAction) {
-                EditButton()
+            ToolbarItem {
+                CustomEditButton(editMode: $editMode)
+//                Button(action: { editMode = isEditing ? .inactive : .active }) {
+//                    Text(isEditing ? "Done" : "Edit")
+//                }
             }
             #endif
             ToolbarItem {
@@ -476,3 +479,27 @@ struct PrivacyView: View {
         }
     }
 }
+
+#if os(iOS)
+struct CustomEditButton: View {
+    @Binding var editMode: EditMode
+    
+    var body: some View {
+        Button(action: {
+            toggleEditMode()
+        }) {
+            Text($editMode.wrappedValue == .active ? "Done" : "Edit")
+        }
+    }
+    
+    private func toggleEditMode() {
+        withAnimation {
+            if $editMode.wrappedValue == .active {
+                $editMode.wrappedValue = .inactive
+            } else {
+                $editMode.wrappedValue = .active
+            }
+        }
+    }
+}
+#endif

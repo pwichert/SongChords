@@ -127,8 +127,11 @@ struct SongListView: View {
                     }
                 }
             }
-            ToolbarItem {//}(placement: .primaryAction) {
-                EditButton()
+            ToolbarItem {
+                CustomEditButton(editMode: $editMode)
+//                Button(action: { editMode = isEditing ? .inactive : .active }) {
+//                    Text(isEditing ? "Done" : "Edit")
+//                }
             }
             #endif
             ToolbarItem {

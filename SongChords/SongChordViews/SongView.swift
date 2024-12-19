@@ -28,8 +28,14 @@ struct SongView: View {
                 ZStack(alignment: .topLeading) {
                     if let pdfUrl = pdfUrl {
                         PDFKitView(url: pdfUrl)
+                        #if os(iOS)
+                            .navigationBarTitleDisplayMode(.inline)
+                        #endif
                     } else {
                         DetailContent(song: song, representationHolder: song.representationHolder)
+                        #if os(iOS)
+                            .navigationBarTitleDisplayMode(.automatic)
+                        #endif
                     }
                     
                     Color.clear.frame(width: 1, height: viewSize.size.height, alignment: .center)
@@ -37,6 +43,7 @@ struct SongView: View {
                 }.padding(0)
             }
         }
+        .navigationTitle(song.title)
         .toolbar {
             #if os(iOS)
             ToolbarItem(placement: .topBarLeading) {
@@ -129,7 +136,9 @@ struct DetailContent: View {
 
     var body: some View {
         VStack (alignment: .leading) {
+            #if os(macOS)
             Text(song.title).font(.title).fontWeight(.bold).padding(.bottom, 10)
+            #endif
 //            let _ = Self._printChanges()
             
             ForEach(representationHolder.songRepresentation.sections) { section in
