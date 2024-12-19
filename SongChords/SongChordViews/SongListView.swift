@@ -9,11 +9,22 @@ import SwiftUI
 import SwiftData
 import UniformTypeIdentifiers
 
+// Identifiable Wrapper für Set<PersistentIdentifier>
+// für MoveToPlaylistView(), um das sheet sicher über "item:" auszulösen
+struct IdentifiablePersistentIdentifierSet: Identifiable {
+    let id: UUID // Eine eindeutige ID für diese Sammlung
+    let identifiers: Set<PersistentIdentifier> // Die enthaltenen IDs
+    
+    init(identifiers: Set<PersistentIdentifier>) {
+        self.id = UUID() // Eine neue eindeutige ID für jede Instanz
+        self.identifiers = identifiers
+    }
+}
+
 struct SongListView: View {
     let playlist: PlayList  // Übergebene Playlist
     @Binding var visibility: NavigationSplitViewVisibility
-//    @Binding var selectedSongIDs: Set<Song.ID>
-    @Binding var selectedSongs: Set<Song>
+    @Binding var selectedSongIDs: Set<PersistentIdentifier>
     
     @Environment(\.modelContext) private var modelContext
     @Environment(ViewModel.self) private var viewModel
@@ -21,10 +32,9 @@ struct SongListView: View {
     #if os(iOS)
     @State private var editMode: EditMode = .inactive
     #endif
-    @State private var selectedSongIDs: Set<Song.ID> = []
 
     @State private var showSongEditView: Bool = false
-    @State private var showMoveToPlaylist: Bool = false
+    @State private var songIDsToCopy: IdentifiablePersistentIdentifierSet?
     @State private var deleteIndexset = IndexSet()
     @State private var showDeleteAlert: Bool = false
     @State private var showFileImport: Bool = false
@@ -33,10 +43,10 @@ struct SongListView: View {
     
     @Query private var songs: [Song]
     
-    init(playlist: PlayList, visibility: Binding<NavigationSplitViewVisibility>, selectedSongs: Binding<Set<Song>>) {
+    init(playlist: PlayList, visibility: Binding<NavigationSplitViewVisibility>, selectedSongIDs: Binding<Set<PersistentIdentifier>>) {
         self.playlist = playlist
         self._visibility = visibility
-        self._selectedSongs = selectedSongs
+        self._selectedSongIDs = selectedSongIDs
         
         let id = playlist.persistentModelID
         let pred = #Predicate<Song> { song in
@@ -51,20 +61,22 @@ struct SongListView: View {
             ForEach(songs) { song in
                 Text(song.title)
                     .contextMenu {
-                        Button(action: { showMoveToPlaylist.toggle() }) { Label("Move", systemImage: "arrow.uturn.left")}
+                        Button(action: {
+                            // Selektierter Song und Kontext-geklickter sind nicht unbedingt gleich.
+                            songIDsToCopy = IdentifiablePersistentIdentifierSet(identifiers: selectedSongIDs.contains(song.id) ? selectedSongIDs : [song.id])
+                        }) { Label("Copy To", systemImage: "arrow.uturn.left")}
 
                         Button(action: {
-                            print("Count: \(selectedSongs.count)")
-                            for song in selectedSongs {
+                            let s = Song.fetchSongs(with: selectedSongIDs.contains(song.id) ? selectedSongIDs : [song.id], in: modelContext)
+                            print("Count: \(s.count)")
+                            for song in s {
                                 let sng = Song(title: song.title)
-                                sng.seq = song.seq
                                 sng.updateFromSong(other: song)
-                                modelContext.insert(sng)
-                                sng.toPlaylist(playlist: playlist, after: song)                                
+                                sng.toPlaylist(playlist: playlist, after: song)
                             }
                         }) { Label("Duplicate", systemImage: "doc.on.doc")}
                         
-                        Button(role: .destructive, action: { prepareDelete() }) { Label("Delete", systemImage: "trash")}
+                        Button(role: .destructive, action: { prepareDelete(songIDs: selectedSongIDs.contains(song.id) ? selectedSongIDs : [song.id]) }) { Label("Delete", systemImage: "trash")}
                     }
                     #if os(macOS)
                     .draggable(try! song.toTempFile(filename: song.title)) { Text(song.title) }
@@ -83,10 +95,10 @@ struct SongListView: View {
         .toolbar {
             #if os(macOS)
             ToolbarItem {
-                Button(action: { showSongEditView.toggle() }, label: { Image(systemName: "plus.circle") })
+                Button(action: { songIDsToCopy = IdentifiablePersistentIdentifierSet(identifiers: selectedSongIDs) }, label: { Image(systemName: "plus.circle") })
             }
             ToolbarItem {
-                Button(action: { prepareDelete() }, label: { Image(systemName: "trash")} ).help("Delete Song(s)")
+                Button(action: { prepareDelete(songIDs: selectedSongIDs) }, label: { Image(systemName: "trash")} ).help("Delete Song(s)")
             }
             #else
             ToolbarItem(placement: .bottomBar) { // Fügt Menü unten hinzu
@@ -102,14 +114,14 @@ struct SongListView: View {
                     }
                 } else {
                     HStack {
-                        // selectedSongs ist de-selektiert, wenn das .sheet started, daher vorher kopieren
-                        Button(action: { showMoveToPlaylist.toggle() }) {
+                        Button(action: { songIDsToCopy = IdentifiablePersistentIdentifierSet(identifiers: selectedSongIDs)
+ }) {
                             Text("Copy To").disabled(selectedSongIDs.isEmpty)
                         }
                         Spacer()
                         Text("\(String(selectedSongIDs.count)) selected").font(.footnote)
                         Spacer()
-                        Button(action: { prepareDelete() }) {
+                        Button(action: { prepareDelete(songIDs: selectedSongIDs) }) {
                             Text("Delete").disabled(selectedSongIDs.isEmpty)
                         }
                     }
@@ -156,12 +168,12 @@ struct SongListView: View {
             }
             .interactiveDismissDisabled()
         }
-        .sheet(isPresented: $showMoveToPlaylist) {
+        .sheet(item: $songIDsToCopy) { ids in
             NavigationStack {
                 #if os(macOS)
-                MoveToPlaylistView(songIDs: selectedSongIDs, fromPlaylist: playlist)
+                MoveToPlaylistView(songIDs: ids.identifiers, fromPlaylist: playlist)
                 #else
-                MoveToPlaylistView(songIDs: selectedSongIDs, fromPlaylist: playlist, editMode: $editMode)
+                MoveToPlaylistView(songIDs: ids.identifiers, fromPlaylist: playlist, editMode: $editMode)
                 #endif
             }
         }
@@ -192,17 +204,9 @@ struct SongListView: View {
                 }
             }
         }
-        .onChange(of: selectedSongIDs) {
-            // das alles nur, weil Set<Song.ID> nicht als @Binding nach ContentView funktioniert. Daher Umweg über selectedSongs
-            if selectedSongIDs.count == 1 {
-                let s = Song.fetchSongs(with: selectedSongIDs, in: modelContext)
-                if !s.isEmpty {
-                    selectedSongs = [s.first!]
-                }
-            }
-        }
         #if os(iOS)
         .environment(\.editMode, $editMode)
+        // wenn der EditMode wechselt, soll kein Song selektiert sein
         .onChange(of: editMode) { selectedSongIDs = [] }
         #endif
     }
@@ -232,13 +236,12 @@ struct SongListView: View {
         #endif
     }
     
-    private func prepareDelete() {
+    private func prepareDelete(songIDs: Set<Song.ID>) {
         deleteIndexset = IndexSet()
         
-        let sSongs = Song.fetchSongs(with: selectedSongIDs, in: modelContext)
+        let sSongs = Song.fetchSongs(with: songIDs, in: modelContext)
         
         for song in sSongs {
-//            let indexOfSong = (playlist.songs ?? []).sorted(by: { $0.seq < $1.seq }).firstIndex { $0 === song }
             let indexOfSong = songs.firstIndex { $0 === song }
             if let indexOfSong = indexOfSong {
                 deleteIndexset.insert(indexOfSong)
@@ -249,12 +252,10 @@ struct SongListView: View {
     }
 
     private func deleteSongs(playlist: PlayList, offsets: IndexSet) {
-//        if offsets.isEmpty || (playlist.songs ?? []).count == 0 { return }
         if offsets.isEmpty || songs.count == 0 { return }
 
-        let sortedSongs = songs // (playlist.songs ?? []).sorted(by: { $0.seq < $1.seq })
         for index in offsets {
-            let s = sortedSongs[index]
+            let s = songs[index]
             modelContext.delete(s)
             playlist.songs?.removeAll(where: { $0.seq == s.seq })
         }
@@ -340,7 +341,6 @@ struct MoveToPlaylistView: View {
     @State private var selectedPlaylist: PlayList.ID?
     
     @Query(sort: \PlayList.seq, order: .forward) private var playlists: [PlayList]
-    @Query private var allSongs: [Song]
 
     var body: some View {
         List(selection: $selectedPlaylist) {
@@ -351,11 +351,11 @@ struct MoveToPlaylistView: View {
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 Button(action: {
+                    print("songs to copy: \(String((songIDs?.count ?? 0)))")
                     let fetchedSongs = Song.fetchSongs(with: songIDs ?? [], in: modelContext)
 
-                    print("songs to copy: \(String(fetchedSongs.count))")
-                    if let selected = selectedPlaylist {
-                        if let pl = PlayList.fetchPlaylists(with: [selected], in: modelContext).first {
+                    if let selectedPlaylist = selectedPlaylist {
+                        if let pl = PlayList.fetchPlaylists(with: [selectedPlaylist], in: modelContext).first {
                             pl.sortedInsert(songs: fetchedSongs)
                         }
                     }
@@ -365,7 +365,7 @@ struct MoveToPlaylistView: View {
                     dismiss()
                 }) {
                     Text("Done")
-                }
+                }.disabled(selectedPlaylist == nil)
             }
             ToolbarItem(placement: .cancellationAction) {
                 Button(action: {

@@ -6,37 +6,39 @@
 //
 
 import SwiftUI
+import SwiftData
 
 struct ContentView: View {
     @State private var visibility: NavigationSplitViewVisibility = .all
-    @State private var selectedPlaylist: PlayList?
-    @State private var selectedSongs: Set<Song> = []
+    @State private var selectedPlaylistID: PersistentIdentifier?
+    @State private var selectedSongIDs: Set<PersistentIdentifier> = []
 
     @Environment(ViewModel.self) private var viewModel
+    @Environment(\.modelContext) private var modelContext
 
     var body: some View {
         NavigationSplitView(columnVisibility: $visibility) {
-            
-            PlayListView(selectedPlaylist: $selectedPlaylist, visibility: $visibility).environment(viewModel)
+
+            PlayListView(selectedPlaylistID: $selectedPlaylistID, visibility: $visibility).environment(viewModel)
 
         } content: {
             
-            if let selectedPlaylist = selectedPlaylist {
-                SongListView(playlist: selectedPlaylist, visibility: $visibility, selectedSongs: $selectedSongs).environment(viewModel)
+            if let selectedPlaylistID = selectedPlaylistID, let selectedPlaylist = PlayList.fetchPlaylists(with: [selectedPlaylistID], in: modelContext).first {
+                SongListView(playlist: selectedPlaylist, visibility: $visibility, selectedSongIDs: $selectedSongIDs).environment(viewModel)
             } else {
                 ContentUnavailableView("Select a playlist", systemImage: "doc.text.image.fill")
             }
             
         } detail: {
             
-            if selectedSongs.count == 1, let selected = selectedSongs.first {
-                SongView(song: selected, visibility: $visibility).environment(viewModel)
+            if selectedSongIDs.count == 1, let selectedSongID = selectedSongIDs.first, let song = Song.fetchSongs(with: [selectedSongID], in: modelContext).first {
+                SongView(song: song, visibility: $visibility).environment(viewModel)
             } else {
                 ContentUnavailableView("Select a song", systemImage: "doc.text.image.fill")
             }
             
         }
-        .onChange(of: selectedPlaylist) { selectedSongs = [] }
+        .onChange(of: selectedPlaylistID) { selectedSongIDs = [] }      // ContentUnavailable in SongView
         .navigationSplitViewStyle(.automatic)
         .preferredColorScheme(viewModel.displayMode == .dark ? .dark : (viewModel.displayMode == .light ? .light : nil))
     }

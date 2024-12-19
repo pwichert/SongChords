@@ -27,15 +27,16 @@ final class PlayList: Codable {
     }
     
     private func nextPlaylistSeq(modelContext: ModelContext) -> Int {
-        var maxSeq = -1
-        
         do {
             let playlists = try modelContext.fetch(FetchDescriptor<PlayList>())
-            for s in playlists.indices {
-                maxSeq = max(maxSeq, playlists[s].seq)
+            if playlists.isEmpty { print("nextPlaylistSeq: 0"); return 0 }
+
+            var maxSeq = 0
+            for s in playlists {
+                maxSeq = max(maxSeq, s.seq)
             }
             
-            print("max: \(maxSeq + 1)")
+            print("nextPlaylistSeq: \(maxSeq + 1)")
             return maxSeq + 1
         } catch {
             print("error fetching nextPlaylistSeq: \(error.localizedDescription)")
@@ -44,7 +45,7 @@ final class PlayList: Codable {
     }
     
     func nextSongSeq() -> Int {
-        if (songs ?? []).isEmpty { print("seq: 0"); return 0 }
+        if (songs ?? []).isEmpty { print("nextSongSeq: 0"); return 0 }
         
         var maxSeq = 0
         if let songs = songs {
@@ -53,7 +54,7 @@ final class PlayList: Codable {
             }
         }
         
-        print("seq: \(maxSeq+1)")
+        print("nextSongSeq: \(maxSeq+1)")
         return maxSeq + 1
     }
     
@@ -273,30 +274,17 @@ final public class Song: Codable {
     }
     
     func toPlaylist(playlist: PlayList, after: Song? = nil) {
-        // aus alter Playlist entfernen
-        if let myplaylist = self.playlist {
-            if myplaylist.songs != nil {
-                myplaylist.songs!.removeAll { $0 == self }
-            }
-        }
-        
         if playlist.songs == nil { playlist.songs = [] }
-        
+
         if let after = after {
             seq = after.seq
-            if let idx = playlist.songs!.firstIndex(of: after) {
-                let idxafter = playlist.songs!.index(after: idx)
-                playlist.songs!.insert(self, at: idxafter)
-                playlist.reNumber()
-            }
         } else {
             seq = playlist.nextSongSeq()
-            playlist.songs!.append(self)
-            playlist.reNumber()
         }
-
+        
         // zu neuer hinzufügen
         self.playlist = playlist
+        playlist.reNumber()
     }
     
     static func fromUrl(url: URL) throws -> Song {

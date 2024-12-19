@@ -9,8 +9,11 @@ import SwiftUI
 import SwiftData
 import UniformTypeIdentifiers
 
+// für PlaylistSelectionSheet(), um das sheet sicher über "item:" auszulösen. Prüfen, ob das irgendwann standardmäßig implementiert ist.
+extension URL: @retroactive Identifiable { public var id: String { self.absoluteString } }
+
 struct PlayListView: View {
-    @Binding var selectedPlaylist: PlayList?
+    @Binding var selectedPlaylistID: PersistentIdentifier?
     @Binding var visibility: NavigationSplitViewVisibility
     
     @Environment(\.modelContext) private var modelContext
@@ -19,7 +22,6 @@ struct PlayListView: View {
     #if os(iOS)
     @State private var editMode: EditMode = .inactive
     #endif
-    @State private var selectedPlaylistID: PlayList.ID?
 
     @State private var showPlaylistNewView: Bool = false
     @State private var renamePlaylist: PlayList?
@@ -31,7 +33,7 @@ struct PlayListView: View {
     @State private var showPrivacyView: Bool = false
     
     @State private var showPlaylistImport: Bool = false
-    @State private var showSongImport: Bool = false
+    @State private var songImportUrl: URL?
     @State private var openUrl: URL?
 
     @AppStorage("isOnboarding") var isOnboarding: Bool = true
@@ -136,7 +138,7 @@ struct PlayListView: View {
             }
             .interactiveDismissDisabled()
         }
-        .sheet(item: $renamePlaylist) {playlist in
+        .sheet(item: $renamePlaylist) { playlist in
             NavigationStack {
                 PlaylistEditView(playlist: playlist)
             }
@@ -169,9 +171,9 @@ struct PlayListView: View {
                 OnboardingSheet()
             }
         }
-        .sheet(isPresented: $showSongImport) {
+        .sheet(item: $songImportUrl) { url in
             NavigationStack {
-                PlaylistSelectionSheet(playlists: playlists, urlToInsert: openUrl)
+                PlaylistSelectionSheet(playlists: playlists, urlToInsert: url)
             }
         }
         .onOpenURL(perform: { url in
@@ -182,7 +184,7 @@ struct PlayListView: View {
             if fileExtension.lowercased() == (UTType.playlistJSON.preferredFilenameExtension ?? "nix").lowercased() {
                 showPlaylistImport.toggle()
             } else if fileExtension.lowercased() == (UTType.songJSON.preferredFilenameExtension ?? "nix").lowercased() {
-                showSongImport.toggle()
+                songImportUrl = url
             }
         })
         .alert("Playlist must be empty", isPresented: $showDeleteAlert) {
@@ -195,15 +197,6 @@ struct PlayListView: View {
                     if let openUrl = openUrl {
                         importPlaylist(url: openUrl)
                     }
-                }
-            }
-        }
-        .onChange(of: selectedPlaylistID) {
-            // das alles nur, weil PlayList.ID nicht als @Binding nach ContentView funktioniert. Daher Umweg über selectedPlaylist
-            if let selectedPlaylistID = selectedPlaylistID {
-                let s = PlayList.fetchPlaylists(with: [selectedPlaylistID], in: modelContext)
-                if !s.isEmpty {
-                    selectedPlaylist = s.first!
                 }
             }
         }
@@ -261,7 +254,7 @@ struct PlayListView: View {
             let playlist = try PlayList.fromUrl(url: url)
             let newPlaylist = PlayList(modelContext: modelContext, title: playlist.title)
             modelContext.insert(newPlaylist)
-            playlist.sortedInsert(songs: playlist.songs)
+            newPlaylist.sortedInsert(songs: playlist.songs)
         } catch {
             print(error)
         }
@@ -337,39 +330,47 @@ struct PlaylistEditView: View {
 
 struct PlaylistSelectionSheet: View {
     let playlists: [PlayList]
-    let urlToInsert: URL?
+    let urlToInsert: URL
     
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) var dismiss
-        
+     
+    @State private var selectedPlaylist: PlayList.ID?
+
     var body: some View {
-        List(playlists) { playlist in
-            Button(action: {
-                do {
-                    if let url = urlToInsert {
-                        let song = try Song.fromUrl(url: url)
-                        playlist.sortedInsert(songs: [song])                    }
-                } catch {
-                    print(error)
-                }
-                
-                dismiss()
-            }) {
-                Text(playlist.title)
-            }
-            .buttonStyle(.plain)
+        List(playlists, selection: $selectedPlaylist) { playlist in
+            Text(playlist.title)
         }
-        #if os(macOS)
-        .frame(idealHeight: 400)
-        #endif
-        .navigationTitle("Import Song into Playlist")
         .toolbar {
+            ToolbarItem(placement: .primaryAction) {
+                Button(action: {
+                    if let selectedPlaylist = selectedPlaylist {
+                        if let pl = PlayList.fetchPlaylists(with: [selectedPlaylist], in: modelContext).first {
+                            if let song = try? Song.fromUrl(url: urlToInsert) {
+                                pl.sortedInsert(songs: [song])
+                            }
+                        }
+                    }
+                    dismiss()
+                }) {
+                    Text("Done")
+                }.disabled(selectedPlaylist == nil)
+            }
             ToolbarItem(placement: .cancellationAction) {
-                Button("Cancel") {
+                Button(action: {
                     dismiss()
                 }
+                ) {
+                    Text("Cancel")
+                }
             }
         }
+        #if os(iOS)
+            .navigationBarTitleDisplayMode(.inline)
+        #else
+            .frame(idealHeight: 400)
+        #endif
+        .navigationTitle("Import Song into Playlist")
     }
 }
 

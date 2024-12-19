@@ -62,7 +62,7 @@
             "plural" : {
               "one" : {
                 "stringUnit" : {
-                  "state" : "needs_review",
+                  "state" : "translated",
                   "value" : "%lld Song"
                 }
               },
@@ -225,7 +225,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "fertig"
+            "value" : "Fertig"
           }
         }
       }
@@ -402,27 +402,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "hell"
-          }
-        }
-      }
-    },
-    "Move" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Bewegen"
-          }
-        }
-      }
-    },
-    "Move to Playlist" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "zu Playliste bewegen"
           }
         }
       }
