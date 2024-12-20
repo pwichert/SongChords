@@ -9,8 +9,12 @@ import SwiftUI
 import SwiftData
 import UniformTypeIdentifiers
 
-// für PlaylistSelectionSheet(), um das sheet sicher über "item:" auszulösen. Prüfen, ob das irgendwann standardmäßig implementiert ist.
-extension URL: @retroactive Identifiable { public var id: String { self.absoluteString } }
+// Identifiable Wrapper für URL
+// für PlaylistSelectionSheet(), um das sheet sicher über "item:" auszulösen
+struct IdentifiableURL: Identifiable {
+    let id: UUID = UUID() // Eine eindeutige ID
+    let url: URL // Die enthaltene URL
+}
 
 struct PlayListView: View {
     @Binding var selectedPlaylistID: PersistentIdentifier?
@@ -33,7 +37,7 @@ struct PlayListView: View {
     @State private var showPrivacyView: Bool = false
     
     @State private var showPlaylistImport: Bool = false
-    @State private var songImportUrl: URL?
+    @State private var songImportUrl: IdentifiableURL?
     @State private var openUrl: URL?
 
     @AppStorage("isOnboarding") var isOnboarding: Bool = true
@@ -176,7 +180,7 @@ struct PlayListView: View {
         }
         .sheet(item: $songImportUrl) { url in
             NavigationStack {
-                PlaylistSelectionSheet(playlists: playlists, urlToInsert: url)
+                PlaylistSelectionSheet(playlists: playlists, urlToInsert: url.url)
             }
         }
         .onOpenURL(perform: { url in
@@ -187,7 +191,7 @@ struct PlayListView: View {
             if fileExtension.lowercased() == (UTType.playlistJSON.preferredFilenameExtension ?? "nix").lowercased() {
                 showPlaylistImport.toggle()
             } else if fileExtension.lowercased() == (UTType.songJSON.preferredFilenameExtension ?? "nix").lowercased() {
-                songImportUrl = url
+                songImportUrl = IdentifiableURL(url: url)
             }
         })
         .alert("Playlist must be empty", isPresented: $showDeleteAlert) {
