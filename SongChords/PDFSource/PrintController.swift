@@ -7,6 +7,7 @@
 
 import SwiftUI
 import PDFKit
+import SwiftData
 
 #if os(macOS)
 protocol UIPrintInteractionControllerDelegate {}
@@ -19,11 +20,12 @@ protocol PrintDelegateBase {
 
 @MainActor
 class PrintSongDelegate: NSObject, PrintDelegateBase, UIPrintInteractionControllerDelegate {
-    let viewModel: ViewModel
+    let viewModel = ViewModel()
     let song: Song
     
-    init(viewModel: ViewModel, song: Song) {
-        self.viewModel = viewModel
+    init?(songID: PersistentIdentifier, modelContainer: ModelContainer) {
+        let modelContext = ModelContext(modelContainer)
+        guard let song = Song.fetchSong(with: songID, in: modelContext) else { return nil }
         self.song = song
     }
     
@@ -139,11 +141,12 @@ class PrintSongDelegate: NSObject, PrintDelegateBase, UIPrintInteractionControll
 
 @MainActor
 class PrintSetlistDelegate: NSObject, PrintDelegateBase, UIPrintInteractionControllerDelegate {
-    let viewModel: ViewModel
+    let viewModel = ViewModel()
     let playlist: PlayList
     
-    init(viewModel: ViewModel, playlist: PlayList) {
-        self.viewModel = viewModel
+    init?(playlistID: PersistentIdentifier, modelContainer: ModelContainer) {
+        let modelContext = ModelContext(modelContainer)
+        guard let playlist = PlayList.fetchPlaylist(with: playlistID, in: modelContext) else { return nil }
         self.playlist = playlist
     }
 
@@ -196,9 +199,9 @@ class PrintSetlistDelegate: NSObject, PrintDelegateBase, UIPrintInteractionContr
 
 @MainActor
 class PrintController {
-    static func onPrint(viewModel: ViewModel, title: String, delegate: UIPrintInteractionControllerDelegate) {
+    static func onPrint(title: String, delegate: UIPrintInteractionControllerDelegate) {
         
-        let defaultPaper = MediaBoxes.getBox(name: viewModel.mediabox)
+        let defaultPaper = MediaBoxes.getBox(name: ViewModel().mediabox)
         
 #if os(iOS)
         // UIPrintInfo contains information about the print job

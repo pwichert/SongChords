@@ -23,10 +23,10 @@ struct PlayListView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(ViewModel.self) private var viewModel
     
-    #if os(iOS)
+#if os(iOS)
     @State private var editMode: EditMode = .inactive
-    #endif
-
+#endif
+    
     @State private var showPlaylistNewView: Bool = false
     @State private var renamePlaylist: PlayList?
     @State private var showDeleteAlert: Bool = false
@@ -39,9 +39,9 @@ struct PlayListView: View {
     @State private var showPlaylistImport: Bool = false
     @State private var songImportUrl: IdentifiableURL?
     @State private var openUrl: URL?
-
+    
     @AppStorage("isOnboarding") var isOnboarding: Bool = true
-
+    
     @Query(sort: \PlayList.seq, order: .forward) private var playlists: [PlayList]
     
     var body: some View {
@@ -58,10 +58,12 @@ struct PlayListView: View {
                             }
                         }
                     }
-//                    .dropDestination(for: PersistentIdentifier.self) { receivedIDs, location in
-//                        print(".dropDestination: received \(receivedIDs) for playlist \(playlist.title)")
-//                        return true
-//                    }
+                    .dropDestination(for: PersistentIdentifier.self) { receivedIDs, location in
+                        print(".dropDestination: received (PersistentIdentifier) \(receivedIDs) for playlist \(playlist.title)")
+                        let songs = Song.fetchSongs(with: Set(receivedIDs), in: modelContext)
+                        playlist.sortedInsert(songs: songs)
+                        return true
+                    }
                     .dropDestination(for: Data.self) { receivedDatas, location in
                         print(".dropDestination: received (Data) \(receivedDatas) for playlist \(playlist.title)")
                         let songs: [Song]? = receivedDatas.compactMap { data in
@@ -71,7 +73,7 @@ struct PlayListView: View {
                         return true
                     }
                     .dropDestination(for: URL.self) { receivedUrls, location in
-                        print(".dropDestination: received \(receivedUrls) for playlist \(playlist.title)")
+                        print(".dropDestination: received (URL) \(receivedUrls) for playlist \(playlist.title)")
                         let songs: [Song]? = receivedUrls.compactMap { url in
                             try? Song.fromUrl(url: url)
                         }
@@ -79,7 +81,7 @@ struct PlayListView: View {
                         return true
                     }
                     .dropDestination(for: Song.self) { receivedSongs, location in
-                        print(".dropDestination: received \(receivedSongs) for playlist \(playlist.title)")
+                        print(".dropDestination: received (Song) \(receivedSongs) for playlist \(playlist.title)")
                         playlist.sortedInsert(songs: receivedSongs)
                         return true
                     }
@@ -108,9 +110,6 @@ struct PlayListView: View {
             }
             ToolbarItem {
                 CustomEditButton(editMode: $editMode)
-//                Button(action: { editMode = isEditing ? .inactive : .active }) {
-//                    Text(isEditing ? "Done" : "Edit")
-//                }
             }
             #endif
             ToolbarItem {
@@ -232,7 +231,6 @@ struct PlayListView: View {
         if offsets.isEmpty { return true }
         
         let sortedPlaylists = playlists
-        
         for index in offsets {
             if (sortedPlaylists[index].songs ?? []).count == 0 {
                 modelContext.delete(sortedPlaylists[index])

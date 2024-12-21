@@ -12,7 +12,7 @@ import SwiftUI
 class MediaBoxes {
     // 72 dpi
     
-    static var mediaBoxes: [String:CGRect] = [
+    static let mediaBoxes: [String:CGRect] = [
         "A5" : CGRect(origin: .zero, size: .init(width: 420, height: 595)),
         "A4" : CGRect(origin: .zero, size: .init(width: 595, height: 842)),
         "A3" : CGRect(origin: .zero, size: .init(width: 842, height: 1191)),

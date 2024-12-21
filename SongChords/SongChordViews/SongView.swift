@@ -14,6 +14,7 @@ struct SongView: View {
 
     @Environment(ViewModel.self) private var viewModel
     @Environment(\.horizontalSizeClass) var horizontalSizeClass
+    @Environment(\.modelContext) private var modelContext
 
     @State private var showSongEditView: Bool = false
     @State private var showShareView: Bool = false
@@ -109,15 +110,19 @@ struct SongView: View {
     
     @MainActor
     private func showPdf() {
-        let delegate = PrintSongDelegate(viewModel: viewModel, song: song)
-        let defaultPaper = MediaBoxes.getBox(name: viewModel.mediabox)
-        pdfUrl = delegate.createPDF(paperSize: defaultPaper)
+        let delegate = PrintSongDelegate(songID: song.persistentModelID, modelContainer: modelContext.container)
+        if let delegate = delegate {
+            let defaultPaper = MediaBoxes.getBox(name: viewModel.mediabox)
+            pdfUrl = delegate.createPDF(paperSize: defaultPaper)
+        }
     }
     
     @MainActor
     private func onPrint() {
-        let delegate = PrintSongDelegate(viewModel: viewModel, song: song)
-        PrintController.onPrint(viewModel: viewModel, title: song.title, delegate: delegate)
+        let delegate = PrintSongDelegate(songID: song.persistentModelID, modelContainer: modelContext.container)
+        if let delegate = delegate {
+            PrintController.onPrint(title: song.title, delegate: delegate)
+        }
     }
 }
 

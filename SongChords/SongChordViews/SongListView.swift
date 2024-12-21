@@ -29,10 +29,10 @@ struct SongListView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(ViewModel.self) private var viewModel
     
-    #if os(iOS)
+#if os(iOS)
     @State private var editMode: EditMode = .inactive
-    #endif
-
+#endif
+    
     @State private var showSongEditView: Bool = false
     @State private var songIDsToCopy: IdentifiablePersistentIdentifierSet?
     @State private var deleteIndexset = IndexSet()
@@ -65,7 +65,7 @@ struct SongListView: View {
                             // Selektierter Song und Kontext-geklickter sind nicht unbedingt gleich.
                             songIDsToCopy = IdentifiablePersistentIdentifierSet(identifiers: selectedSongIDs.contains(song.id) ? selectedSongIDs : [song.id])
                         }) { Label("Copy To", systemImage: "arrow.uturn.left")}
-
+                        
                         Button(action: {
                             let s = Song.fetchSongs(with: selectedSongIDs.contains(song.id) ? selectedSongIDs : [song.id], in: modelContext)
                             print("Count: \(s.count)")
@@ -79,10 +79,18 @@ struct SongListView: View {
                         Button(role: .destructive, action: { prepareDelete(songIDs: selectedSongIDs.contains(song.id) ? selectedSongIDs : [song.id]) }) { Label("Delete", systemImage: "trash")}
                     }
                     #if os(macOS)
-                    .draggable(try! song.toTempFile(filename: song.title)) { Text(song.title) }
-//                    .draggable(song.persistentModelID) { Text(song.title) }
+                    #if true        // true funktioniert, false nicht
+                    .draggable(try! song.toTempFile(filename: song.title)) { Text(song.title) } // funktioniert
                     #else
-                    .draggable(song.setTransData()) { Text(song.title) }
+                    // TODO funktioniert bisher nicht
+                    .draggable(song.persistentModelID) { Text(song.title) }
+                    #endif
+                    #else
+                    #if true        // true funktioniert, false nicht
+                    .draggable(song.setTransData()) { Text(song.title) }    // funktioniert
+                    #else
+                    .draggable(song.persistentModelID) { Text(song.title) }
+                    #endif
                     #endif
             }
             .onMove(perform: moveSongs)
@@ -115,7 +123,7 @@ struct SongListView: View {
                 } else {
                     HStack {
                         Button(action: { songIDsToCopy = IdentifiablePersistentIdentifierSet(identifiers: selectedSongIDs)
- }) {
+                        }) {
                             Text("Copy To").disabled(selectedSongIDs.isEmpty)
                         }
                         Spacer()
@@ -129,9 +137,6 @@ struct SongListView: View {
             }
             ToolbarItem {
                 CustomEditButton(editMode: $editMode)
-//                Button(action: { editMode = isEditing ? .inactive : .active }) {
-//                    Text(isEditing ? "Done" : "Edit")
-//                }
             }
             #endif
             ToolbarItem {
@@ -173,11 +178,11 @@ struct SongListView: View {
         }
         .sheet(item: $songIDsToCopy) { ids in
             NavigationStack {
-                #if os(macOS)
+            #if os(macOS)
                 MoveToPlaylistView(songIDs: ids.identifiers, fromPlaylist: playlist)
-                #else
+            #else
                 MoveToPlaylistView(songIDs: ids.identifiers, fromPlaylist: playlist, editMode: $editMode)
-                #endif
+            #endif
             }
         }
         .fileExporter(isPresented: $showFileExport, item: playlist, contentTypes: [uttype], defaultFilename: playlist.title) { result in
@@ -253,10 +258,10 @@ struct SongListView: View {
         
         if !deleteIndexset.isEmpty { showDeleteAlert.toggle() }
     }
-
+    
     private func deleteSongs(playlist: PlayList, offsets: IndexSet) {
         if offsets.isEmpty || songs.count == 0 { return }
-
+        
         for index in offsets {
             let s = songs[index]
             modelContext.delete(s)
@@ -270,11 +275,11 @@ struct SongListView: View {
     private func importSongClipboard() {
         print("Import")
         
-#if os(macOS)
+        #if os(macOS)
         let cb = NSPasteboard.general.string(forType: .string)
-#else
+        #else
         let cb = UIPasteboard.general.string
-#endif
+        #endif
         
         if !(cb ?? "").isEmpty {
             let chordProReverseParser = ChordProReverseParser()
@@ -295,11 +300,11 @@ struct SongListView: View {
         let new = String(localized: "New")
         let song = Song(title: new + " " + Date.now.formatted(date: .numeric, time: .shortened))
         playlist.sortedInsert(songs: [song])
-
+        
         song.srcText.append("{st: Subtitle of Song}\n")
         song.srcText.append("[*%{st}]\n")
         song.srcText.append("\n")
-
+        
         song.srcText.append("[Song Section]\n")
         song.srcText.append("[Am]Lorem ipsum [D]dolor sit [E]amet\n")
         song.srcText.append("[G]consetetur [C]sadipscing elitr\n")
@@ -320,14 +325,16 @@ struct SongListView: View {
         } catch {
             print(error.localizedDescription)
         }
-
+        
         return success
     }
     
     @MainActor
     func printSetlist() async {
-        let delegate = PrintSetlistDelegate(viewModel: viewModel, playlist: playlist)
-        PrintController.onPrint(viewModel: viewModel, title: playlist.title, delegate: delegate)
+        let modelContainer = modelContext.container
+        if let delegate = PrintSetlistDelegate(playlistID: playlist.persistentModelID, modelContainer: modelContainer) {
+            PrintController.onPrint(title: playlist.title, delegate: delegate)
+        }
     }
 }
 

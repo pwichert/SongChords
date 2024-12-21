@@ -79,14 +79,20 @@ final class PlayList: Codable {
     }
     
     static func fetchPlaylists(with ids: Set<PlayList.ID>, in context: ModelContext) -> [PlayList] {
-        if ids.isEmpty { return [] }
-            
-        let descriptor = FetchDescriptor<PlayList>(
-            predicate: #Predicate { playlist in
-                ids.contains(playlist.persistentModelID)
+        var res: [PlayList] = []
+        
+        for id in ids {
+            if let playlist = fetchPlaylist(with: id, in: context) {
+                res.append(playlist)
             }
-        )
-        return (try? context.fetch(descriptor)) ?? []
+        }
+        
+        return res
+    }
+    
+    static func fetchPlaylist(with id: PlayList.ID, in context: ModelContext) -> PlayList? {
+        guard let playlist = context.model(for: id) as? PlayList else { return nil }
+        return playlist
     }
     
     static func isValidTitle(_ playlistTitle: String) -> Bool {
@@ -172,9 +178,11 @@ extension PlayList: Transferable {
         FileRepresentation(exportedContentType: .pdf, exporting: { playlist in
             print("FileRepresentation (.pdf) exported playlist \(playlist.title)")
             let viewModel = ViewModel()
-            let delegate = await PrintSetlistDelegate(viewModel: viewModel, playlist: playlist)
             let defaultPaper = MediaBoxes.getBox(name: viewModel.mediabox)
-            guard let pdfUrl = await delegate.createPDF(paperSize: defaultPaper) else {
+            let modelContainer = playlist.modelContext?.container
+            guard let modelContainer else { throw NSError(domain: "PDFCreationError", code: 4, userInfo: ["reason": "Failed to create PDF"]) }
+            let delegate = await PrintSetlistDelegate(playlistID: playlist.persistentModelID, modelContainer: modelContainer)
+            guard let delegate = delegate, let pdfUrl = await delegate.createPDF(paperSize: defaultPaper) else {
                 throw NSError(domain: "PDFCreationError", code: 4, userInfo: ["reason": "Failed to create PDF"])
             }
 
@@ -230,7 +238,7 @@ final public class Song: Codable {
         viewModel.processingTask = Task { [weak self] in
             // Aufgabe im Hintergrund ausführen
             guard let self = self else { return }
-            let result = self.createSongRepresentation(viewModel: viewModel, forPrinting: forPrinting)
+            let result = self.createSongRepresentation(viewModel: ViewModel(), forPrinting: forPrinting)
             
             // Ergebnis auf dem Main-Thread aktualisieren
             await MainActor.run {
@@ -335,32 +343,21 @@ final public class Song: Codable {
         return fileURL
     }
     
-    static func findObject(song: Song, in context: ModelContext) -> Song? {
-        do {
-            let id = song.persistentModelID
-            let pred = #Predicate<Song> { object in
-                object.persistentModelID == id
+    static func fetchSongs(with ids: Set<PersistentIdentifier>, in context: ModelContext) -> [Song] {
+        var res: [Song] = []
+        
+        for id in ids {
+            if let song = fetchSong(with: id, in: context) {
+                res.append(song)
             }
-            
-            var desc = FetchDescriptor(predicate: pred)
-            desc.fetchLimit = 1
-            
-            let res = try context.fetch(desc)
-            return res.first
-        } catch {
-            return nil
         }
+        
+        return res
     }
     
-    static func fetchSongs(with ids: Set<Song.ID>, in context: ModelContext) -> [Song] {
-        if ids.isEmpty { return [] }
-            
-        let descriptor = FetchDescriptor<Song>(
-            predicate: #Predicate { song in
-                ids.contains(song.persistentModelID)
-            }
-        )
-        return (try? context.fetch(descriptor)) ?? []
+    static func fetchSong(with id: PersistentIdentifier, in context: ModelContext) -> Song? {
+        guard let song = context.model(for: id) as? Song else { return nil }
+        return song
     }
     
     static func isValidFilename(_ filename: String) -> Bool {
@@ -473,9 +470,11 @@ extension Song: Transferable {
 
             do {
                 let viewModel = ViewModel()
-                let delegate = await PrintSongDelegate(viewModel: viewModel, song: song)
                 let defaultPaper = MediaBoxes.getBox(name: viewModel.mediabox)
-                guard let pdfUrl = await delegate.createPDF(paperSize: defaultPaper) else {
+                let modelContainer = song.modelContext?.container
+                guard let modelContainer else { throw NSError(domain: "PDFCreationError", code: 4, userInfo: ["reason": "Failed to create PDF"]) }
+                let delegate = await PrintSongDelegate(songID: song.persistentModelID, modelContainer: modelContainer)
+                guard let delegate = delegate, let pdfUrl = await delegate.createPDF(paperSize: defaultPaper) else {
                     throw NSError(domain: "PDFCreationError", code: 4, userInfo: ["reason": "Failed to create PDF"])
                 }
                 return SentTransferredFile(pdfUrl, allowAccessingOriginalFile: true)
@@ -527,11 +526,21 @@ extension UTType {
 }
 
 //extension UTType {
-//    public static var persistentModelID: UTType { UTType(exportedAs: "com.wichert.persistentModelID", conformingTo: .json) }
+//    static let persistentModelID = UTType(exportedAs: "com.wichert.persistentmodelid", conformingTo: .json)
 //}
-//extension PersistentIdentifier: @retroactive Transferable {
-//    public static var transferRepresentation: some TransferRepresentation {
-//        CodableRepresentation(for: PersistentIdentifier.self, contentType: .json)
-//    }
-//}
-
+extension PersistentIdentifier: @retroactive Transferable {
+    public static var transferRepresentation: some TransferRepresentation {
+        CodableRepresentation(for: PersistentIdentifier.self, contentType: .json)
+        
+        DataRepresentation(contentType: .json, exporting: { persistentIdentifier in
+            print("DataRepresentation exported PersistentIdentifier")
+            let encoder = JSONEncoder()
+            return try encoder.encode(persistentIdentifier)
+        }
+        , importing: { data in
+            print("DataRepresentation imported PersistentIdentifier")
+            let decoder = JSONDecoder()
+            return try decoder.decode(PersistentIdentifier.self, from: data)
+        })
+    }
+}
