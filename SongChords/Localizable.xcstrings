@@ -416,22 +416,22 @@
         }
       }
     },
-    "New" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Neu"
-          }
-        }
-      }
-    },
     "New Playlist" : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Neue Playliste"
+          }
+        }
+      }
+    },
+    "New Song" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Neuer Song"
           }
         }
       }

@@ -232,12 +232,13 @@ struct PlayListView: View {
         for index in offsets {
             if (sortedPlaylists[index].songs ?? []).count == 0 {
                 modelContext.delete(sortedPlaylists[index])
-                try? modelContext.save()
             } else {
+                try? modelContext.save()
                 return false
             }
         }
 
+        try? modelContext.save()
         return true
     }
     

@@ -74,6 +74,7 @@ struct SongListView: View {
                                 sng.updateFromSong(other: song)
                                 sng.toPlaylist(playlist: playlist, after: song)
                             }
+                            try? modelContext.save()
                         }) { Label("Duplicate", systemImage: "doc.on.doc")}
                         
                         Button(role: .destructive, action: { prepareDelete(songIDs: selectedSongIDs.contains(song.id) ? selectedSongIDs : [song.id]) }) { Label("Delete", systemImage: "trash")}
@@ -256,8 +257,8 @@ struct SongListView: View {
             let s = songs[index]
             modelContext.delete(s)
             playlist.songs?.removeAll(where: { $0.seq == s.seq })
-            try? modelContext.save()
         }
+        try? modelContext.save()
         #if os(iOS)
         editMode = .inactive
         #endif
@@ -289,7 +290,7 @@ struct SongListView: View {
     }
     
     private func importSongTemplate() {
-        let song = Song(title: "New")
+        let song = Song(title: String(localized: "New Song"))
         playlist.sortedInsert(songs: [song])
 
         song.srcText.append("{st: Subtitle of Song}\n")
