@@ -79,10 +79,12 @@ struct SongListView: View {
                         
                         Button(role: .destructive, action: { prepareDelete(songIDs: selectedSongIDs.contains(song.id) ? selectedSongIDs : [song.id]) }) { Label("Delete", systemImage: "trash")}
                     }
-                    // Funktioniert in macOS so nicht (nur mit URL):
-                    // .draggable(song.toTempFile(filename: song.title)!) { Text(song.title) }
-                    // Da gleiche Songnamen (und damit Dateinamen beim File) erlaubt sind, würde das zu Fehlern führen
-                    .draggable(song.setTransData()) { Text(song.title) }
+                // Funktioniert in macOS so nicht (nur mit URL):
+                // .draggable(song.toTempFile(filename: song.title)!) { Text(song.title) }
+                // Da gleiche Songnamen (und damit Dateinamen beim File) erlaubt sind, würde das zu Fehlern führen
+                #if os(iOS)
+                .draggable(song.setTransData()) { Text(song.title) }
+                #endif
             }
             .onMove(perform: moveSongs)
             .onDelete { indexSet in
