@@ -58,31 +58,28 @@ struct PlayListView: View {
                             }
                         }
                     }
-                    .dropDestination(for: PersistentIdentifier.self) { receivedIDs, location in
-                        print(".dropDestination: received (PersistentIdentifier) \(receivedIDs) for playlist \(playlist.title)")
-                        let songs = Song.fetchSongs(with: Set(receivedIDs), in: modelContext)
-                        playlist.sortedInsert(songs: songs)
-                        return true
-                    }
                     .dropDestination(for: Data.self) { receivedDatas, location in
                         print(".dropDestination: received (Data) \(receivedDatas) for playlist \(playlist.title)")
-                        let songs: [Song]? = receivedDatas.compactMap { data in
+                        let songs: [Song] = receivedDatas.compactMap { data in
                             try? Song.fromData(data: data)
                         }
                         playlist.sortedInsert(songs: songs)
+                        try? modelContext.save()
                         return true
                     }
                     .dropDestination(for: URL.self) { receivedUrls, location in
                         print(".dropDestination: received (URL) \(receivedUrls) for playlist \(playlist.title)")
-                        let songs: [Song]? = receivedUrls.compactMap { url in
+                        let songs: [Song] = receivedUrls.compactMap { url in
                             try? Song.fromUrl(url: url)
                         }
                         playlist.sortedInsert(songs: songs)
+                        try? modelContext.save()
                         return true
                     }
                     .dropDestination(for: Song.self) { receivedSongs, location in
                         print(".dropDestination: received (Song) \(receivedSongs) for playlist \(playlist.title)")
                         playlist.sortedInsert(songs: receivedSongs)
+                        try? modelContext.save()
                         return true
                     }
             }
@@ -224,6 +221,7 @@ struct PlayListView: View {
         if (playlist.songs ?? []).count > 0 { return false }
         
         modelContext.delete(playlist)
+        try? modelContext.save()
         return true
     }
     
@@ -234,6 +232,7 @@ struct PlayListView: View {
         for index in offsets {
             if (sortedPlaylists[index].songs ?? []).count == 0 {
                 modelContext.delete(sortedPlaylists[index])
+                try? modelContext.save()
             } else {
                 return false
             }
@@ -260,6 +259,7 @@ struct PlayListView: View {
             let newPlaylist = PlayList(modelContext: modelContext, title: playlist.title)
             modelContext.insert(newPlaylist)
             newPlaylist.sortedInsert(songs: playlist.songs)
+            try? modelContext.save()
         } catch {
             print(error)
         }
@@ -314,6 +314,7 @@ struct PlaylistEditView: View {
                     } else {
                         let playlist = PlayList(modelContext: modelContext, title: playlistTitle, songs: [])
                         modelContext.insert(playlist)
+                        try? modelContext.save()
                     }
                     dismiss()
                 }
@@ -353,6 +354,7 @@ struct PlaylistSelectionSheet: View {
                         if let pl = PlayList.fetchPlaylists(with: [selectedPlaylist], in: modelContext).first {
                             if let song = try? Song.fromUrl(url: urlToInsert) {
                                 pl.sortedInsert(songs: [song])
+                                try? modelContext.save()
                             }
                         }
                     }

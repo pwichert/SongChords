@@ -78,20 +78,10 @@ struct SongListView: View {
                         
                         Button(role: .destructive, action: { prepareDelete(songIDs: selectedSongIDs.contains(song.id) ? selectedSongIDs : [song.id]) }) { Label("Delete", systemImage: "trash")}
                     }
-                    #if os(macOS)
-                    #if true        // true funktioniert, false nicht
-                    .draggable(try! song.toTempFile(filename: song.title)) { Text(song.title) } // funktioniert
-                    #else
-                    // TODO funktioniert bisher nicht
-                    .draggable(song.persistentModelID) { Text(song.title) }
-                    #endif
-                    #else
-                    #if true        // true funktioniert, false nicht
-                    .draggable(song.setTransData()) { Text(song.title) }    // funktioniert
-                    #else
-                    .draggable(song.persistentModelID) { Text(song.title) }
-                    #endif
-                    #endif
+                    // Funktioniert in macOS so nicht (nur mit URL):
+                    // .draggable(song.toTempFile(filename: song.title)!) { Text(song.title) }
+                    // Da gleiche Songnamen (und damit Dateinamen beim File) erlaubt sind, würde das zu Fehlern führen
+                    .draggable(song.setTransData()) { Text(song.title) }
             }
             .onMove(perform: moveSongs)
             .onDelete { indexSet in
@@ -266,6 +256,7 @@ struct SongListView: View {
             let s = songs[index]
             modelContext.delete(s)
             playlist.songs?.removeAll(where: { $0.seq == s.seq })
+            try? modelContext.save()
         }
         #if os(iOS)
         editMode = .inactive
@@ -293,14 +284,14 @@ struct SongListView: View {
             song.title = "Import \(song.seq)"
             song.srcText = txt
             playlist.sortedInsert(songs: [song])
+            try? modelContext.save()
         }
     }
     
     private func importSongTemplate() {
-        let new = String(localized: "New")
-        let song = Song(title: new + " " + Date.now.formatted(date: .numeric, time: .shortened))
+        let song = Song(title: "New")
         playlist.sortedInsert(songs: [song])
-        
+
         song.srcText.append("{st: Subtitle of Song}\n")
         song.srcText.append("[*%{st}]\n")
         song.srcText.append("\n")
@@ -312,6 +303,7 @@ struct SongListView: View {
         song.srcText.append("[Another Section]\n")
         song.srcText.append("[Am]magna aliquyam [D]erat   [E]\n")
         song.srcText.append("[G]sed diam [C]voluptu\n")
+        try? modelContext.save()
     }
     
     private func importTextSong(url: URL) -> Bool {
@@ -321,6 +313,7 @@ struct SongListView: View {
         do {
             let song = try Song.fromSrcText(url: url)
             playlist.sortedInsert(songs: [song])
+            try? modelContext.save()
             success = true
         } catch {
             print(error.localizedDescription)
@@ -367,6 +360,7 @@ struct MoveToPlaylistView: View {
                     if let selectedPlaylist = selectedPlaylist {
                         if let pl = PlayList.fetchPlaylists(with: [selectedPlaylist], in: modelContext).first {
                             pl.sortedInsert(songs: fetchedSongs)
+                            try? modelContext.save()
                         }
                     }
                     #if os(iOS)

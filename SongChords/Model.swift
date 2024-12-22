@@ -335,12 +335,16 @@ final public class Song: Codable {
         return song
     }
     
-    func toTempFile(filename: String) throws -> URL {
+    func toTempFile(filename: String) -> URL? {
         let tempDirectory = FileManager.default.temporaryDirectory
         let fileURL = tempDirectory.appendingPathComponent(filename)
         print(fileURL.absoluteString)
-        try toUrl(url: fileURL)
-        return fileURL
+        do {
+            try toUrl(url: fileURL)
+            return fileURL
+        } catch {
+            return nil
+        }
     }
     
     static func fetchSongs(with ids: Set<PersistentIdentifier>, in context: ModelContext) -> [Song] {
@@ -423,28 +427,40 @@ final public class Song: Codable {
     @Transient var hideCodable: Bool = false
     @Transient var hidePDF: Bool = false
     @Transient var hideData: Bool = false
+    @Transient var hideFile: Bool = false
     func setTransCodable() -> Song {
         hideCodable = false
         hidePDF = true
         hideData = true
+        hideFile = true
         return self
     }
     func setTransData() -> Song {
         hideData = false
         hidePDF = true
         hideCodable = true
+        hideFile = true
         return self
     }
+//    func setTransFile() -> Song {
+//        hideFile = false
+//        hideCodable = true
+//        hideData = true
+//        hidePDF = true
+//        return self
+//    }
     func setTransPDF() -> Song {
         hidePDF = false
         hideCodable = true
         hideData = true
+        hideFile = true
         return self
     }
     func setTransAll() {
         hidePDF = false
         hideCodable = false
         hideData = false
+        hideFile = true
     }
 }
 
@@ -523,24 +539,4 @@ extension Song: Transferable {
 
 extension UTType {
     static let songJSON = UTType(exportedAs: "com.wichert.songchords", conformingTo: .json)
-}
-
-//extension UTType {
-//    static let persistentModelID = UTType(exportedAs: "com.wichert.persistentmodelid", conformingTo: .json)
-//}
-extension PersistentIdentifier: @retroactive Transferable {
-    public static var transferRepresentation: some TransferRepresentation {
-        CodableRepresentation(for: PersistentIdentifier.self, contentType: .json)
-        
-        DataRepresentation(contentType: .json, exporting: { persistentIdentifier in
-            print("DataRepresentation exported PersistentIdentifier")
-            let encoder = JSONEncoder()
-            return try encoder.encode(persistentIdentifier)
-        }
-        , importing: { data in
-            print("DataRepresentation imported PersistentIdentifier")
-            let decoder = JSONDecoder()
-            return try decoder.decode(PersistentIdentifier.self, from: data)
-        })
-    }
 }

@@ -80,6 +80,7 @@ struct SongEditView: View {
                         changed = true
                         let song = Song(title: title)
                         modelContext.insert(song)
+                        try? modelContext.save()
                         song.srcText = srcText
                         song.transpose = Int(transpose)
                         song.toPlaylist(playlist: playlist)
