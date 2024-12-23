@@ -91,8 +91,7 @@ final class PlayList: Codable {
     }
     
     static func fetchPlaylist(with id: PlayList.ID, in context: ModelContext) -> PlayList? {
-        guard let playlist = context.model(for: id) as? PlayList else { return nil }
-        return playlist
+        return id.persistentModel(from: context)
     }
     
     static func isValidTitle(_ playlistTitle: String) -> Bool {
@@ -360,8 +359,7 @@ final public class Song: Codable {
     }
     
     static func fetchSong(with id: PersistentIdentifier, in context: ModelContext) -> Song? {
-        guard let song = context.model(for: id) as? Song else { return nil }
-        return song
+        return id.persistentModel(from: context)
     }
     
     static func isValidFilename(_ filename: String) -> Bool {
@@ -539,4 +537,32 @@ extension Song: Transferable {
 
 extension UTType {
     static let songJSON = UTType(exportedAs: "com.wichert.songchords", conformingTo: .json)
+}
+
+extension PersistentIdentifier {
+    public func persistentModel<Model>(from context: ModelContext) -> Model? where Model : PersistentModel {
+        return context.model(for: self) as? Model
+    }
+}
+
+extension PersistentIdentifier {
+    enum SCPersistenceError: Error {
+        case invalidJSONData
+    }
+    
+    public func toString() -> String {
+        do {
+            let jsonData = try JSONEncoder().encode(self)
+            return String(data: jsonData, encoding: .utf8) ?? "{}" // JSON-Daten in String umwandeln
+        } catch {
+            print("Error encoding JSON: \(error)")
+            return "{}"
+        }
+    }
+    
+    public static func fromString(_ string: String) throws -> PersistentIdentifier? {
+        let jsonData = string.data(using: .utf8)
+        guard let jsonData else { throw SCPersistenceError.invalidJSONData }
+        return try JSONDecoder().decode(PersistentIdentifier.self, from: jsonData)
+    }
 }
