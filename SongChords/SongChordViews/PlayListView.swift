@@ -59,28 +59,10 @@ struct PlayListView: View {
                         }
                     }
                     .dropDestination(for: Data.self) { receivedDatas, location in
-                        print(".dropDestination: received (Data) \(receivedDatas) for playlist \(playlist.title)")
-                        let songs: [Song] = receivedDatas.compactMap { data in
-                            try? Song.fromData(data: data)
-                        }
-                        playlist.sortedInsert(songs: songs)
-                        try? modelContext.save()
-                        return true
-                    }
-                    .dropDestination(for: URL.self) { receivedUrls, location in
-                        print(".dropDestination: received (URL) \(receivedUrls) for playlist \(playlist.title)")
-                        let songs: [Song] = receivedUrls.compactMap { url in
-                            try? Song.fromUrl(url: url)
-                        }
-                        playlist.sortedInsert(songs: songs)
-                        try? modelContext.save()
-                        return true
+                        return dropDestinationData(playlist: playlist, data: receivedDatas, modelContext: modelContext)
                     }
                     .dropDestination(for: Song.self) { receivedSongs, location in
-                        print(".dropDestination: received (Song) \(receivedSongs) for playlist \(playlist.title)")
-                        playlist.sortedInsert(songs: receivedSongs)
-                        try? modelContext.save()
-                        return true
+                        return dropDestinationSongs(playlist: playlist, songs: receivedSongs, modelContext: modelContext)
                     }
             }
             .onDelete { indexSet in

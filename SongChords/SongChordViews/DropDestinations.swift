@@ -11,8 +11,10 @@ import SwiftData
 extension PlayListView {
     public func dropDestinationData(playlist: PlayList, data: [Data], modelContext: ModelContext) -> Bool {
         print(".dropDestination: received (Data) \(data) for playlist \(playlist.title)")
+        // erster Versuch mit Data
         var songs = songsFromDatas(data: data)
         
+        // zweiter Versuch mit PersistentIdentifier als Strings
         if (songs ?? []).isEmpty { songs = songsFromIDStrings(data: data, modelContext: modelContext) }
 
         if (songs ?? []).isEmpty { print("no result"); return false }
