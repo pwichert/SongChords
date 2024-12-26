@@ -67,7 +67,7 @@ public class CPPSection: Identifiable {
     }
 }
 
-struct SplittedLine: Identifiable {
+struct SplittedLine: Identifiable, Sendable {
     public let id = UUID()
     
     var chords: [TextElement] = []
@@ -94,7 +94,7 @@ struct SplittedLine: Identifiable {
     }
 }
 
-struct Line: Identifiable {
+struct Line: Identifiable, Sendable {
     let id = UUID()
     
     let elements: [Element]
@@ -102,7 +102,7 @@ struct Line: Identifiable {
     let lineIsNewPage: Bool
 }
 
-struct TextElement: Identifiable, Equatable {
+struct TextElement: Identifiable, Equatable, Sendable {
     let id = UUID()
     
     let txt: String
@@ -110,13 +110,13 @@ struct TextElement: Identifiable, Equatable {
     let background: Bool
 }
 
-struct Element: Identifiable {
+struct Element: Identifiable, Sendable {
     let id = UUID()
     
     let type: ElementType
 }
 
-enum ElementType {    
+enum ElementType: Sendable {    
     case chord(String, ParsedChord, Double)
     case chordcomment(String, Double, Bool)
     case comment(String, Double)

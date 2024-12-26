@@ -23,7 +23,7 @@ struct ContentView: View {
 
         } content: {
             
-            if let selectedPlaylistID = selectedPlaylistID, let selectedPlaylist = PlayList.fetchPlaylists(with: [selectedPlaylistID], in: modelContext).first {
+            if let selectedPlaylistID = selectedPlaylistID, let selectedPlaylist = PlayList.fetchPlaylist(with: selectedPlaylistID, in: modelContext) {
                 SongListView(playlist: selectedPlaylist, visibility: $visibility, selectedSongIDs: $selectedSongIDs).environment(viewModel)
             } else {
                 ContentUnavailableView("Select a playlist", systemImage: "doc.text.image.fill")
@@ -31,7 +31,7 @@ struct ContentView: View {
             
         } detail: {
             
-            if selectedSongIDs.count == 1, let selectedSongID = selectedSongIDs.first, let song = Song.fetchSongs(with: [selectedSongID], in: modelContext).first {
+            if selectedSongIDs.count == 1, let selectedSongID = selectedSongIDs.first, let song = Song.fetchSong(with: selectedSongID, in: modelContext) {
                 SongView(song: song, visibility: $visibility).environment(viewModel)
             } else {
                 ContentUnavailableView("Select a song", systemImage: "doc.text.image.fill")

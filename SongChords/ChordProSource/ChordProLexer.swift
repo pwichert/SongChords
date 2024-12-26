@@ -62,6 +62,8 @@ public class ChordProLexer {
                 }
             }()
             
+            if Task.isCancelled { print("cancelled"); break }
+
             if let token = token {
                 tokens.append(token)
             }

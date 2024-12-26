@@ -69,7 +69,7 @@ extension PlayListView {
     private func songsFromIDStrings(data: [Data], modelContext: ModelContext) -> [Song]? {
         do {
             let strings: [String] = data.compactMap { String(data: $0, encoding: .utf8) }
-            let IDs: [PersistentIdentifier] = try strings.compactMap { try PersistentIdentifier.fromString($0) }
+            let IDs: [PersistentIdentifier] = try strings.compactMap { try PersistentIdentifier.SCfromString($0) }
             return Song.fetchSongs(with: Set(IDs), in: modelContext)
         } catch {
             return nil

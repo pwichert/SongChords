@@ -280,9 +280,15 @@ struct PlaylistEditView: View {
 
     @State private var playlistTitle: String = ""
 
+    enum FocusedField: Hashable {
+        case playlistTitle
+    }
+    @FocusState private var focusedField: FocusedField?
+
     var body: some View {
         Form {
             TextField("Title", text: $playlistTitle)
+                .focused($focusedField, equals: .playlistTitle)
                 .autocorrectionDisabled()
         }
         #if os(macOS)
@@ -309,7 +315,12 @@ struct PlaylistEditView: View {
                 }
             }
         }
+//        .defaultFocus($focusedField, .playlistTitle)
         .onAppear {
+            #if os(iOS)
+            focusedField = .playlistTitle
+            #endif
+            
             if let playlist {
                 playlistTitle = playlist.title
             }
@@ -334,7 +345,7 @@ struct PlaylistSelectionSheet: View {
             ToolbarItem(placement: .primaryAction) {
                 Button(action: {
                     if let selectedPlaylist = selectedPlaylist {
-                        if let pl = PlayList.fetchPlaylists(with: [selectedPlaylist], in: modelContext).first {
+                        if let pl = PlayList.fetchPlaylist(with: selectedPlaylist, in: modelContext) {
                             if let song = try? Song.fromUrl(url: urlToInsert) {
                                 pl.sortedInsert(songs: [song])
                                 try? modelContext.save()

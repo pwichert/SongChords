@@ -7,14 +7,14 @@
 
 import Foundation
 
-public enum ChordQuality: String, CaseIterable {
+public enum ChordQuality: String, CaseIterable, Sendable {
     case min
     case m
     case aug
     case dim
 }
 
-public enum ChordExt: String, CaseIterable {
+public enum ChordExt: String, CaseIterable, Sendable {
     case e7Sharp9Sharp11 = "7#9#11"
     case e7Sharp9Sharp5 = "7#9#5"
     case e7Sharp9Flat5 = "7#9b5"
@@ -143,7 +143,7 @@ public struct EnglishGermanRoot: ChordRoot {
 /// EnglichGermanRoot: steht für das deutsche System (His, B, H ...) mit english Erweiterung (A, A#, B, Bb ...).
 ///
 
-public struct ParsedChord: Identifiable {
+public struct ParsedChord: Identifiable, Sendable {
     public let id = UUID()
     
     // ursprünglicher Akkordtext

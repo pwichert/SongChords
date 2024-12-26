@@ -6,7 +6,7 @@
 //
 
 // Direktiventypen, die möglicherweise in einem System vorkommen könnten
-enum DirectiveType: String, CaseIterable {
+enum DirectiveType: String, CaseIterable, Sendable {
     case title
     case subtitle
     case artist
@@ -41,15 +41,15 @@ enum DirectiveType: String, CaseIterable {
     case new_page
 }
 
-enum DirectiveNamesSpecial: String, CaseIterable {
+enum DirectiveNamesSpecial: String, CaseIterable, Sendable {
     case key_actual
     case key_from
 }
 
 // Verwaltungsklasse für Direktiven
-class DirectiveManager {
+final class DirectiveManager {
     // Dictionary zur Speicherung der Direktiven und ihrer Werte
-    private var directives: [DirectiveType: String] = [:]
+    private(set) var directives: [DirectiveType: String] = [:]
     
     private(set) var transpose: Int = 0
     private(set) var columns: Int = 1

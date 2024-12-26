@@ -91,7 +91,7 @@ final class PlayList: Codable {
     }
     
     static func fetchPlaylist(with id: PlayList.ID, in context: ModelContext) -> PlayList? {
-        return id.persistentModel(from: context)
+        return id.SCpersistentModel(from: context)
     }
     
     static func isValidTitle(_ playlistTitle: String) -> Bool {
@@ -103,7 +103,7 @@ final class PlayList: Codable {
             .union(.newlines)
         
         // Überprüfen, ob der Dateiname leer ist oder ungültige Zeichen enthält
-        if playlistTitle.trimmingCharacters(in: .whitespaces).isEmpty || playlistTitle.rangeOfCharacter(from: invalidCharacters) != nil  || playlistTitle.count > 200 {
+        if playlistTitle.trimmingCharacters(in: .whitespaces).isEmpty || playlistTitle.rangeOfCharacter(from: invalidCharacters) != nil  || playlistTitle.count > 300 {
             return false
         }
         
@@ -198,7 +198,7 @@ extension UTType {
     static let playlistJSON = UTType(exportedAs: "com.wichert.songchordslist", conformingTo: .json)
 }
 
-class RepresentationHolder: ObservableObject {
+final class RepresentationHolder: ObservableObject {
     @Published var songRepresentation: SongRepresentation = SongRepresentation(sections: [], directiveManager: DirectiveManager())
 }
 
@@ -216,36 +216,34 @@ final public class Song: Codable {
     
     var playlist: PlayList?
     
-    @Transient private(set) var representationHolder = RepresentationHolder()
+    @Transient let representationHolder = RepresentationHolder()
     
     init(title: String = "") {
-        self.title = title.trimmingCharacters(in: .whitespacesAndNewlines)
-        self.seq = 0
+        self.title = title.trimmingCharacters(in: .whitespaces)
     }
     
     init(title: String = "", playlist: PlayList) {
         self.title = title.trimmingCharacters(in: .whitespaces)
-        //        self.seq = playlist.nextSongSeq()
         toPlaylist(playlist: playlist)
     }
-    
+
     func processSongInBackground(viewModel: ViewModel, forPrinting: Bool) {
         // Eine vorherige Task abbrechen, falls eine existiert
         viewModel.processingTask?.cancel()
         
         // Neue Hintergrund-Task starten
-        viewModel.processingTask = Task { [weak self] in
+        viewModel.updateTask (Task { [weak self, viewModel] in
             // Aufgabe im Hintergrund ausführen
             guard let self = self else { return }
-            let result = self.createSongRepresentation(viewModel: ViewModel(), forPrinting: forPrinting)
+            let result = self.createSongRepresentation(viewModel: viewModel, forPrinting: forPrinting)
             
             // Ergebnis auf dem Main-Thread aktualisieren
             await MainActor.run {
-                if let result = result {
+              if let result = result {
                     self.representationHolder.songRepresentation = result
                 }
             }
-        }
+        })
     }
     
     func createSongRepresentation(viewModel: ViewModel, forPrinting: Bool) -> SongRepresentation? {
@@ -359,7 +357,7 @@ final public class Song: Codable {
     }
     
     static func fetchSong(with id: PersistentIdentifier, in context: ModelContext) -> Song? {
-        return id.persistentModel(from: context)
+        return id.SCpersistentModel(from: context)
     }
     
     static func isValidFilename(_ filename: String) -> Bool {
@@ -371,7 +369,7 @@ final public class Song: Codable {
             .union(.newlines)
         
         // Überprüfen, ob der Dateiname leer ist oder ungültige Zeichen enthält
-        if filename.trimmingCharacters(in: .whitespaces).isEmpty || filename.rangeOfCharacter(from: invalidCharacters) != nil || filename.count > 200 {
+        if filename.trimmingCharacters(in: .whitespaces).isEmpty || filename.rangeOfCharacter(from: invalidCharacters) != nil || filename.count > 300 {
             return false
         }
         
@@ -540,7 +538,7 @@ extension UTType {
 }
 
 extension PersistentIdentifier {
-    public func persistentModel<Model>(from context: ModelContext) -> Model? where Model : PersistentModel {
+    public func SCpersistentModel<Model>(from context: ModelContext) -> Model? where Model : PersistentModel {
         return context.model(for: self) as? Model
     }
 }
@@ -550,7 +548,7 @@ extension PersistentIdentifier {
         case invalidJSONData
     }
     
-    public func toString() -> String {
+    public func SCtoString() -> String {
         do {
             let jsonData = try JSONEncoder().encode(self)
             return String(data: jsonData, encoding: .utf8) ?? "{}" // JSON-Daten in String umwandeln
@@ -560,7 +558,7 @@ extension PersistentIdentifier {
         }
     }
     
-    public static func fromString(_ string: String) throws -> PersistentIdentifier? {
+    public static func SCfromString(_ string: String) throws -> PersistentIdentifier? {
         let jsonData = string.data(using: .utf8)
         guard let jsonData else { throw SCPersistenceError.invalidJSONData }
         return try JSONDecoder().decode(PersistentIdentifier.self, from: jsonData)

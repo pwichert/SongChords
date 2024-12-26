@@ -25,7 +25,7 @@ struct SongListView: View {
     let playlist: PlayList  // Übergebene Playlist
     @Binding var visibility: NavigationSplitViewVisibility
     @Binding var selectedSongIDs: Set<PersistentIdentifier>
-    
+    @State var sss: Set<PersistentIdentifier> = []
     @Environment(\.modelContext) private var modelContext
     @Environment(ViewModel.self) private var viewModel
     
@@ -79,13 +79,17 @@ struct SongListView: View {
                         
                         Button(role: .destructive, action: { prepareDelete(songIDs: selectedSongIDs.contains(song.id) ? selectedSongIDs : [song.id]) }) { Label("Delete", systemImage: "trash")}
                     }
-                    // Funktioniert in macOS nur mit URL: song.toTempFile(filename: song.title)!
-                    // Da gleiche Songnamen (und damit Dateinamen beim File) erlaubt sind, würde das zu Fehlern führen. Daher hier mit PersistentIdentifier
+                #if DEBUG
                     #if os(iOS)
+                    // TODO: zählt in drag-Gesten-Bubble nicht alle selektierten Songs. Ohne draggable wird richtig gezählt.
                     .draggable(song.setTransData()) { Text(song.title) }
                     #else
-                    .draggable(song.persistentModelID.toString()) { Text(song.title) }
+                    // TODO: funktioniert nur mit Typen, die bereits Transferable sind (String, URL).
+                    // URL ist wegen möglicher gleicher Dateinamen (= Song.title) nicht zu verwenden.
+                    // String der persistentModelID funktioniert zwar innerhalb der App, kann aber sinnloserweise ins System gedropped werden.
+                    .draggable(song.persistentModelID.SCtoString()) { Text(song.title) }
                     #endif
+                #endif
             }
             .onMove(perform: moveSongs)
             .onDelete { indexSet in
@@ -362,7 +366,7 @@ struct MoveToPlaylistView: View {
                     let fetchedSongs = Song.fetchSongs(with: songIDs ?? [], in: modelContext)
 
                     if let selectedPlaylist = selectedPlaylist {
-                        if let pl = PlayList.fetchPlaylists(with: [selectedPlaylist], in: modelContext).first {
+                        if let pl = PlayList.fetchPlaylist(with: selectedPlaylist, in: modelContext) {
                             pl.sortedInsert(songs: fetchedSongs)
                             try? modelContext.save()
                         }

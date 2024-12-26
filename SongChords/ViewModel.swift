@@ -13,15 +13,24 @@ enum DisplayMode: Int, Codable {
     case automatic
 }
 
+extension DispatchQueue {
+    static let userMutatingLock = DispatchQueue(label: "viewmodel.lock.queue")
+}
+
 @Observable
-public class ViewModel {
+public final class ViewModel {
     public init() {}
-        
+    
 #if os(macOS)
     typealias UIFont = NSFont
 #endif
     
-    var processingTask: Task<Void, Never>?  // Task, die bei Änderungen neu gestartet werden kann
+    private(set) var processingTask: Task<Void, Never>?  // Task, die bei Änderungen neu gestartet werden kann
+    func updateTask(_ task: Task<Void, Never>?) {
+        DispatchQueue.userMutatingLock.sync {
+            self.processingTask = task
+        }
+    }
     
     var isGermanNotation: Bool = UserDefaults.standard.bool(forKey: "set_isGermanNotation")
     { didSet { UserDefaults.standard.set(isGermanNotation, forKey: "set_isGermanNotation") }}
