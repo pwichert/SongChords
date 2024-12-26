@@ -217,6 +217,16 @@ final public class Song: Codable {
     var playlist: PlayList?
     
     @Transient let representationHolder = RepresentationHolder()
+    @Transient private static let taskManager = TaskManager()
+    
+    private actor TaskManager {
+        private var processingTask: Task<Void, Never>?
+        
+        func run(_ task: Task<Void, Never>) {
+            processingTask?.cancel()
+            processingTask = task
+        }
+    }
     
     init(title: String = "") {
         self.title = title.trimmingCharacters(in: .whitespaces)
@@ -227,23 +237,25 @@ final public class Song: Codable {
         toPlaylist(playlist: playlist)
     }
 
-    func processSongInBackground(viewModel: ViewModel, forPrinting: Bool) {
-        // Eine vorherige Task abbrechen, falls eine existiert
-        viewModel.processingTask?.cancel()
-        
-        // Neue Hintergrund-Task starten
-        viewModel.updateTask (Task { [weak self, viewModel] in
+    func processSongInBackgroundAsync(viewModel: ViewModel, forPrinting: Bool) async {
+        await Song.taskManager.run(Task.detached { [weak self, viewModel] in
             // Aufgabe im Hintergrund ausführen
             guard let self = self else { return }
             let result = self.createSongRepresentation(viewModel: viewModel, forPrinting: forPrinting)
             
             // Ergebnis auf dem Main-Thread aktualisieren
             await MainActor.run {
-              if let result = result {
+                if let result = result {
                     self.representationHolder.songRepresentation = result
                 }
             }
         })
+    }
+    
+    func processSongInBackground(viewModel: ViewModel, forPrinting: Bool) {
+        Task {
+            await processSongInBackgroundAsync(viewModel: viewModel, forPrinting: forPrinting)
+        }
     }
     
     func createSongRepresentation(viewModel: ViewModel, forPrinting: Bool) -> SongRepresentation? {
