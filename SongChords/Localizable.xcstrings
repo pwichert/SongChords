@@ -241,6 +241,7 @@
       }
     },
     "Edit" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -493,6 +494,7 @@
       "shouldTranslate" : false
     },
     "Print Setlist" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -559,6 +561,7 @@
       "shouldTranslate" : false
     },
     "Song..." : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {

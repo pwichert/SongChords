@@ -486,7 +486,11 @@ struct CustomEditButton: View {
         Button(action: {
             toggleEditMode()
         }) {
-            Text($editMode.wrappedValue == .active ? "Done" : "Edit")
+            if $editMode.wrappedValue == .active {
+                Label("Done", systemImage: "list.dash").labelStyle(.titleOnly)
+            } else {
+                Label("Done", systemImage: "list.dash").labelStyle(.iconOnly)
+            }
         }
     }
     

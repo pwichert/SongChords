@@ -137,36 +137,35 @@ struct SongListView: View {
                 CustomEditButton(editMode: $editMode).id(UUID())
             }
             #endif
-            ToolbarItem {
-                if !isEditing {
+                ToolbarItem {
+                    if !isEditing {
                     Menu {
                         Button(action: {
                             importSongTemplate()
                         }) { Label("New Song Template", systemImage: "doc.badge.plus") }.help("New Song Template")
+                        
                         Button(action: {
                             showFileImport.toggle()
                         }) { Label("Import ChordPro File", systemImage: "arrow.down.doc") }.help("Import ChordPro File")
+                        
                         Button(action: {
                             importSongClipboard()
                         }) { Label("Import Text Clipboard", systemImage: "pencil.and.list.clipboard") }.help("Import Text Clipboard")
+                        
+                        Button("Export PDF File", systemImage: "arrow.up.document.fill", action: { uttype = .pdf; playlist.setTransAll(); showFileExport.toggle() }).help("Export PDF File")
+                        
+                        #if os(macOS) // in iOS durch ShareLink ersetzt
+                        Button("Export Playlist", systemImage: "arrow.up.document", action: { uttype = .playlistJSON; playlist.setTransAll(); showFileExport.toggle() }).help("Export Playlist")
+                        #endif
+                        
                         #if false   // kein Drucken
                         Button(action: { Task { await printSetlist() }}) { Label("Print Setlist", systemImage: "printer.dotmatrix") }.help("Print Setlist")
                         #endif
                     } label: {
-                        Label("Song...", systemImage: "filemenu.and.cursorarrow")
+                        Image(systemName: "ellipsis.circle")
                     }
                 }
             }
-            ToolbarItem {
-                if !isEditing {
-                    Button("Export PDF File", systemImage: "arrow.up.document.fill", action: { uttype = .pdf; playlist.setTransAll(); showFileExport.toggle() }).help("Export PDF File")
-                }
-            }
-            #if os(macOS) // in iOS durch ShareLink ersetzt
-            ToolbarItem {
-                Button("Export Playlist", systemImage: "arrow.up.document", action: { uttype = .playlistJSON; playlist.setTransAll(); showFileExport.toggle() }).help("Export Playlist")
-            }
-            #endif
         }
         .sheet(isPresented: $showSongEditView) {
             NavigationStack {
