@@ -25,7 +25,7 @@ struct SongListView: View {
     let playlist: PlayList  // Übergebene Playlist
     @Binding var visibility: NavigationSplitViewVisibility
     @Binding var selectedSongIDs: Set<PersistentIdentifier>
-    @State var sss: Set<PersistentIdentifier> = []
+
     @Environment(\.modelContext) private var modelContext
     @Environment(ViewModel.self) private var viewModel
     
@@ -134,7 +134,7 @@ struct SongListView: View {
                 }
             }
             ToolbarItem {
-                CustomEditButton(editMode: $editMode)
+                CustomEditButton(editMode: $editMode).id(UUID())
             }
             #endif
             ToolbarItem {

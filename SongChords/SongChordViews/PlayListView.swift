@@ -88,7 +88,7 @@ struct PlayListView: View {
                 }
             }
             ToolbarItem {
-                CustomEditButton(editMode: $editMode)
+                CustomEditButton(editMode: $editMode).id(UUID())
             }
             #endif
             ToolbarItem {

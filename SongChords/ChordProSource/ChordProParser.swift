@@ -447,8 +447,7 @@ public class ChordProParser {
         
         var src: String = srcline
 
-        // TODO
-        // Maskiertes \%{ fehlt hier noch. Außerdem sollte die Schleife sicherer werden.
+        // TODO: Maskiertes \%{ fehlt hier noch. Außerdem sollte die Schleife sicherer werden.
         
         while true {
             let dirRepl = findSubstringBetweenDelimiters(mainString: src, startDelimiter: "%{", endDelimiter: "}")
