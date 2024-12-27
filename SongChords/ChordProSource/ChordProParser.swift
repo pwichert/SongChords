@@ -126,14 +126,14 @@ enum ElementType: Sendable {
 public class ChordProParser {
     private let songTranspose: Int
     private let tokens: [Token]
-    private let viewModel: ViewModel
+    private let userSettings: UserSettings
     private let forPrinting: Bool
     private let directiveManager = DirectiveManager()
     
-    public init(viewModel: ViewModel, songTranspose: Int, tokens: [Token], forPrinting: Bool) {
+    public init(userSettings: UserSettings, songTranspose: Int, tokens: [Token], forPrinting: Bool) {
         self.songTranspose = songTranspose
         self.tokens = tokens
-        self.viewModel = viewModel
+        self.userSettings = userSettings
         self.forPrinting = forPrinting
     }
     
@@ -157,14 +157,14 @@ public class ChordProParser {
         
         var firstTime = true
         
-        let txtf = forPrinting ? viewModel.txtPDFUIFont : viewModel.txtUIFont
-        let chordf = forPrinting ? viewModel.chordPDFUIFont : viewModel.chordUIFont
+        let txtf = forPrinting ? userSettings.txtPDFUIFont : userSettings.txtUIFont
+        let chordf = forPrinting ? userSettings.chordPDFUIFont : userSettings.chordUIFont
         
         let showText: Bool = true
-        let showChords: Bool = !viewModel.hidechords
-        let textFollowsChords: Bool = viewModel.textfollowschords
+        let showChords: Bool = !userSettings.hidechords
+        let textFollowsChords: Bool = userSettings.textfollowschords
         
-        var rootSystem: ChordRoot = viewModel.isGermanNotation ? EnglishGermanRoot() : EnglishDutchRoot()
+        var rootSystem: ChordRoot = userSettings.isGermanNotation ? EnglishGermanRoot() : EnglishDutchRoot()
         
         while position < tokens.count {
             if Task.isCancelled { print("cancelled"); break }
@@ -175,7 +175,7 @@ public class ChordProParser {
             case .curlyEnclosed(let directive):
                 numDirectives += 1
                 
-                if let d = directiveManager.addDirective(processReplace(viewModel: viewModel, srcline: directive, root: &rootSystem)) {
+                if let d = directiveManager.addDirective(processReplace(userSettings: userSettings, srcline: directive, root: &rootSystem)) {
                     switch d {
                     case .column_break: lineIsColumnBreak = true
                     case .new_page:     lineIsNewPage = true
@@ -201,7 +201,7 @@ public class ChordProParser {
                     default: break
                     }
                 } else {
-                    let str = processReplace(viewModel: viewModel, srcline: directive, root: &rootSystem)
+                    let str = processReplace(userSettings: userSettings, srcline: directive, root: &rootSystem)
                     let strLen = sizeOfString(string: str, font: txtf)
                     currentLineElements.append(Element(type: .text(str, strLen)))
                 }
@@ -209,7 +209,7 @@ public class ChordProParser {
             case .bracketEnclosed(let chord):
                 numChords += 1
                 if chord.starts(with: "*") {
-                    let str = processReplace(viewModel: viewModel, srcline: String(chord.dropFirst()), root: &rootSystem)
+                    let str = processReplace(userSettings: userSettings, srcline: String(chord.dropFirst()), root: &rootSystem)
                     let strLen = sizeOfString(string: str, font: chordf)
                     currentLineElements.append(Element(type: .chordcomment(str, strLen, true)))  // "*" merken
                 } else {
@@ -218,19 +218,19 @@ public class ChordProParser {
                         let strLen = sizeOfString(string: str, font: chordf)
                         currentLineElements.append(Element(type: .chord(str, pchord, strLen)))
                     } else {
-                        let str = processReplace(viewModel: viewModel, srcline: chord, root: &rootSystem)
+                        let str = processReplace(userSettings: userSettings, srcline: chord, root: &rootSystem)
                         let strLen = sizeOfString(string: str, font: chordf)
                         currentLineElements.append(Element(type: .chordcomment(str, strLen, false)))
                     }
                 }
                 
             case .text(let text):
-                let str = processReplace(viewModel: viewModel, srcline: text, root: &rootSystem)
+                let str = processReplace(userSettings: userSettings, srcline: text, root: &rootSystem)
                 let strLen = sizeOfString(string: str, font: txtf)
                 currentLineElements.append(Element(type: .text(str, strLen)))
                 
             case .comment(let text):
-                let str = processReplace(viewModel: viewModel, srcline: text, root: &rootSystem)
+                let str = processReplace(userSettings: userSettings, srcline: text, root: &rootSystem)
                 let strLen = sizeOfString(string: str, font: txtf)
                 currentLineElements.append(Element(type: .comment(str, strLen)))
                 
@@ -442,7 +442,7 @@ public class ChordProParser {
     }
     
     // Ersetzt Variablen durch ihren Wert: %{ variable }
-    private func processReplace(viewModel: ViewModel, srcline: String, root: inout ChordRoot) -> String {
+    private func processReplace(userSettings: UserSettings, srcline: String, root: inout ChordRoot) -> String {
         if srcline.isEmpty { return srcline }
         
         var src: String = srcline

@@ -176,8 +176,8 @@ extension PlayList: Transferable {
         // .fileExporter(isPresented: $showFileExport, item: song, contentTypes: [uttype], defaultFilename: playlist.title)
         FileRepresentation(exportedContentType: .pdf, exporting: { playlist in
             print("FileRepresentation (.pdf) exported playlist \(playlist.title)")
-            let viewModel = ViewModel()
-            let defaultPaper = MediaBoxes.getBox(name: viewModel.mediabox)
+            let userSettings = UserSettings()
+            let defaultPaper = MediaBoxes.getBox(name: userSettings.mediabox)
             let modelContainer = playlist.modelContext?.container
             guard let modelContainer else { throw NSError(domain: "PDFCreationError", code: 4, userInfo: ["reason": "Failed to create PDF"]) }
             let delegate = await PrintSetlistDelegate(playlistID: playlist.persistentModelID, modelContainer: modelContainer)
@@ -237,11 +237,11 @@ final public class Song: Codable {
         toPlaylist(playlist: playlist)
     }
 
-    func processSongInBackgroundAsync(viewModel: ViewModel, forPrinting: Bool) async {
-        await Song.taskManager.run(Task.detached { [weak self, viewModel] in
+    func processSongInBackgroundAsync(userSettings: UserSettings, forPrinting: Bool) async {
+        await Song.taskManager.run(Task.detached { [weak self, userSettings] in
             // Aufgabe im Hintergrund ausführen
             guard let self = self else { return }
-            let result = self.createSongRepresentation(viewModel: viewModel, forPrinting: forPrinting)
+            let result = self.createSongRepresentation(userSettings: userSettings, forPrinting: forPrinting)
             
             // Ergebnis auf dem Main-Thread aktualisieren
             await MainActor.run {
@@ -252,20 +252,20 @@ final public class Song: Codable {
         })
     }
     
-    func processSongInBackground(viewModel: ViewModel, forPrinting: Bool) {
+    func processSongInBackground(userSettings: UserSettings, forPrinting: Bool) {
         Task {
-            await processSongInBackgroundAsync(viewModel: viewModel, forPrinting: forPrinting)
+            await processSongInBackgroundAsync(userSettings: userSettings, forPrinting: forPrinting)
         }
     }
     
-    func createSongRepresentation(viewModel: ViewModel, forPrinting: Bool) -> SongRepresentation? {
+    func createSongRepresentation(userSettings: UserSettings, forPrinting: Bool) -> SongRepresentation? {
         do {
             print("songRepresentation")
             
             let tokens = try ChordProLexer(input: srcText).tokenize()
             if Task.isCancelled { print("cancelled"); return nil }
             
-            let songRepresentation = try ChordProParser(viewModel: viewModel, songTranspose: transpose, tokens: tokens, forPrinting: forPrinting).parse()
+            let songRepresentation = try ChordProParser(userSettings: userSettings, songTranspose: transpose, tokens: tokens, forPrinting: forPrinting).parse()
             if Task.isCancelled { print("cancelled"); return nil }
             
             return songRepresentation
@@ -493,8 +493,8 @@ extension Song: Transferable {
             print("FileRepresentation (.pdf) exported song \(song.title)")
 
             do {
-                let viewModel = ViewModel()
-                let defaultPaper = MediaBoxes.getBox(name: viewModel.mediabox)
+                let userSettings = UserSettings()
+                let defaultPaper = MediaBoxes.getBox(name: userSettings.mediabox)
                 let modelContainer = song.modelContext?.container
                 guard let modelContainer else { throw NSError(domain: "PDFCreationError", code: 4, userInfo: ["reason": "Failed to create PDF"]) }
                 let delegate = await PrintSongDelegate(songID: song.persistentModelID, modelContainer: modelContainer)

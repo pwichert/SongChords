@@ -240,17 +240,6 @@
         }
       }
     },
-    "Edit" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Bearbeiten"
-          }
-        }
-      }
-    },
     "Edit ChordPro Text" : {
       "localizations" : {
         "de" : {
@@ -493,17 +482,6 @@
     "Print All" : {
       "shouldTranslate" : false
     },
-    "Print Setlist" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Setliste drucken"
-          }
-        }
-      }
-    },
     "Privacy Policy" : {
       "localizations" : {
         "de" : {
@@ -559,17 +537,6 @@
     },
     "Share View" : {
       "shouldTranslate" : false
-    },
-    "Song..." : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Song…"
-          }
-        }
-      }
     },
     "SongChords" : {
       "shouldTranslate" : false

@@ -54,7 +54,7 @@ enum PDFGeneratorError: Error {
 }
 
 class PDFGenerator {
-    private var vm: ViewModel
+    private var userSettings: UserSettings
     private var cols: Int = 1
     private var mediaBox: CGRect
 
@@ -79,8 +79,8 @@ class PDFGenerator {
     private var scale: CGFloat = 1
     private var reScale: CGFloat = 1
     
-    init(viewModel: ViewModel, mediaBox: CGRect, cols: Int, viewURL: Bool = false) throws {
-        self.vm = viewModel
+    init(userSettings: UserSettings, mediaBox: CGRect, cols: Int, viewURL: Bool = false) throws {
+        self.userSettings = userSettings
         self.cols = cols
 
         let cacheDirectoryURL = try FileManager.default.url(for: .documentDirectory, in: .userDomainMask, appropriateFor: nil, create: true)
@@ -103,7 +103,7 @@ class PDFGenerator {
 //            throw PDFGeneratorError.securityScopedResource
 //        }
         
-        scale = vm.printingscale / 100
+        scale = userSettings.printingscale / 100
         reScale = 1 / scale
         
         self.mediaBox = mediaBox
@@ -113,7 +113,7 @@ class PDFGenerator {
         testContext = CGContext(testUrl as CFURL, mediaBox: &self.mediaBox, metadata as CFDictionary)!
         context = CGContext(url as CFURL, mediaBox: &self.mediaBox, metadata as CFDictionary)!
         
-        clipBox = CGRect(x: self.mediaBox.minX + vm.marginleft, y: self.mediaBox.minY + vm.marginbottom, width: self.mediaBox.width - (vm.marginleft + vm.marginright), height: self.mediaBox.height - (vm.margintop + vm.marginbottom))
+        clipBox = CGRect(x: self.mediaBox.minX + userSettings.marginleft, y: self.mediaBox.minY + userSettings.marginbottom, width: self.mediaBox.width - (userSettings.marginleft + userSettings.marginright), height: self.mediaBox.height - (userSettings.margintop + userSettings.marginbottom))
     }
     
     func startPDF() {
@@ -159,7 +159,7 @@ class PDFGenerator {
         context.scaleBy(x: scale, y: scale)
         context.translateBy(x: 0, y: (mediaBox.height-30) * 1/scale)
         
-        let renderer = ImageRenderer(content: view.environment(vm))
+        let renderer = ImageRenderer(content: view.environment(userSettings))
         renderer.render { size, renderer in
             renderer(context)
         }
@@ -171,7 +171,7 @@ class PDFGenerator {
     @MainActor
     func draw<T:View>(col: Int, view: T) {
         var viewSize = CGSizeZero
-        let renderer = ImageRenderer(content: view.environment(vm))
+        let renderer = ImageRenderer(content: view.environment(userSettings))
         
         // Rendern, um die Größe VOR dem eigentlichen Rendern zu wissen
         renderer.render { size, renderer in
@@ -180,7 +180,7 @@ class PDFGenerator {
         }
 
         // View passt gar nicht auf Seite
-        if viewSize.height > (mediaBox.height - mediaBox.minY - vm.marginbottom - vm.margintop) * reScale {
+        if viewSize.height > (mediaBox.height - mediaBox.minY - userSettings.marginbottom - userSettings.margintop) * reScale {
             return
         }
         
@@ -190,7 +190,7 @@ class PDFGenerator {
         
         // View überschreitet Seitenende
 //        print("xpos \(Int(xPos)) ypos \(Int(yPos)) Seitenende ? ypos \(Int(yPos)) + \(Int(viewSize.height)) > \(mediaBox.height) - \(vm.marginbottom * reScale)")
-        if yPos + viewSize.height > (mediaBox.height - mediaBox.minY - vm.marginbottom) * reScale {
+        if yPos + viewSize.height > (mediaBox.height - mediaBox.minY - userSettings.marginbottom) * reScale {
             toNextCol = true
         }
 
@@ -207,7 +207,7 @@ class PDFGenerator {
             // neue Spalte
             currentCol = (currentCol + 1) % cols
             
-            let xSpace = (mediaBox.width - vm.marginleft - vm.marginright) / CGFloat(cols)
+            let xSpace = (mediaBox.width - userSettings.marginleft - userSettings.marginright) / CGFloat(cols)
             xPos += xSpace
             toOrigin()
             yPos = columnTop * reScale
@@ -231,11 +231,11 @@ class PDFGenerator {
 
         xTranslate = 0
         yTranslate = 0
-        translate(x: mediaBox.minX + vm.marginleft, y: mediaBox.height - vm.margintop)
+        translate(x: mediaBox.minX + userSettings.marginleft, y: mediaBox.height - userSettings.margintop)
         
-        xPos = mediaBox.minX + vm.marginleft
-        yPos = vm.margintop * reScale
-        columnTop = vm.margintop
+        xPos = mediaBox.minX + userSettings.marginleft
+        yPos = userSettings.margintop * reScale
+        columnTop = userSettings.margintop
         currentCol = 0
     }
     

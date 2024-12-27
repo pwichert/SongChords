@@ -1,5 +1,5 @@
 //
-//  ViewModel.swift
+//  UserSettings.swift
 //  SongChords
 //
 //  Created by Peter Wichert on 11.11.24.
@@ -14,7 +14,7 @@ enum DisplayMode: Int, Codable {
 }
 
 @Observable
-public final class ViewModel {
+public final class UserSettings: @unchecked Sendable {
     public init() {}
     
 #if os(macOS)

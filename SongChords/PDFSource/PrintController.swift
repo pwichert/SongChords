@@ -20,7 +20,7 @@ protocol PrintDelegateBase {
 
 @MainActor
 class PrintSongDelegate: NSObject, PrintDelegateBase, UIPrintInteractionControllerDelegate {
-    let viewModel = ViewModel()
+    let userSettings = UserSettings()
     let song: Song
     
     init?(songID: PersistentIdentifier, modelContainer: ModelContainer) {
@@ -31,11 +31,11 @@ class PrintSongDelegate: NSObject, PrintDelegateBase, UIPrintInteractionControll
     
     // nur, um eine andere URL als beim Drucken zu haben. Sicher ist sicher.
     func createViewPDF(paperSize: CGRect) -> URL? {
-        return songToPdf(viewModel: viewModel, song: song, paperSize: paperSize, viewURL: true)
+        return songToPdf(userSettings: userSettings, song: song, paperSize: paperSize, viewURL: true)
     }
         
     func createPDF(paperSize: CGRect) -> URL? {
-        return songToPdf(viewModel: viewModel, song: song, paperSize: paperSize)
+        return songToPdf(userSettings: userSettings, song: song, paperSize: paperSize)
     }
     
 #if os(iOS)
@@ -49,38 +49,38 @@ class PrintSongDelegate: NSObject, PrintDelegateBase, UIPrintInteractionControll
         print(paperSize ?? "nix")
         
         if let paperSize = paperSize {
-            let url = songToPdf(viewModel: viewModel, song: song, paperSize: CGRect(origin: .zero, size: paperSize))
+            let url = songToPdf(userSettings: userSettings, song: song, paperSize: CGRect(origin: .zero, size: paperSize))
             printInteractionController.printingItem = url
         }
     }
     #endif
 #endif
     
-    func songToPdf(viewModel: ViewModel, song: Song, paperSize: CGRect, viewURL: Bool = false) -> URL? {
+    func songToPdf(userSettings: UserSettings, song: Song, paperSize: CGRect, viewURL: Bool = false) -> URL? {
         
         #if false
         // zum Testen
         do {
-            let gen = try PDFGenerator(viewModel: viewModel, mediaBox: paperSize, cols: 1)
+            let gen = try PDFGenerator(userSettings: userSettings, mediaBox: paperSize, cols: 1)
             
-            gen.drawTest(col: 0, view: Text("1234567").font(.system(size: viewModel.chordsize+4, weight: .bold, design: .rounded)))
+            gen.drawTest(col: 0, view: Text("1234567").font(.system(size: userSettings.chordsize+4, weight: .bold, design: .rounded)))
             
             return gen.url
         } catch { print(error.localizedDescription) ; return nil}
         #else
         
         do {
-            let songRepresentation = song.createSongRepresentation(viewModel: viewModel, forPrinting: true)!
+            let songRepresentation = song.createSongRepresentation(userSettings: userSettings, forPrinting: true)!
             let mgr = songRepresentation.directiveManager
             let cols = mgr.columns
 
-            let gen = try PDFGenerator(viewModel: viewModel, mediaBox: paperSize, cols: cols, viewURL: viewURL)
+            let gen = try PDFGenerator(userSettings: userSettings, mediaBox: paperSize, cols: cols, viewURL: viewURL)
             gen.startPDF()
             
             var topPadding: CGFloat = 0
             let title = mgr.getDirective("title") ?? song.title
             if !title.isEmpty {
-                gen.draw(col: 0, view: Text(title).font(.system(size: viewModel.chordsizepdf+4, weight: .bold, design: .rounded)))
+                gen.draw(col: 0, view: Text(title).font(.system(size: userSettings.chordsizepdf+4, weight: .bold, design: .rounded)))
             }
 
             gen.draw(col: 0, view: Color.clear.padding(.bottom, 2))
@@ -92,7 +92,7 @@ class PrintSongDelegate: NSObject, PrintDelegateBase, UIPrintInteractionControll
                 if song.showHeader && section.name.trimmingCharacters(in: .whitespaces).count > 0 {
                     gen.draw(col: section.col, view:
                                 SectionHeaderView(section: section, lightColor: Color.init(red: 0.95, green: 0.95, blue: 0.95), darkColor: Color.init(red: 0.15, green: 0.15, blue: 0.15))
-                        .font(Font(viewModel.headerPDFUIFont))
+                        .font(Font(userSettings.headerPDFUIFont))
                         .padding(EdgeInsets(top: topPadding, leading: 0, bottom: 0, trailing: 0)))
                 }
                 
@@ -100,27 +100,27 @@ class PrintSongDelegate: NSObject, PrintDelegateBase, UIPrintInteractionControll
                 for line in section.splittedLines {
                     if line.onNewPage { gen.setNewPage() }
                                         
-                    if viewModel.hidechords && line.texts.isEmpty && !line.chords.isEmpty { continue }
+                    if userSettings.hidechords && line.texts.isEmpty && !line.chords.isEmpty { continue }
                     
-                    var lineSpacing = viewModel.linespacingpdf
+                    var lineSpacing = userSettings.linespacingpdf
 
                     if line.chords.isEmpty && line.texts.isEmpty {
                         // Leerzeile
-                        gen.draw(col: line.col, view: Text(" ").font(Font(viewModel.txtPDFUIFont))
+                        gen.draw(col: line.col, view: Text(" ").font(Font(userSettings.txtPDFUIFont))
                             .padding(EdgeInsets(top: lineSpacing, leading: 0, bottom: 0, trailing: 0)))
-                    } else if viewModel.hidechords {
-                        gen.draw(col: line.col, view: Text(line.plainText).font(Font(viewModel.txtPDFUIFont))
+                    } else if userSettings.hidechords {
+                        gen.draw(col: line.col, view: Text(line.plainText).font(Font(userSettings.txtPDFUIFont))
                             .padding(EdgeInsets(top: lineSpacing, leading: 0, bottom: 0, trailing: 0)))
                     } else {
                         if !line.chords.isEmpty {
-                            gen.draw(col: line.col, view: ChordsLineView(line: line, lightColor: Color.init(red: 0.95, green: 0.95, blue: 0.95), darkColor: Color.init(red: 0.15, green: 0.15, blue: 0.15)).font(Font(viewModel.chordPDFUIFont))
+                            gen.draw(col: line.col, view: ChordsLineView(line: line, lightColor: Color.init(red: 0.95, green: 0.95, blue: 0.95), darkColor: Color.init(red: 0.15, green: 0.15, blue: 0.15)).font(Font(userSettings.chordPDFUIFont))
                                 .padding(EdgeInsets(top: lineSpacing, leading: 0, bottom: 0, trailing: 0)))
                             
                             // nur der erste von ChordsLineView oder TextsLineView soll linespacen
                             lineSpacing = 0
                         }
                         if !line.texts.isEmpty {
-                            gen.draw(col: line.col, view: TextsLineView(line: line).font(Font(viewModel.txtPDFUIFont))
+                            gen.draw(col: line.col, view: TextsLineView(line: line).font(Font(userSettings.txtPDFUIFont))
                                 .padding(EdgeInsets(top: lineSpacing, leading: 0, bottom: 0, trailing: 0)))
                         }
                     }
@@ -141,7 +141,7 @@ class PrintSongDelegate: NSObject, PrintDelegateBase, UIPrintInteractionControll
 
 @MainActor
 class PrintSetlistDelegate: NSObject, PrintDelegateBase, UIPrintInteractionControllerDelegate {
-    let viewModel = ViewModel()
+    let userSettings = UserSettings()
     let playlist: PlayList
     
     init?(playlistID: PersistentIdentifier, modelContainer: ModelContainer) {
@@ -151,7 +151,7 @@ class PrintSetlistDelegate: NSObject, PrintDelegateBase, UIPrintInteractionContr
     }
 
     func createPDF(paperSize: CGRect) -> URL? {
-        return setlistToPDF(playlist: playlist, viewModel: viewModel, paperSize: paperSize)
+        return setlistToPDF(playlist: playlist, userSettings: userSettings, paperSize: paperSize)
     }
     
 #if os(iOS)
@@ -162,28 +162,28 @@ class PrintSetlistDelegate: NSObject, PrintDelegateBase, UIPrintInteractionContr
         let paperSize = paper?.paperSize
         
         if let paperSize = paperSize {
-            let url = setlistToPDF(playlist: playlist, viewModel: viewModel, paperSize: CGRect(origin: .zero, size: paperSize))
+            let url = setlistToPDF(playlist: playlist, userSettings: userSettings, paperSize: CGRect(origin: .zero, size: paperSize))
             printInteractionController.printingItem = url
         }
     }
     #endif
 #endif
     
-    func setlistToPDF(playlist: PlayList, viewModel: ViewModel, paperSize: CGRect) -> URL? {
+    func setlistToPDF(playlist: PlayList, userSettings: UserSettings, paperSize: CGRect) -> URL? {
         do {
             // 2-spaltig
-            let gen = try PDFGenerator(viewModel: viewModel, mediaBox: paperSize, cols: 2)
+            let gen = try PDFGenerator(userSettings: userSettings, mediaBox: paperSize, cols: 2)
             gen.startPDF()
             
-            gen.draw(col: 0, view: Text(playlist.title).font(.system(size: viewModel.txtsizepdf+8, weight: .bold, design: .rounded))
-                .padding(.bottom, viewModel.txtsizepdf+8))
+            gen.draw(col: 0, view: Text(playlist.title).font(.system(size: userSettings.txtsizepdf+8, weight: .bold, design: .rounded))
+                .padding(.bottom, userSettings.txtsizepdf+8))
             
             gen.setColumnTop()
             let topPadding: CGFloat = 8
 
             var cnt = 1
             for song in (playlist.songs ?? []).sorted(by: { a,b in a.seq < b.seq }) {
-                gen.draw(col: 0, view: Text("\(cnt).  \(song.title)").font(.system(size: viewModel.txtsizepdf+4, weight: .semibold, design: .rounded)).padding(.top, topPadding))
+                gen.draw(col: 0, view: Text("\(cnt).  \(song.title)").font(.system(size: userSettings.txtsizepdf+4, weight: .semibold, design: .rounded)).padding(.top, topPadding))
                 
                 cnt += 1
             }
@@ -201,7 +201,7 @@ class PrintSetlistDelegate: NSObject, PrintDelegateBase, UIPrintInteractionContr
 class PrintController {
     static func onPrint(title: String, delegate: UIPrintInteractionControllerDelegate) {
         
-        let defaultPaper = MediaBoxes.getBox(name: ViewModel().mediabox)
+        let defaultPaper = MediaBoxes.getBox(name: UserSettings().mediabox)
         
 #if os(iOS)
         // UIPrintInfo contains information about the print job

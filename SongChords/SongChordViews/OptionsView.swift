@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct OptionsView: View {
-    @Environment(ViewModel.self) private var viewModel
+    @Environment(UserSettings.self) private var userSettings
     @Environment(\.dismiss) private var dismiss
 
     @State private var chordSize: Double = 0
@@ -124,13 +124,13 @@ struct OptionsView: View {
         .toolbar {
             ToolbarItem(placement: .confirmationAction) {
                 Button("Save") {
-                    if Int(chordSize) != Int(viewModel.chordsize) { viewModel.chordsize = chordSize }
-                    if Int(txtSize) != Int(viewModel.txtsize) { viewModel.txtsize = txtSize }
-                    if Int(headerSize) != Int(viewModel.headersize) { viewModel.headersize = headerSize }
-                    if isGermanNotation != viewModel.isGermanNotation { viewModel.isGermanNotation = isGermanNotation }
-                    if hideChords != viewModel.hidechords { viewModel.hidechords = hideChords }
-                    if textFollowsChords != viewModel.textfollowschords { viewModel.textfollowschords = textFollowsChords }
-                    if displayMode != viewModel.displayMode { viewModel.displayMode = displayMode }
+                    if Int(chordSize) != Int(userSettings.chordsize) { userSettings.chordsize = chordSize }
+                    if Int(txtSize) != Int(userSettings.txtsize) { userSettings.txtsize = txtSize }
+                    if Int(headerSize) != Int(userSettings.headersize) { userSettings.headersize = headerSize }
+                    if isGermanNotation != userSettings.isGermanNotation { userSettings.isGermanNotation = isGermanNotation }
+                    if hideChords != userSettings.hidechords { userSettings.hidechords = hideChords }
+                    if textFollowsChords != userSettings.textfollowschords { userSettings.textfollowschords = textFollowsChords }
+                    if displayMode != userSettings.displayMode { userSettings.displayMode = displayMode }
                     
                     dismiss()
                 }
@@ -142,19 +142,19 @@ struct OptionsView: View {
             }
         }
         .onAppear {
-            chordSize = viewModel.chordsize
-            txtSize = viewModel.txtsize
-            headerSize = viewModel.headersize
-            isGermanNotation = viewModel.isGermanNotation
-            hideChords = viewModel.hidechords
-            textFollowsChords = viewModel.textfollowschords
-            displayMode = viewModel.displayMode
+            chordSize = userSettings.chordsize
+            txtSize = userSettings.txtsize
+            headerSize = userSettings.headersize
+            isGermanNotation = userSettings.isGermanNotation
+            hideChords = userSettings.hidechords
+            textFollowsChords = userSettings.textfollowschords
+            displayMode = userSettings.displayMode
         }
     }
 }
 
 struct PrintOptionsView: View {
-    @Environment(ViewModel.self) private var viewModel
+    @Environment(UserSettings.self) private var userSettings
     @Environment(\.dismiss) private var dismiss
 
     @State private var chordSize: Double = 0
@@ -230,9 +230,9 @@ struct PrintOptionsView: View {
         .toolbar {
             ToolbarItem(placement: .confirmationAction) {
                 Button("Save") {
-                    if Int(chordSize) != Int(viewModel.chordsizepdf) { viewModel.chordsizepdf = chordSize }
-                    if Int(txtSize) != Int(viewModel.txtsizepdf) { viewModel.txtsizepdf = txtSize }
-                    if Int(headerSize) != Int(viewModel.headersizepdf) { viewModel.headersizepdf = headerSize }
+                    if Int(chordSize) != Int(userSettings.chordsizepdf) { userSettings.chordsizepdf = chordSize }
+                    if Int(txtSize) != Int(userSettings.txtsizepdf) { userSettings.txtsizepdf = txtSize }
+                    if Int(headerSize) != Int(userSettings.headersizepdf) { userSettings.headersizepdf = headerSize }
                     
                     dismiss()
                 }
@@ -244,21 +244,21 @@ struct PrintOptionsView: View {
             }
         }
         .onAppear {
-            chordSize = viewModel.chordsizepdf
-            txtSize = viewModel.txtsizepdf
-            headerSize = viewModel.headersizepdf
+            chordSize = userSettings.chordsizepdf
+            txtSize = userSettings.txtsizepdf
+            headerSize = userSettings.headersizepdf
         }
     }
 }
 
 struct InfoTextView: View {
-    @Environment(ViewModel.self) private var viewModel
+    @Environment(UserSettings.self) private var userSettings
 
     var body: some View {
         VStack(alignment: .center) {
             HStack(alignment: .center) {
                 Spacer()
-                Text(viewModel.getVersion()).font(.title)
+                Text(userSettings.getVersion()).font(.title)
                 Spacer()
             }.padding(.bottom, 20)
             

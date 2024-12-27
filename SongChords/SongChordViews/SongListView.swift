@@ -27,7 +27,7 @@ struct SongListView: View {
     @Binding var selectedSongIDs: Set<PersistentIdentifier>
 
     @Environment(\.modelContext) private var modelContext
-    @Environment(ViewModel.self) private var viewModel
+    @Environment(UserSettings.self) private var userSettings
     
 #if os(iOS)
     @State private var editMode: EditMode = .inactive
@@ -79,9 +79,10 @@ struct SongListView: View {
                         
                         Button(role: .destructive, action: { prepareDelete(songIDs: selectedSongIDs.contains(song.id) ? selectedSongIDs : [song.id]) }) { Label("Delete", systemImage: "trash")}
                     }
-                #if DEBUG
+                #if false
                     #if os(iOS)
-                    // TODO: zählt in drag-Gesten-Bubble nicht alle selektierten Songs. Ohne draggable wird richtig gezählt.
+                    // TODO: zählt in drag-Gesten-Bubble nicht alle selektierten Songs, insb. wenn nicht alle sichtbar sind.
+                    // Ohne draggable wird richtig gezählt.
                     .draggable(song.setTransData()) { Text(song.title) }
                     #else
                     // TODO: funktioniert nur mit Typen, die bereits Transferable sind (String, URL).
@@ -282,7 +283,7 @@ struct SongListView: View {
         if !(cb ?? "").isEmpty {
             let chordProReverseParser = ChordProReverseParser()
             
-            var root: ChordRoot = viewModel.isGermanNotation ? EnglishGermanRoot() : EnglishDutchRoot()
+            var root: ChordRoot = userSettings.isGermanNotation ? EnglishGermanRoot() : EnglishDutchRoot()
             
             let sections = chordProReverseParser.parse(input: cb!, rootSystem: &root)
             let txt = chordProReverseParser.toString(sections: sections)

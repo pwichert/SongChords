@@ -13,7 +13,7 @@ struct SongChordsTests {
     @Test func testParser() async throws {
         // Write your test here and use APIs like `#expect(...)` to check expected conditions.
 
-        let viewModel = ViewModel()
+        let userSettings = UserSettings()
 
         var inputText: String = """
         {title: Simple Song}
@@ -34,7 +34,7 @@ struct SongChordsTests {
         """
         
         var tokens = try ChordProLexer(input: inputText).tokenize()
-        var songRepresentation = try ChordProParser(viewModel: viewModel, songTranspose: 0, tokens: tokens, forPrinting: false).parse()
+        var songRepresentation = try ChordProParser(userSettings: userSettings, songTranspose: 0, tokens: tokens, forPrinting: false).parse()
         #expect(songRepresentation.toChordProString() == expectedResult)
 
         
@@ -50,7 +50,7 @@ struct SongChordsTests {
         
         """
         tokens = try ChordProLexer(input: inputText).tokenize()
-        songRepresentation = try ChordProParser(viewModel: viewModel, songTranspose: 0, tokens: tokens, forPrinting: false).parse()
+        songRepresentation = try ChordProParser(userSettings: userSettings, songTranspose: 0, tokens: tokens, forPrinting: false).parse()
         #expect(songRepresentation.toChordProString() == expectedResult)
 
         
@@ -65,7 +65,7 @@ struct SongChordsTests {
         
         """
         tokens = try ChordProLexer(input: inputText).tokenize()
-        songRepresentation = try ChordProParser(viewModel: viewModel, songTranspose: 0, tokens: tokens, forPrinting: false).parse()
+        songRepresentation = try ChordProParser(userSettings: userSettings, songTranspose: 0, tokens: tokens, forPrinting: false).parse()
         #expect(songRepresentation.toChordProString() == expectedResult)
 
         
@@ -80,7 +80,7 @@ struct SongChordsTests {
         
         """
         tokens = try ChordProLexer(input: inputText).tokenize()
-        songRepresentation = try ChordProParser(viewModel: viewModel, songTranspose: 0, tokens: tokens, forPrinting: false).parse()
+        songRepresentation = try ChordProParser(userSettings: userSettings, songTranspose: 0, tokens: tokens, forPrinting: false).parse()
         #expect(songRepresentation.toChordProString() == expectedResult)
 
         
@@ -96,7 +96,7 @@ struct SongChordsTests {
         
         """
         tokens = try ChordProLexer(input: inputText).tokenize()
-        songRepresentation = try ChordProParser(viewModel: viewModel, songTranspose: 0, tokens: tokens, forPrinting: false).parse()
+        songRepresentation = try ChordProParser(userSettings: userSettings, songTranspose: 0, tokens: tokens, forPrinting: false).parse()
         #expect(songRepresentation.toChordProString() == expectedResult)
 
         
@@ -112,7 +112,7 @@ struct SongChordsTests {
         
         """
         tokens = try ChordProLexer(input: inputText).tokenize()
-        songRepresentation = try ChordProParser(viewModel: viewModel, songTranspose: 0, tokens: tokens, forPrinting: false).parse()
+        songRepresentation = try ChordProParser(userSettings: userSettings, songTranspose: 0, tokens: tokens, forPrinting: false).parse()
         #expect(songRepresentation.toChordProString() == expectedResult)
 
 
@@ -128,7 +128,7 @@ struct SongChordsTests {
         
         """
         tokens = try ChordProLexer(input: inputText).tokenize()
-        songRepresentation = try ChordProParser(viewModel: viewModel, songTranspose: 0, tokens: tokens, forPrinting: false).parse()
+        songRepresentation = try ChordProParser(userSettings: userSettings, songTranspose: 0, tokens: tokens, forPrinting: false).parse()
         #expect(songRepresentation.toChordProString() == expectedResult)
     }
     

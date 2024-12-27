@@ -23,19 +23,19 @@ struct SongChordsApp: App {
         }
     }()
 
-    @State private var viewModel: ViewModel = ViewModel()
+    @State private var userSettings: UserSettings = UserSettings()
     
     var body: some Scene {
         #if os(macOS)
         Window ("SongChords", id: "main") {
             ContentView()
-                .environment(viewModel)
+                .environment(userSettings)
         }
         .modelContainer(sharedModelContainer)
         #else
         WindowGroup {
             ContentView()
-                .environment(viewModel)
+                .environment(userSettings)
         }
         .modelContainer(sharedModelContainer)
         #endif

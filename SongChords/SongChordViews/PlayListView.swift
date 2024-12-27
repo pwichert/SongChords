@@ -21,7 +21,6 @@ struct PlayListView: View {
     @Binding var visibility: NavigationSplitViewVisibility
     
     @Environment(\.modelContext) private var modelContext
-    @Environment(ViewModel.self) private var viewModel
     
 #if os(iOS)
     @State private var editMode: EditMode = .inactive

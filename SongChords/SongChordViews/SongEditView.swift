@@ -13,7 +13,7 @@ struct SongEditView: View {
     
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
-    @Environment(ViewModel.self) private var viewModel
+    @Environment(UserSettings.self) private var userSettings
 
     @State private var title: String = ""
     @State private var srcText: String = ""
@@ -75,7 +75,7 @@ struct SongEditView: View {
                             song.transpose = Int(transpose)
                             changed = true
                         }
-                        if changed { song.processSongInBackground(viewModel: viewModel, forPrinting: false) }
+                        if changed { song.processSongInBackground(userSettings: userSettings, forPrinting: false) }
                     } else {
                         changed = true
                         let song = Song(title: title)
@@ -85,7 +85,7 @@ struct SongEditView: View {
                         song.transpose = Int(transpose)
                         song.toPlaylist(playlist: playlist)
 
-                        song.processSongInBackground(viewModel: viewModel, forPrinting: false)
+                        song.processSongInBackground(userSettings: userSettings, forPrinting: false)
                     }
                     
                     dismiss()

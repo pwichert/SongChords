@@ -13,18 +13,18 @@ struct ContentView: View {
     @State private var selectedPlaylistID: PersistentIdentifier?
     @State private var selectedSongIDs: Set<PersistentIdentifier> = []
 
-    @Environment(ViewModel.self) private var viewModel
+    @Environment(UserSettings.self) private var userSettings
     @Environment(\.modelContext) private var modelContext
 
     var body: some View {
         NavigationSplitView(columnVisibility: $visibility) {
 
-            PlayListView(selectedPlaylistID: $selectedPlaylistID, visibility: $visibility).environment(viewModel)
+            PlayListView(selectedPlaylistID: $selectedPlaylistID, visibility: $visibility).environment(userSettings)
 
         } content: {
             
             if let selectedPlaylistID = selectedPlaylistID, let selectedPlaylist = PlayList.fetchPlaylist(with: selectedPlaylistID, in: modelContext) {
-                SongListView(playlist: selectedPlaylist, visibility: $visibility, selectedSongIDs: $selectedSongIDs).environment(viewModel)
+                SongListView(playlist: selectedPlaylist, visibility: $visibility, selectedSongIDs: $selectedSongIDs).environment(userSettings)
             } else {
                 ContentUnavailableView("Select a playlist", systemImage: "doc.text.image.fill")
             }
@@ -32,7 +32,7 @@ struct ContentView: View {
         } detail: {
             
             if selectedSongIDs.count == 1, let selectedSongID = selectedSongIDs.first, let song = Song.fetchSong(with: selectedSongID, in: modelContext) {
-                SongView(song: song, visibility: $visibility).environment(viewModel)
+                SongView(song: song, visibility: $visibility).environment(userSettings)
             } else {
                 ContentUnavailableView("Select a song", systemImage: "doc.text.image.fill")
             }
@@ -40,6 +40,6 @@ struct ContentView: View {
         }
         .onChange(of: selectedPlaylistID) { selectedSongIDs = [] }      // ContentUnavailable in SongView
         .navigationSplitViewStyle(.automatic)
-        .preferredColorScheme(viewModel.displayMode == .dark ? .dark : (viewModel.displayMode == .light ? .light : nil))
+        .preferredColorScheme(userSettings.displayMode == .dark ? .dark : (userSettings.displayMode == .light ? .light : nil))
     }
 }
