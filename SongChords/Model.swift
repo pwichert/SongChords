@@ -243,16 +243,25 @@ final public class Song: Codable {
         toPlaylist(playlist: playlist)
     }
 
-    static private func processSongInBackgroundAsync(userSettings: UserSettings, representationHolder: RepresentationHolder, srcText: String, transpose: Int, forPrinting: Bool) async {
-        await Song.taskManager.run(Task.detached {
-            // Aufgabe im Hintergrund ausführen
-            let result = Song.createSongRepresentation(userSettings: userSettings, srcText: srcText, transpose: transpose, forPrinting: forPrinting)
-            
-            // Ergebnis auf dem Main-Thread aktualisieren
-            if let result = result {
-                await representationHolder.updateSongRepresentation(result)
-            }
-        })
+    func processSongInBackground(userSettings: UserSettings, forPrinting: Bool) {
+        let representationHolder = self.representationHolder
+        let srcText = self.srcText
+        let transpose = self.transpose
+        Task {
+            await Song.taskManager.run(Task.detached {
+                // Aufgabe im Hintergrund ausführen
+                let result = Song.createSongRepresentation(userSettings: userSettings, srcText: srcText, transpose: transpose, forPrinting: forPrinting)
+                
+                // Ergebnis auf dem Main-Thread aktualisieren
+                if let result = result {
+                    await representationHolder.updateSongRepresentation(result)
+                }
+            })
+        }
+    }
+
+    func createSongRepresentation(userSettings: UserSettings, forPrinting: Bool) -> SongRepresentation? {
+        return Song.createSongRepresentation(userSettings: userSettings, srcText: self.srcText, transpose: self.transpose, forPrinting: forPrinting)
     }
     
     static private func createSongRepresentation(userSettings: UserSettings, srcText: String, transpose: Int, forPrinting: Bool) -> SongRepresentation? {
@@ -272,19 +281,6 @@ final public class Song: Codable {
         }
     }
 
-    func processSongInBackground(userSettings: UserSettings, forPrinting: Bool) {
-        let representationHolder = self.representationHolder
-        let srcText = self.srcText
-        let transpose = self.transpose
-        Task {
-            await Song.processSongInBackgroundAsync(userSettings: userSettings, representationHolder: representationHolder, srcText: srcText, transpose: transpose, forPrinting: forPrinting)
-        }
-    }
-
-    func createSongRepresentation(userSettings: UserSettings, forPrinting: Bool) -> SongRepresentation? {
-        return Song.createSongRepresentation(userSettings: userSettings, srcText: self.srcText, transpose: self.transpose, forPrinting: forPrinting)
-    }
-    
     func updateFromSong(other: Song) {
         updateFrom(title: other.title, srcText: other.srcText, transpose: other.transpose, showChords: other.showChords, showText: other.showText, showHeader: other.showHeader, duration: other.duration, musicItemId: other.musicItemId)
     }
