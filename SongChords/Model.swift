@@ -199,7 +199,12 @@ extension UTType {
 }
 
 final class RepresentationHolder: ObservableObject {
-    @Published var songRepresentation: SongRepresentation = SongRepresentation(sections: [], directiveManager: DirectiveManager())
+    @Published var songRepresentation: SongRepresentation = SongRepresentation(sections: [], directiveManager: DirectiveManagerSendable(directivesManager: DirectiveManager()))
+    
+    @MainActor
+    func updateSongRepresentation(_ newRepresentation: SongRepresentation) {
+        songRepresentation = newRepresentation
+    }
 }
 
 @Model
