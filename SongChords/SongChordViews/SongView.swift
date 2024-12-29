@@ -185,7 +185,7 @@ struct DetailContent: View {
 }
 
 struct SectionHeaderView: View {
-    let section: CPPSection
+    let section: CPPSectionSendable
     let lightColor: Color
     let darkColor: Color
     let showHeader: Bool = true

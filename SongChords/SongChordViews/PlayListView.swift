@@ -22,9 +22,9 @@ struct PlayListView: View {
     
     @Environment(\.modelContext) private var modelContext
     
-#if os(iOS)
+    #if os(iOS)
     @State private var editMode: EditMode = .inactive
-#endif
+    #endif
     
     @State private var showPlaylistNewView: Bool = false
     @State private var renamePlaylist: PlayList?
@@ -386,7 +386,7 @@ struct PrivacyTextView: View {
     var body: some View {
         Text(
         """
-        We, the SongChords team, take the protection of your personal data very seriously. This privacy policy explains how we collect, use, store, and protect your data when you use our app.
+        The protection of your personal data is very important for us. This privacy policy explains how we collect, use, store, and protect your data when you use our app.
 
         1. Data Controller
 
@@ -464,7 +464,7 @@ struct PrivacyTextView: View {
 
         sc_app@icloud.com
 
-        Last updated: December 2024
+        Last updated: January 2025
         """)
     }
 }

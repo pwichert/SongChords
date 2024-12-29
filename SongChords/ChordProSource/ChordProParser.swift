@@ -15,13 +15,13 @@ enum ParserError: Error {
 //    case inputTooLarge
 }
 
-public class SongRepresentation: Identifiable {
+public final class SongRepresentation: Identifiable, Sendable {
     public let id = UUID()
     
-    let sections: [CPPSection]
-    let directiveManager: DirectiveManager
+    let sections: [CPPSectionSendable]
+    let directiveManager: DirectiveManagerSendable
     
-    init(sections: [CPPSection], directiveManager: DirectiveManager) {
+    init(sections: [CPPSectionSendable], directiveManager: DirectiveManagerSendable) {
         self.sections = sections
         self.directiveManager = directiveManager
     }
@@ -50,6 +50,22 @@ public class SongRepresentation: Identifiable {
         }
         
         return result
+    }
+}
+
+final class CPPSectionSendable: Identifiable, Sendable {
+    public let id = UUID()
+    
+    let name: String
+    let lines: [Line]
+    let splittedLines: [SplittedLine]
+    let col: Int
+    
+    init(cppSection: CPPSection) {
+        self.name = cppSection.name
+        self.lines = cppSection.lines
+        self.splittedLines = cppSection.splittedLines
+        self.col = cppSection.col
     }
 }
 
@@ -276,7 +292,9 @@ public class ChordProParser {
         createSplittedLines()
         
         //print(directiveManager.listDirectives())
-        return SongRepresentation(sections: sections, directiveManager: directiveManager)
+        let directiveManagerSendable = DirectiveManagerSendable(directivesManager: directiveManager)
+        let sectionsSendable = sections.map( { CPPSectionSendable(cppSection: $0) })
+        return SongRepresentation(sections: sectionsSendable, directiveManager: directiveManagerSendable)
         
         // Hilfsfunktionen
         

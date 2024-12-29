@@ -41,13 +41,67 @@ enum DirectiveType: String, CaseIterable, Sendable {
     case new_page
 }
 
+// Abkürzungen für die verschiedenen Direktiven
+private let abbreviations: [String: DirectiveType] = [
+    "t": .title,
+    "st": .subtitle,
+    "col": .columns,
+    "colb": .column_break,
+    "np": .new_page,
+    "c": .comment,
+    "ci": .comment_italic,
+    "cb": .comment_box,
+    "highlight": .comment,
+    "soc": .start_of_chorus,
+    "eoc": .end_of_chorus,
+    "sob": .start_of_bridge,
+    "eob": .end_of_bridge,
+    "sov": .start_of_verse,
+    "eov": .end_of_verse,
+    "sot": .start_of_tab,
+    "eot": .end_of_tab
+]
+
+
 enum DirectiveNamesSpecial: String, CaseIterable, Sendable {
     case key_actual
     case key_from
 }
 
+final class DirectiveManagerSendable: Sendable {
+    let directives: [DirectiveType: String]
+    
+    let transpose: Int
+    let columns: Int
+    let duration: Int
+    
+    init (directivesManager: DirectiveManager) {
+        self.directives = directivesManager.directives
+        self.transpose = directivesManager.transpose
+        self.columns = directivesManager.columns
+        self.duration = directivesManager.duration
+    }
+    
+    func getDirective(_ input: String) -> String? {
+        if let directive = parseDirective(input) {
+            return directives[directive]
+        }
+        return nil
+    }
+    
+    private func parseDirective(_ input: String) -> DirectiveType? {
+        // Prüfen, ob es sich um eine vollständige Direktive oder Abkürzung handelt
+        if let directive = DirectiveType(rawValue: input.lowercased()) {
+            return directive
+        } else if let directive = abbreviations[input.lowercased()] {
+            return directive
+        }
+        return nil
+    }
+}
+
 // Verwaltungsklasse für Direktiven
-final class DirectiveManager {
+class DirectiveManager {
     // Dictionary zur Speicherung der Direktiven und ihrer Werte
     private(set) var directives: [DirectiveType: String] = [:]
     
@@ -55,27 +109,6 @@ final class DirectiveManager {
     private(set) var columns: Int = 1
     private(set) var duration: Int = 0
 
-    // Abkürzungen für die verschiedenen Direktiven
-    private let abbreviations: [String: DirectiveType] = [
-        "t": .title,
-        "st": .subtitle,
-        "col": .columns,
-        "colb": .column_break,
-        "np": .new_page,
-        "c": .comment,
-        "ci": .comment_italic,
-        "cb": .comment_box,
-        "highlight": .comment,
-        "soc": .start_of_chorus,
-        "eoc": .end_of_chorus,
-        "sob": .start_of_bridge,
-        "eob": .end_of_bridge,
-        "sov": .start_of_verse,
-        "eov": .end_of_verse,
-        "sot": .start_of_tab,
-        "eot": .end_of_tab
-    ]
-    
     // Fügt eine Direktive hinzu, entweder als vollständigen Namen oder als Abkürzung
     func addDirective(_ input: String) -> DirectiveType? {
         let arrWithLabel = delimitedStringToArray(str: input)
