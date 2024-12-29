@@ -198,8 +198,9 @@ extension UTType {
     static let playlistJSON = UTType(exportedAs: "com.wichert.songchordslist", conformingTo: .json)
 }
 
-final class RepresentationHolder: ObservableObject {
-    @Published var songRepresentation: SongRepresentation = SongRepresentation(sections: [], directiveManager: DirectiveManagerSendable(directivesManager: DirectiveManager()))
+final class RepresentationHolder: ObservableObject, @unchecked Sendable {
+    @MainActor
+    @Published private(set) var songRepresentation: SongRepresentation = SongRepresentation(sections: [], directiveManager: DirectiveManagerSendable(directivesManager: DirectiveManager()))
     
     @MainActor
     func updateSongRepresentation(_ newRepresentation: SongRepresentation) {
@@ -242,28 +243,19 @@ final public class Song: Codable {
         toPlaylist(playlist: playlist)
     }
 
-    func processSongInBackgroundAsync(userSettings: UserSettings, forPrinting: Bool) async {
-        await Song.taskManager.run(Task.detached { [weak self, userSettings] in
+    static private func processSongInBackgroundAsync(userSettings: UserSettings, representationHolder: RepresentationHolder, srcText: String, transpose: Int, forPrinting: Bool) async {
+        await Song.taskManager.run(Task.detached {
             // Aufgabe im Hintergrund ausführen
-            guard let self = self else { return }
-            let result = self.createSongRepresentation(userSettings: userSettings, forPrinting: forPrinting)
+            let result = Song.createSongRepresentation(userSettings: userSettings, srcText: srcText, transpose: transpose, forPrinting: forPrinting)
             
             // Ergebnis auf dem Main-Thread aktualisieren
-            await MainActor.run {
-                if let result = result {
-                    self.representationHolder.songRepresentation = result
-                }
+            if let result = result {
+                await representationHolder.updateSongRepresentation(result)
             }
         })
     }
     
-    func processSongInBackground(userSettings: UserSettings, forPrinting: Bool) {
-        Task {
-            await processSongInBackgroundAsync(userSettings: userSettings, forPrinting: forPrinting)
-        }
-    }
-    
-    func createSongRepresentation(userSettings: UserSettings, forPrinting: Bool) -> SongRepresentation? {
+    static private func createSongRepresentation(userSettings: UserSettings, srcText: String, transpose: Int, forPrinting: Bool) -> SongRepresentation? {
         do {
             print("songRepresentation")
             
@@ -278,6 +270,19 @@ final public class Song: Codable {
             print("\(error)")
             return nil
         }
+    }
+
+    func processSongInBackground(userSettings: UserSettings, forPrinting: Bool) {
+        let representationHolder = self.representationHolder
+        let srcText = self.srcText
+        let transpose = self.transpose
+        Task {
+            await Song.processSongInBackgroundAsync(userSettings: userSettings, representationHolder: representationHolder, srcText: srcText, transpose: transpose, forPrinting: forPrinting)
+        }
+    }
+
+    func createSongRepresentation(userSettings: UserSettings, forPrinting: Bool) -> SongRepresentation? {
+        return Song.createSongRepresentation(userSettings: userSettings, srcText: self.srcText, transpose: self.transpose, forPrinting: forPrinting)
     }
     
     func updateFromSong(other: Song) {
