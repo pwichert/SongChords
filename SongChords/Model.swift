@@ -247,6 +247,7 @@ final public class Song: Codable {
         let representationHolder = self.representationHolder
         let srcText = self.srcText
         let transpose = self.transpose
+        // kein self im closure
         Task {
             await Song.taskManager.run(Task.detached {
                 // Aufgabe im Hintergrund ausführen
@@ -264,6 +265,7 @@ final public class Song: Codable {
         return Song.createSongRepresentation(userSettings: userSettings, srcText: self.srcText, transpose: self.transpose, forPrinting: forPrinting)
     }
     
+    // Ist static, um "self" im Closure bei processSongInBackground() weg zu bekommen. Self == Song ist nicht Sendable
     static private func createSongRepresentation(userSettings: UserSettings, srcText: String, transpose: Int, forPrinting: Bool) -> SongRepresentation? {
         do {
             print("songRepresentation")
