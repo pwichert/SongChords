@@ -300,6 +300,16 @@
         }
       }
     },
+    "Free songlimit reached.\n\nEnjoying the app? Unlock the full version to manage more songs and make the most out of your experience!" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Das kostenlose Songlimit ist erreicht.\n\nFalls du die App magst, kannst du sie freischalten und beliebig viele Songs verwalten."
+          }
+        }
+      }
+    },
     "German Notation" : {
       "localizations" : {
         "de" : {
@@ -346,6 +356,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Falls du bereits einen Song irgendwo in dem typischen Akkord/Text-Format angezeigt hast, z.B. in einem Browser:"
+          }
+        }
+      }
+    },
+    "Illegal songtitle" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ungültiger Songtitel"
           }
         }
       }

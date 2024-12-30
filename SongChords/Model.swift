@@ -9,8 +9,18 @@ import SwiftUI
 import SwiftData
 import UniformTypeIdentifiers
 
-enum SongError: Error {
-    case illegalSongname
+enum SongChordsError: Error {
+    case illegalSongtitle
+    case limitReached
+
+    var description: String {
+        switch self {
+        case .illegalSongtitle:
+            return String(localized: "Illegal songtitle")
+        case .limitReached:
+            return String(localized: "Free songlimit reached.\n\nEnjoying the app? Unlock the full version to manage more songs and make the most out of your experience!")
+        }
+    }
 }
 
 @Model
@@ -70,9 +80,9 @@ final class PlayList: Codable {
         }
     }
     
-    public func sortedInsert(songs: [Song]?) {
+    public func sortAndCopy(songs: [Song]?, modelContext: ModelContext) throws {
         for song in (songs ?? []).sorted(by: { $0.seq < $1.seq }) {
-            let newSong = Song(title: song.title)
+            let newSong = try Song(title: song.title, modelContext: modelContext)
             newSong.updateFromSong(other: song)
             newSong.toPlaylist(playlist: self)
         }
@@ -224,6 +234,7 @@ final public class Song: Codable {
     
     @Transient let representationHolder = RepresentationHolder()
     @Transient private static let taskManager = TaskManager()
+    @Transient static let maxSongs = 10000000
     
     private actor TaskManager {
         private var processingTask: Task<Void, Never>?
@@ -234,13 +245,16 @@ final public class Song: Codable {
         }
     }
     
-    init(title: String = "") {
+    init(title: String, modelContext: ModelContext) throws {
+        if !Song.isValidFilename(title) {
+            throw SongChordsError.illegalSongtitle
+        }
+        
+        if Song.countSongs(in: modelContext) > Song.maxSongs {
+            throw SongChordsError.limitReached
+        }
+        
         self.title = title.trimmingCharacters(in: .whitespaces)
-    }
-    
-    init(title: String = "", playlist: PlayList) {
-        self.title = title.trimmingCharacters(in: .whitespaces)
-        toPlaylist(playlist: playlist)
     }
 
     func processSongInBackground(userSettings: UserSettings, forPrinting: Bool) {
@@ -337,7 +351,7 @@ final public class Song: Codable {
         return try encoder.encode(self)
     }
     
-    static func fromSrcText(url: URL) throws -> Song {
+    static func srcTextFromText(url: URL, modelContext: ModelContext) throws -> (title: String, srcText: String) {
         let startSecurityScope = url.startAccessingSecurityScopedResource()
         let songData = try Data(contentsOf: url)
         if startSecurityScope { url.stopAccessingSecurityScopedResource() }
@@ -345,23 +359,17 @@ final public class Song: Codable {
         let srcText = String(decoding: songData, as: UTF8.self)
 
         let fileName = url.deletingPathExtension().lastPathComponent
-        if !Song.isValidFilename(fileName) { throw SongError.illegalSongname }
+        if !Song.isValidFilename(fileName) { throw SongChordsError.illegalSongtitle }
         
-        let song = Song(title: fileName)
-        song.srcText = srcText
-        return song
+        return (fileName, srcText)
     }
     
-    func toTempFile(filename: String) -> URL? {
+    func toTempFile(filename: String) throws -> URL {
         let tempDirectory = FileManager.default.temporaryDirectory
         let fileURL = tempDirectory.appendingPathComponent(filename)
         print(fileURL.absoluteString)
-        do {
-            try toUrl(url: fileURL)
-            return fileURL
-        } catch {
-            return nil
-        }
+        try toUrl(url: fileURL)
+        return fileURL
     }
     
     static func fetchSongs(with ids: Set<PersistentIdentifier>, in context: ModelContext) -> [Song] {
@@ -396,10 +404,9 @@ final public class Song: Codable {
         return true
     }
     
-    static func countSongs(modelContext: ModelContext) -> Int {
+    static func countSongs(in modelContext: ModelContext) -> Int {
         let desc = FetchDescriptor<Song>()
-        let res = (try? modelContext.fetchCount(desc)) ?? 0
-        return res
+        return (try? modelContext.fetchCount(desc)) ?? 0
     }
     
     enum CodingKeys: CodingKey {

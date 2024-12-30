@@ -14,6 +14,7 @@ struct SongEditView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
     @Environment(UserSettings.self) private var userSettings
+    @Environment(GlobalError.self) private var globalError
 
     @State private var title: String = ""
     @State private var srcText: String = ""
@@ -77,15 +78,19 @@ struct SongEditView: View {
                         }
                         if changed { song.processSongInBackground(userSettings: userSettings, forPrinting: false) }
                     } else {
-                        changed = true
-                        let song = Song(title: title)
-                        modelContext.insert(song)
-                        try? modelContext.save()
-                        song.srcText = srcText
-                        song.transpose = Int(transpose)
-                        song.toPlaylist(playlist: playlist)
-
-                        song.processSongInBackground(userSettings: userSettings, forPrinting: false)
+                        do {
+                            let song = try Song(title: title, modelContext: modelContext)
+                            modelContext.insert(song)
+                            try modelContext.save()
+                            song.srcText = srcText
+                            song.transpose = Int(transpose)
+                            song.toPlaylist(playlist: playlist)
+                            
+                            song.processSongInBackground(userSettings: userSettings, forPrinting: false)
+                            changed = true
+                        } catch (let error) {
+                            globalError.setSongChordsError(error: error)
+                        }
                     }
                     
                     dismiss()

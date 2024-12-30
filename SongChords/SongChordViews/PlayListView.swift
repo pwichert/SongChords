@@ -21,7 +21,8 @@ struct PlayListView: View {
     @Binding var visibility: NavigationSplitViewVisibility
     
     @Environment(\.modelContext) private var modelContext
-    
+    @Environment(GlobalError.self) private var globalError
+
     #if os(iOS)
     @State private var editMode: EditMode = .inactive
     #endif
@@ -29,7 +30,7 @@ struct PlayListView: View {
     @State private var showPlaylistNewView: Bool = false
     @State private var renamePlaylist: PlayList?
     @State private var showDeleteAlert: Bool = false
-    
+
     @State private var showOptionsView: Bool = false
     @State private var showPrintOptionsView: Bool = false
     @State private var showInfoView: Bool = false
@@ -52,21 +53,39 @@ struct PlayListView: View {
                             renamePlaylist = playlist
                         }
                         Button("Delete", role: .destructive) {
-                            if !deletePlaylist(playlist: playlist) {
-                                showDeleteAlert.toggle()
+                            do {
+                                if !(try deletePlaylist(playlist: playlist)) {
+                                    showDeleteAlert.toggle()
+                                }
+                            } catch (let error) {
+                                globalError.setSongChordsError(error: error)
                             }
                         }
                     }
                     .dropDestination(for: Data.self) { receivedDatas, location in
-                        return dropDestinationData(playlist: playlist, data: receivedDatas, modelContext: modelContext)
+                        do {
+                            return try dropDestinationData(playlist: playlist, data: receivedDatas, modelContext: modelContext)
+                        } catch(let error) {
+                            globalError.setSongChordsError(error: error)
+                            return false
+                        }
                     }
                     .dropDestination(for: Song.self) { receivedSongs, location in
-                        return dropDestinationSongs(playlist: playlist, songs: receivedSongs, modelContext: modelContext)
+                        do {
+                            return try dropDestinationSongs(playlist: playlist, songs: receivedSongs, modelContext: modelContext)
+                        } catch(let error) {
+                            globalError.setSongChordsError(error: error)
+                            return false
+                        }
                     }
             }
             .onDelete { indexSet in
-                if !deletePlaylists(offsets: indexSet) {
-                    showDeleteAlert.toggle()
+                do {
+                    if !(try deletePlaylists(offsets: indexSet)) {
+                        showDeleteAlert.toggle()
+                    }
+                } catch (let error) {
+                    globalError.setSongChordsError(error: error)
                 }
             }
             .onMove(perform: movePlaylists)
@@ -75,7 +94,7 @@ struct PlayListView: View {
         .toolbar {
             #if os(macOS)
             ToolbarItem {
-                Button(action: { showPlaylistNewView.toggle() }, label: { Image(systemName: "plus.circle") })
+                Button(action: { showPlaylistNewView.toggle() }, label: { Image(systemName: "plus.circle") }).help("New Playlist")
             }
             #else
             ToolbarItem(placement: .bottomBar) { // Fügt Menü unten hinzu
@@ -179,7 +198,11 @@ struct PlayListView: View {
             Button("Import") {
                 withAnimation {
                     if let openUrl = openUrl {
-                        importPlaylist(url: openUrl)
+                        do {
+                            try importPlaylist(url: openUrl)
+                        } catch (let error) {
+                            globalError.setSongChordsError(error: error)
+                        }
                     }
                 }
             }
@@ -198,15 +221,15 @@ struct PlayListView: View {
         #endif
     }
     
-    private func deletePlaylist(playlist: PlayList) -> Bool {
+    private func deletePlaylist(playlist: PlayList) throws -> Bool {
         if (playlist.songs ?? []).count > 0 { return false }
         
         modelContext.delete(playlist)
-        try? modelContext.save()
+        try modelContext.save()
         return true
     }
     
-    private func deletePlaylists(offsets: IndexSet) -> Bool {
+    private func deletePlaylists(offsets: IndexSet) throws -> Bool {
         if offsets.isEmpty { return true }
         
         let sortedPlaylists = playlists
@@ -214,12 +237,12 @@ struct PlayListView: View {
             if (sortedPlaylists[index].songs ?? []).count == 0 {
                 modelContext.delete(sortedPlaylists[index])
             } else {
-                try? modelContext.save()
+                try modelContext.save()
                 return false
             }
         }
 
-        try? modelContext.save()
+        try modelContext.save()
         return true
     }
     
@@ -235,18 +258,14 @@ struct PlayListView: View {
         }
     }
     
-    private func importPlaylist(url: URL) {
-        do {
-            let playlist = try PlayList.fromUrl(url: url)
-            let newPlaylist = PlayList(modelContext: modelContext, title: playlist.title)
-            modelContext.insert(newPlaylist)
-            newPlaylist.sortedInsert(songs: playlist.songs)
-            try? modelContext.save()
-        } catch {
-            print(error)
-        }
+    private func importPlaylist(url: URL) throws {
+        let playlist = try PlayList.fromUrl(url: url)
+        let newPlaylist = PlayList(modelContext: modelContext, title: playlist.title)
+        modelContext.insert(newPlaylist)
+        try newPlaylist.sortAndCopy(songs: playlist.songs, modelContext: modelContext)
+        try modelContext.save()
     }
-    
+
     private func printAll() {
         var cnt1: Int = 0
         for p in playlists {
@@ -276,6 +295,7 @@ struct PlaylistEditView: View {
     
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
+    @Environment(GlobalError.self) private var globalError
 
     @State private var playlistTitle: String = ""
 
@@ -300,9 +320,13 @@ struct PlaylistEditView: View {
                     if let playlist {
                         if playlist.title != playlistTitle { playlist.title = playlistTitle }
                     } else {
-                        let playlist = PlayList(modelContext: modelContext, title: playlistTitle, songs: [])
-                        modelContext.insert(playlist)
-                        try? modelContext.save()
+                        do {
+                            let playlist = PlayList(modelContext: modelContext, title: playlistTitle, songs: [])
+                            modelContext.insert(playlist)
+                            try modelContext.save()
+                        } catch (let error) {
+                            globalError.setSongChordsError(error: error)
+                        }
                     }
                     dismiss()
                 }
@@ -333,7 +357,8 @@ struct PlaylistSelectionSheet: View {
     
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) var dismiss
-     
+    @Environment(GlobalError.self) private var globalError
+
     @State private var selectedPlaylist: PlayList.ID?
 
     var body: some View {
@@ -345,9 +370,15 @@ struct PlaylistSelectionSheet: View {
                 Button(action: {
                     if let selectedPlaylist = selectedPlaylist {
                         if let pl = PlayList.fetchPlaylist(with: selectedPlaylist, in: modelContext) {
-                            if let song = try? Song.fromUrl(url: urlToInsert) {
-                                pl.sortedInsert(songs: [song])
-                                try? modelContext.save()
+                            if let urlSong = try? Song.fromUrl(url: urlToInsert) {
+                                do {
+                                    let song = try Song(title: urlSong.title, modelContext: modelContext)
+                                    song.updateFromSong(other: urlSong)
+                                    song.toPlaylist(playlist: pl)
+                                    try modelContext.save()
+                                } catch (let error) {
+                                    globalError.setSongChordsError(error: error)
+                                }
                             }
                         }
                     }

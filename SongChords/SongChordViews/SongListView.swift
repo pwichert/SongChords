@@ -28,7 +28,8 @@ struct SongListView: View {
 
     @Environment(\.modelContext) private var modelContext
     @Environment(UserSettings.self) private var userSettings
-    
+    @Environment(GlobalError.self) private var globalError
+
 #if os(iOS)
     @State private var editMode: EditMode = .inactive
 #endif
@@ -69,12 +70,17 @@ struct SongListView: View {
                         Button(action: {
                             let s = Song.fetchSongs(with: selectedSongIDs.contains(song.id) ? selectedSongIDs : [song.id], in: modelContext)
                             print("Count: \(s.count)")
-                            for song in s {
-                                let sng = Song(title: song.title)
-                                sng.updateFromSong(other: song)
-                                sng.toPlaylist(playlist: playlist, after: song)
+                            do {
+                                for song in s {
+                                    let sng = try Song(title: song.title, modelContext: modelContext)
+                                    sng.updateFromSong(other: song)
+                                    sng.toPlaylist(playlist: playlist, after: song)
+                                }
+                                try modelContext.save()
+                            } catch (let error) {
+                                try? modelContext.save()
+                                globalError.setSongChordsError(error: error)
                             }
-                            try? modelContext.save()
                         }) { Label("Duplicate", systemImage: "doc.on.doc")}
                         
                         Button(role: .destructive, action: { prepareDelete(songIDs: selectedSongIDs.contains(song.id) ? selectedSongIDs : [song.id]) }) { Label("Delete", systemImage: "trash")}
@@ -102,10 +108,11 @@ struct SongListView: View {
         .toolbar {
             #if os(macOS)
             ToolbarItem {
-                Button(action: { songIDsToCopy = IdentifiablePersistentIdentifierSet(identifiers: selectedSongIDs) }, label: { Image(systemName: "plus.circle") })
+                Button(action: { showSongEditView.toggle() }, label: { Image(systemName: "plus.circle") }).help("New Song")
             }
             ToolbarItem {
                 Button(action: { prepareDelete(songIDs: selectedSongIDs) }, label: { Image(systemName: "trash")} ).help("Delete Song(s)")
+                    .disabled(selectedSongIDs.isEmpty)
             }
             #else
             ToolbarItem(placement: .bottomBar) { // Fügt Menü unten hinzu
@@ -188,6 +195,7 @@ struct SongListView: View {
             case .success(let url):
                 print("Gespeichert: \(url)")
             case .failure(let error):
+                globalError.setSongChordsError(error: error)
                 print("Fehler: \(error.localizedDescription)")
             }
         }
@@ -200,13 +208,18 @@ struct SongListView: View {
                     if !success { break }
                 }
             case .failure(let error):
+                globalError.setSongChordsError(error: error)
                 print("Playlist: \(playlist.title): .fileImporter: " + error.localizedDescription)
             }
         }
         .confirmationDialog(Text("Delete \(deleteIndexset.count) Song(s)"), isPresented: $showDeleteAlert, titleVisibility: .visible) {
             Button("Delete", role: .destructive) {
                 if !deleteIndexset.isEmpty {
-                    deleteSongs(playlist: playlist, offsets: deleteIndexset)
+                    do {
+                        try deleteSongs(playlist: playlist, offsets: deleteIndexset)
+                    } catch (let error) {
+                        globalError.setSongChordsError(error: error)
+                    }
                 }
             }
         }
@@ -257,7 +270,7 @@ struct SongListView: View {
         if !deleteIndexset.isEmpty { showDeleteAlert.toggle() }
     }
     
-    private func deleteSongs(playlist: PlayList, offsets: IndexSet) {
+    private func deleteSongs(playlist: PlayList, offsets: IndexSet) throws {
         if offsets.isEmpty || songs.count == 0 { return }
         
         for index in offsets {
@@ -265,7 +278,7 @@ struct SongListView: View {
             modelContext.delete(s)
             playlist.songs?.removeAll(where: { $0.seq == s.seq })
         }
-        try? modelContext.save()
+        try modelContext.save()
         #if os(iOS)
         editMode = .inactive
         #endif
@@ -288,30 +301,39 @@ struct SongListView: View {
             let sections = chordProReverseParser.parse(input: cb!, rootSystem: &root)
             let txt = chordProReverseParser.toString(sections: sections)
             
-            let song = Song(title: "", playlist: playlist)
-            song.title = "Import \(song.seq)"
-            song.srcText = txt
-            playlist.sortedInsert(songs: [song])
-            try? modelContext.save()
+            do {
+                let song = try Song(title: "Import", modelContext: modelContext)
+                song.toPlaylist(playlist: playlist)
+                
+                song.title = "Import \(song.seq)"
+                song.srcText = txt
+                try modelContext.save()
+            } catch (let error) {
+                globalError.setSongChordsError(error: error)
+            }
         }
     }
     
     private func importSongTemplate() {
-        let song = Song(title: String(localized: "New Song"))
-        playlist.sortedInsert(songs: [song])
-
-        song.srcText.append("{st: Subtitle of Song}\n")
-        song.srcText.append("[*%{st}]\n")
-        song.srcText.append("\n")
-        
-        song.srcText.append("[Song Section]\n")
-        song.srcText.append("[Am]Lorem ipsum [D]dolor sit [E]amet\n")
-        song.srcText.append("[G]consetetur [C]sadipscing elitr\n")
-        
-        song.srcText.append("[Another Section]\n")
-        song.srcText.append("[Am]magna aliquyam [D]erat   [E]\n")
-        song.srcText.append("[G]sed diam [C]voluptu\n")
-        try? modelContext.save()
+        do {
+            let song = try Song(title: String(localized: "New Song"), modelContext: modelContext)
+            song.toPlaylist(playlist: playlist)
+            
+            song.srcText.append("{st: Subtitle of Song}\n")
+            song.srcText.append("[*%{st}]\n")
+            song.srcText.append("\n")
+            
+            song.srcText.append("[Song Section]\n")
+            song.srcText.append("[Am]Lorem ipsum [D]dolor sit [E]amet\n")
+            song.srcText.append("[G]consetetur [C]sadipscing elitr\n")
+            
+            song.srcText.append("[Another Section]\n")
+            song.srcText.append("[Am]magna aliquyam [D]erat   [E]\n")
+            song.srcText.append("[G]sed diam [C]voluptu\n")
+            try modelContext.save()
+        } catch (let error) {
+            globalError.setSongChordsError(error: error)
+        }
     }
     
     private func importTextSong(url: URL) -> Bool {
@@ -319,12 +341,14 @@ struct SongListView: View {
         var success = false
         
         do {
-            let song = try Song.fromSrcText(url: url)
-            playlist.sortedInsert(songs: [song])
-            try? modelContext.save()
+            let (title, srcText) = try Song.srcTextFromText(url: url, modelContext: modelContext)
+            let song = try Song(title: title, modelContext: modelContext)
+            song.srcText = srcText
+            song.toPlaylist(playlist: playlist)
+            try modelContext.save()
             success = true
-        } catch {
-            print(error.localizedDescription)
+        } catch (let error) {
+            globalError.setSongChordsError(error: error)
         }
         
         return success
@@ -348,6 +372,7 @@ struct MoveToPlaylistView: View {
     
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
+    @Environment(GlobalError.self) private var globalError
 
     @State private var selectedPlaylist: PlayList.ID?
     
@@ -365,11 +390,16 @@ struct MoveToPlaylistView: View {
                     print("songs to copy: \(String((songIDs?.count ?? 0)))")
                     let fetchedSongs = Song.fetchSongs(with: songIDs ?? [], in: modelContext)
 
-                    if let selectedPlaylist = selectedPlaylist {
-                        if let pl = PlayList.fetchPlaylist(with: selectedPlaylist, in: modelContext) {
-                            pl.sortedInsert(songs: fetchedSongs)
-                            try? modelContext.save()
+                    do {
+                        if let selectedPlaylist = selectedPlaylist {
+                            if let pl = PlayList.fetchPlaylist(with: selectedPlaylist, in: modelContext) {
+                                try pl.sortAndCopy(songs: fetchedSongs, modelContext: modelContext)
+                                try modelContext.save()
+                            }
                         }
+                    } catch (let error) {
+                        try? modelContext.save()
+                        globalError.setSongChordsError(error: error)
                     }
                     #if os(iOS)
                     editMode = .inactive
