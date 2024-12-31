@@ -14,7 +14,7 @@ struct SongEditView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
     @Environment(UserSettings.self) private var userSettings
-    @Environment(GlobalError.self) private var globalError
+    @Environment(Globals.self) private var globals
 
     @State private var title: String = ""
     @State private var srcText: String = ""
@@ -89,7 +89,7 @@ struct SongEditView: View {
                             song.processSongInBackground(userSettings: userSettings, forPrinting: false)
                             changed = true
                         } catch (let error) {
-                            globalError.setSongChordsError(error: error)
+                            globals.setSongChordsError(error: error)
                         }
                     }
                     

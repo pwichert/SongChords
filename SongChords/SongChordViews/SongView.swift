@@ -15,9 +15,9 @@ struct SongView: View {
     @Environment(UserSettings.self) private var userSettings
     @Environment(\.horizontalSizeClass) var horizontalSizeClass
     @Environment(\.modelContext) private var modelContext
+    @Environment(Globals.self) private var globals
 
     @State private var showSongEditView: Bool = false
-    @State private var showShareView: Bool = false
     @State private var pdfUrl: URL?
     
     @State private var showFileExport: Bool = false
@@ -74,21 +74,10 @@ struct SongView: View {
                 Button("Export Song", systemImage: "arrow.up.document", action: { uttype = .songJSON; song.setTransAll();showFileExport.toggle() }).help("Export Song")
             }
             #endif
-            #if false
-            ToolbarItem {
-                Button("Share View", systemImage: "square.and.arrow.up.circle.fill", action: { showShareView.toggle() }).help("Share")
-            }
-            #endif
         }
         .sheet(isPresented: $showSongEditView) {
             NavigationStack {
                 SongEditView(playlist: song.playlist!, song: song)
-            }
-            .interactiveDismissDisabled()
-        }
-        .sheet(isPresented: $showShareView) {
-            NavigationStack {
-                ShareView(song: song)
             }
             .interactiveDismissDisabled()
         }
@@ -103,7 +92,7 @@ struct SongView: View {
             case .success(let url):
                 print("Gespeichert: \(url)")
             case .failure(let error):
-                print("Fehler: \(error.localizedDescription)")
+                globals.setSongChordsError(error: error)
             }
         }
     }
@@ -268,29 +257,6 @@ struct TextsLineView: View {
                                 .offset(CGSize(width: text.fontOffset, height: 0))
                         }
                     }
-                }
-            }
-        }
-    }
-}
-
-
-struct ShareView: View {
-    let song: Song
-    @Environment(\.dismiss) private var dismiss
-
-    var body: some View {
-        Form {
-            ShareLink (item: song, preview: SharePreview(Text(song.title), image: Image("AppIconInternal")))
-            ShareLink (item: song.srcText, subject: Text(song.title), preview: SharePreview(Text(song.title), image: Image("AppIconInternal")))
-            ShareLink (item: try! song.toData(), subject: Text(song.title), preview: SharePreview(Text(song.title), image: Image("AppIconInternal")))
-        }
-        .frame(idealHeight: 500)
-        .navigationTitle("Share")
-        .toolbar {
-            ToolbarItem(placement: .confirmationAction) {
-                Button("Ok") {
-                    dismiss()
                 }
             }
         }

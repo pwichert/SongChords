@@ -12,10 +12,10 @@ extension PlayListView {
     public func dropDestinationData(playlist: PlayList, data: [Data], modelContext: ModelContext) throws -> Bool {
         print(".dropDestination: received (Data) \(data) for playlist \(playlist.title)")
         // erster Versuch mit Data
-        var songs = songsFromDatas(data: data)
+        var songs = try? songsFromDatas(data: data)
         
         // zweiter Versuch mit PersistentIdentifier als Strings
-        if (songs ?? []).isEmpty { songs = songsFromIDStrings(data: data, modelContext: modelContext) }
+        if (songs ?? []).isEmpty { songs = try songsFromIDStrings(data: data, modelContext: modelContext) }
 
         if (songs ?? []).isEmpty { print("no result"); return false }
         
@@ -28,14 +28,14 @@ extension PlayListView {
     
     public func dropDestinationURL(playlist: PlayList, url: [URL], modelContext: ModelContext) throws -> Bool {
         print(".dropDestination: received (URL) \(url) for playlist \(playlist.title)")
-        let songs = songsFromURLs(url: url)
+        let songs = try songsFromURLs(url: url)
         
-        if (songs ?? []).isEmpty { print("no result"); return false }
+        if songs.isEmpty { print("no result"); return false }
         
         try playlist.sortAndCopy(songs: songs, modelContext: modelContext)
         try modelContext.save()
         
-        for s in songs ?? [] { print(s.title) }
+        for s in songs { print(s.title) }
         return true
     }
     
@@ -50,29 +50,17 @@ extension PlayListView {
         return true
     }
     
-    private func songsFromURLs(url: [URL]) -> [Song]? {
-        do {
-            return try url.compactMap { try Song.fromUrl(url: $0) }
-        } catch {
-            return nil
-        }
+    private func songsFromURLs(url: [URL]) throws -> [Song] {
+        return try url.compactMap { try Song.fromUrl(url: $0) }
     }
     
-    private func songsFromDatas(data: [Data]) -> [Song]? {
-        do {
-            return try data.compactMap { try Song.fromData(data: $0) }
-        } catch {
-            return nil
-        }
+    private func songsFromDatas(data: [Data]) throws -> [Song] {
+        return try data.compactMap { try Song.fromData(data: $0) }
     }
     
-    private func songsFromIDStrings(data: [Data], modelContext: ModelContext) -> [Song]? {
-        do {
-            let strings: [String] = data.compactMap { String(data: $0, encoding: .utf8) }
-            let IDs: [PersistentIdentifier] = try strings.compactMap { try PersistentIdentifier.SCfromString($0) }
-            return Song.fetchSongs(with: Set(IDs), in: modelContext)
-        } catch {
-            return nil
-        }
+    private func songsFromIDStrings(data: [Data], modelContext: ModelContext) throws -> [Song] {
+        let strings: [String] = data.compactMap { String(data: $0, encoding: .utf8) }
+        let IDs: [PersistentIdentifier] = try strings.compactMap { try PersistentIdentifier.SCfromString($0) }
+        return Song.fetchSongs(with: Set(IDs), in: modelContext)
     }
 }

@@ -11,10 +11,6 @@ import SwiftUI
     typealias UIFont = NSFont
 #endif
 
-enum ParserError: Error {
-//    case inputTooLarge
-}
-
 public final class SongRepresentation: Identifiable, Sendable {
     public let id = UUID()
     
@@ -292,7 +288,7 @@ public class ChordProParser {
         createSplittedLines()
         
         //print(directiveManager.listDirectives())
-        let directiveManagerSendable = DirectiveManagerSendable(directivesManager: directiveManager)
+        let directiveManagerSendable = DirectiveManagerSendable(directiveManager: directiveManager)
         let sectionsSendable = sections.map( { CPPSectionSendable(cppSection: $0) })
         return SongRepresentation(sections: sectionsSendable, directiveManager: directiveManagerSendable)
         

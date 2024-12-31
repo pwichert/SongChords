@@ -28,7 +28,7 @@ struct SongListView: View {
 
     @Environment(\.modelContext) private var modelContext
     @Environment(UserSettings.self) private var userSettings
-    @Environment(GlobalError.self) private var globalError
+    @Environment(Globals.self) private var globals
 
 #if os(iOS)
     @State private var editMode: EditMode = .inactive
@@ -79,7 +79,7 @@ struct SongListView: View {
                                 try modelContext.save()
                             } catch (let error) {
                                 try? modelContext.save()
-                                globalError.setSongChordsError(error: error)
+                                globals.setSongChordsError(error: error)
                             }
                         }) { Label("Duplicate", systemImage: "doc.on.doc")}
                         
@@ -94,7 +94,7 @@ struct SongListView: View {
                     // TODO: funktioniert nur mit Typen, die bereits Transferable sind (String, URL).
                     // URL ist wegen möglicher gleicher Dateinamen (= Song.title) nicht zu verwenden.
                     // String der persistentModelID funktioniert zwar innerhalb der App, kann aber sinnloserweise ins System gedropped werden.
-                    .draggable(song.persistentModelID.SCtoString()) { Text(song.title) }
+                    .draggable((try? song.persistentModelID.SCtoString()) ?? "") { Text(song.title) }
                     #endif
                 #endif
             }
@@ -195,8 +195,7 @@ struct SongListView: View {
             case .success(let url):
                 print("Gespeichert: \(url)")
             case .failure(let error):
-                globalError.setSongChordsError(error: error)
-                print("Fehler: \(error.localizedDescription)")
+                globals.setSongChordsError(error: error)
             }
         }
         .fileImporter(isPresented: $showFileImport, allowedContentTypes: [.plainText], allowsMultipleSelection: true) { result in
@@ -208,8 +207,7 @@ struct SongListView: View {
                     if !success { break }
                 }
             case .failure(let error):
-                globalError.setSongChordsError(error: error)
-                print("Playlist: \(playlist.title): .fileImporter: " + error.localizedDescription)
+                globals.setSongChordsError(error: error)
             }
         }
         .confirmationDialog(Text("Delete \(deleteIndexset.count) Song(s)"), isPresented: $showDeleteAlert, titleVisibility: .visible) {
@@ -218,7 +216,7 @@ struct SongListView: View {
                     do {
                         try deleteSongs(playlist: playlist, offsets: deleteIndexset)
                     } catch (let error) {
-                        globalError.setSongChordsError(error: error)
+                        globals.setSongChordsError(error: error)
                     }
                 }
             }
@@ -309,7 +307,7 @@ struct SongListView: View {
                 song.srcText = txt
                 try modelContext.save()
             } catch (let error) {
-                globalError.setSongChordsError(error: error)
+                globals.setSongChordsError(error: error)
             }
         }
     }
@@ -332,7 +330,7 @@ struct SongListView: View {
             song.srcText.append("[G]sed diam [C]voluptu\n")
             try modelContext.save()
         } catch (let error) {
-            globalError.setSongChordsError(error: error)
+            globals.setSongChordsError(error: error)
         }
     }
     
@@ -348,7 +346,7 @@ struct SongListView: View {
             try modelContext.save()
             success = true
         } catch (let error) {
-            globalError.setSongChordsError(error: error)
+            globals.setSongChordsError(error: error)
         }
         
         return success
@@ -372,7 +370,7 @@ struct MoveToPlaylistView: View {
     
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
-    @Environment(GlobalError.self) private var globalError
+    @Environment(Globals.self) private var globals
 
     @State private var selectedPlaylist: PlayList.ID?
     
@@ -399,7 +397,7 @@ struct MoveToPlaylistView: View {
                         }
                     } catch (let error) {
                         try? modelContext.save()
-                        globalError.setSongChordsError(error: error)
+                        globals.setSongChordsError(error: error)
                     }
                     #if os(iOS)
                     editMode = .inactive

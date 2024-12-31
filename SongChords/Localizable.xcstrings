@@ -360,16 +360,6 @@
         }
       }
     },
-    "Illegal songtitle" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ungültiger Songtitel"
-          }
-        }
-      }
-    },
     "Import" : {
       "shouldTranslate" : false
     },
@@ -416,6 +406,16 @@
     "Info" : {
       "shouldTranslate" : false
     },
+    "Invalid title" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ungültiger Name"
+          }
+        }
+      }
+    },
     "light" : {
       "localizations" : {
         "de" : {
@@ -457,6 +457,9 @@
       }
     },
     "Ok" : {
+      "shouldTranslate" : false
+    },
+    "Ok, ich überleg's mir" : {
       "shouldTranslate" : false
     },
     "Options" : {
@@ -551,12 +554,6 @@
           }
         }
       }
-    },
-    "Share" : {
-      "shouldTranslate" : false
-    },
-    "Share View" : {
-      "shouldTranslate" : false
     },
     "SongChords" : {
       "shouldTranslate" : false

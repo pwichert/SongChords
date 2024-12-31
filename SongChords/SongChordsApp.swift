@@ -24,21 +24,21 @@ struct SongChordsApp: App {
     }()
 
     @State private var userSettings: UserSettings = UserSettings()
-    @State private var globalError: GlobalError = GlobalError()
+    @State private var globals: Globals = Globals()
 
     var body: some Scene {
         #if os(macOS)
         Window ("SongChords", id: "main") {
             ContentView()
                 .environment(userSettings)
-                .environment(globalError)
+                .environment(globals)
         }
         .modelContainer(sharedModelContainer)
         #else
         WindowGroup {
             ContentView()
                 .environment(userSettings)
-                .environment(globalError)
+                .environment(globals)
         }
         .modelContainer(sharedModelContainer)
         #endif

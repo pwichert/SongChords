@@ -75,13 +75,14 @@ final class DirectiveManagerSendable: Sendable {
     let columns: Int
     let duration: Int
     
-    init (directivesManager: DirectiveManager) {
-        self.directives = directivesManager.directives
-        self.transpose = directivesManager.transpose
-        self.columns = directivesManager.columns
-        self.duration = directivesManager.duration
+    init (directiveManager: DirectiveManager) {
+        self.directives = directiveManager.directives
+        self.transpose = directiveManager.transpose
+        self.columns = directiveManager.columns
+        self.duration = directiveManager.duration
     }
     
+    // Kopie
     func getDirective(_ input: String) -> String? {
         if let directive = parseDirective(input) {
             return directives[directive]
@@ -89,6 +90,7 @@ final class DirectiveManagerSendable: Sendable {
         return nil
     }
     
+    // Kopie
     private func parseDirective(_ input: String) -> DirectiveType? {
         // Prüfen, ob es sich um eine vollständige Direktive oder Abkürzung handelt
         if let directive = DirectiveType(rawValue: input.lowercased()) {

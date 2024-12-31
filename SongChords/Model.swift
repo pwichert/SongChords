@@ -9,14 +9,20 @@ import SwiftUI
 import SwiftData
 import UniformTypeIdentifiers
 
-enum SongChordsError: Error {
-    case illegalSongtitle
+enum SongChordsError: Error, Equatable {
+    case invalidSongtitle
+    case invalidPlaylisttitle
+    case playlistNotEmpty
     case limitReached
 
-    var description: String {
+    var desc: String {
         switch self {
-        case .illegalSongtitle:
-            return String(localized: "Illegal songtitle")
+        case .invalidPlaylisttitle:
+            return String(localized: "Invalid title")
+        case .invalidSongtitle:
+            return String(localized: "Invalid title")
+        case .playlistNotEmpty:
+            return String(localized: "Playlist must be empty")
         case .limitReached:
             return String(localized: "Free songlimit reached.\n\nEnjoying the app? Unlock the full version to manage more songs and make the most out of your experience!")
         }
@@ -30,28 +36,27 @@ final class PlayList: Codable {
     
     @Relationship(deleteRule: .cascade, inverse: \Song.playlist) var songs: [Song]? = [Song]()
     
-    init(modelContext: ModelContext, title: String, songs: [Song] = []) {
-        self.seq = nextPlaylistSeq(modelContext: modelContext)
+    init(modelContext: ModelContext, title: String, songs: [Song] = []) throws {
+        if !Song.isValidFilename(title) {
+            throw SongChordsError.invalidPlaylisttitle
+        }
+        
+        self.seq = try nextPlaylistSeq(modelContext: modelContext)
         self.title = title.trimmingCharacters(in: .whitespaces)
         self.songs = songs
     }
     
-    private func nextPlaylistSeq(modelContext: ModelContext) -> Int {
-        do {
-            let playlists = try modelContext.fetch(FetchDescriptor<PlayList>())
-            if playlists.isEmpty { print("nextPlaylistSeq: 0"); return 0 }
-
-            var maxSeq = 0
-            for s in playlists {
-                maxSeq = max(maxSeq, s.seq)
-            }
-            
-            print("nextPlaylistSeq: \(maxSeq + 1)")
-            return maxSeq + 1
-        } catch {
-            print("error fetching nextPlaylistSeq: \(error.localizedDescription)")
-            return 0
+    private func nextPlaylistSeq(modelContext: ModelContext) throws -> Int {
+        let playlists = try modelContext.fetch(FetchDescriptor<PlayList>())
+        if playlists.isEmpty { print("nextPlaylistSeq: 0"); return 0 }
+        
+        var maxSeq = 0
+        for s in playlists {
+            maxSeq = max(maxSeq, s.seq)
         }
+        
+        print("nextPlaylistSeq: \(maxSeq + 1)")
+        return maxSeq + 1
     }
     
     func nextSongSeq() -> Int {
@@ -102,22 +107,6 @@ final class PlayList: Codable {
     
     static func fetchPlaylist(with id: PlayList.ID, in context: ModelContext) -> PlayList? {
         return id.SCpersistentModel(from: context)
-    }
-    
-    static func isValidTitle(_ playlistTitle: String) -> Bool {
-        // Liste der ungültigen Zeichen für Playliste
-        let invalidCharacters = CharacterSet(charactersIn: "/\\|\"")
-            .union(.illegalCharacters)
-            .union(.controlCharacters)
-            .union(.symbols)
-            .union(.newlines)
-        
-        // Überprüfen, ob der Dateiname leer ist oder ungültige Zeichen enthält
-        if playlistTitle.trimmingCharacters(in: .whitespaces).isEmpty || playlistTitle.rangeOfCharacter(from: invalidCharacters) != nil  || playlistTitle.count > 300 {
-            return false
-        }
-        
-        return true
     }
     
     static func fromUrl(url: URL) throws -> PlayList {
@@ -210,7 +199,7 @@ extension UTType {
 
 final class RepresentationHolder: ObservableObject, @unchecked Sendable {
     @MainActor
-    @Published private(set) var songRepresentation: SongRepresentation = SongRepresentation(sections: [], directiveManager: DirectiveManagerSendable(directivesManager: DirectiveManager()))
+    @Published private(set) var songRepresentation: SongRepresentation = SongRepresentation(sections: [], directiveManager: DirectiveManagerSendable(directiveManager: DirectiveManager()))
     
     @MainActor
     func updateSongRepresentation(_ newRepresentation: SongRepresentation) {
@@ -247,10 +236,10 @@ final public class Song: Codable {
     
     init(title: String, modelContext: ModelContext) throws {
         if !Song.isValidFilename(title) {
-            throw SongChordsError.illegalSongtitle
+            throw SongChordsError.invalidSongtitle
         }
         
-        if Song.countSongs(in: modelContext) > Song.maxSongs {
+        if try Song.countSongs(in: modelContext) > Song.maxSongs {
             throw SongChordsError.limitReached
         }
         
@@ -359,7 +348,7 @@ final public class Song: Codable {
         let srcText = String(decoding: songData, as: UTF8.self)
 
         let fileName = url.deletingPathExtension().lastPathComponent
-        if !Song.isValidFilename(fileName) { throw SongChordsError.illegalSongtitle }
+        if !Song.isValidFilename(fileName) { throw SongChordsError.invalidSongtitle }
         
         return (fileName, srcText)
     }
@@ -404,9 +393,9 @@ final public class Song: Codable {
         return true
     }
     
-    static func countSongs(in modelContext: ModelContext) -> Int {
+    static func countSongs(in modelContext: ModelContext) throws -> Int {
         let desc = FetchDescriptor<Song>()
-        return (try? modelContext.fetchCount(desc)) ?? 0
+        return try modelContext.fetchCount(desc)
     }
     
     enum CodingKeys: CodingKey {
@@ -571,23 +560,13 @@ extension PersistentIdentifier {
 }
 
 extension PersistentIdentifier {
-    enum SCPersistenceError: Error {
-        case invalidJSONData
-    }
-    
-    public func SCtoString() -> String {
-        do {
-            let jsonData = try JSONEncoder().encode(self)
-            return String(data: jsonData, encoding: .utf8) ?? "{}" // JSON-Daten in String umwandeln
-        } catch {
-            print("Error encoding JSON: \(error)")
-            return "{}"
-        }
+    public func SCtoString() throws -> String? {
+        let jsonData = try JSONEncoder().encode(self)
+        return String(data: jsonData, encoding: .utf8)
     }
     
     public static func SCfromString(_ string: String) throws -> PersistentIdentifier? {
-        let jsonData = string.data(using: .utf8)
-        guard let jsonData else { throw SCPersistenceError.invalidJSONData }
+        guard let jsonData = string.data(using: .utf8) else { return nil }
         return try JSONDecoder().decode(PersistentIdentifier.self, from: jsonData)
     }
 }
