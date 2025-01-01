@@ -61,7 +61,7 @@ struct SongView: View {
             }
             #endif
             ToolbarItem {
-                Button("ChordPro Text", systemImage: "pencil", action: { showSongEditView.toggle() }).help("Edit ChordPro Text")
+                Button("ChordPro Text", systemImage: "pencil", action: { pdfUrl = nil; showSongEditView.toggle() }).help("Edit ChordPro Text")
             }
             ToolbarItem {
                 Button("Toggle PDF", systemImage: pdfUrl == nil ? "text.rectangle.page" : "text.page", action: { if pdfUrl == nil { showPdf() } else { pdfUrl = nil } }).help("Toggle PDF")

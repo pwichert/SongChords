@@ -89,6 +89,8 @@ class PrintSongDelegate: NSObject, PrintDelegateBase, UIPrintInteractionControll
             topPadding = 0
 
             for section in songRepresentation.sections {
+                if section.isNewPage { gen.setNewPage() }
+
                 if song.showHeader && section.name.trimmingCharacters(in: .whitespaces).count > 0 {
                     gen.draw(col: section.col, view:
                                 SectionHeaderView(section: section, lightColor: Color.init(red: 0.95, green: 0.95, blue: 0.95), darkColor: Color.init(red: 0.15, green: 0.15, blue: 0.15))

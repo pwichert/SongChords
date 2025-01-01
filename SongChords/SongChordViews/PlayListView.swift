@@ -306,17 +306,18 @@ struct PlaylistEditView: View {
         .toolbar {
             ToolbarItem(placement: .confirmationAction) {
                 Button("Save") {
-                    if let playlist {
-                        if playlist.title != playlistTitle { playlist.title = playlistTitle }
-                    } else {
-                        do {
+                    do {
+                        if let playlist {
+                            if playlist.title != playlistTitle { playlist.title = playlistTitle; try modelContext.save() }
+                        } else {
                             let playlist = try PlayList(modelContext: modelContext, title: playlistTitle, songs: [])
                             modelContext.insert(playlist)
                             try modelContext.save()
-                        } catch (let error) {
-                            globals.setSongChordsError(error: error)
                         }
+                    } catch (let error) {
+                        globals.setSongChordsError(error: error)
                     }
+                    
                     dismiss()
                 }
                 .disabled(playlistTitle.isEmpty || !Song.isValidFilename(playlistTitle))
@@ -370,6 +371,7 @@ struct PlaylistSelectionSheet: View {
                             }
                         }
                     }
+                    
                     dismiss()
                 }) {
                     Text("Done")

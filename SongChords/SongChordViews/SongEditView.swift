@@ -64,33 +64,35 @@ struct SongEditView: View {
         .toolbar {
             ToolbarItem(placement: .confirmationAction) {
                 Button("Save") {
-                    var changed: Bool = false
-                    
-                    if let song {
-                        if song.title != title { song.title = title }
-                        if song.srcText != srcText {
-                            song.srcText = srcText
-                            changed = true
-                        }
-                        if song.transpose != Int(transpose) {
-                            song.transpose = Int(transpose)
-                            changed = true
-                        }
-                        if changed { song.processSongInBackground(userSettings: userSettings, forPrinting: false) }
-                    } else {
-                        do {
+                    do {
+                        var changed: Bool = false
+
+                        if let song {
+                            if song.title != title { song.title = title; try modelContext.save() }
+                            if song.srcText != srcText {
+                                song.srcText = srcText
+                                changed = true
+                            }
+                            if song.transpose != Int(transpose) {
+                                song.transpose = Int(transpose)
+                                changed = true
+                            }
+                            if changed {
+                                song.processSongInBackground(userSettings: userSettings, forPrinting: false)
+                                try modelContext.save()
+                            }
+                        } else {
                             let song = try Song(title: title, modelContext: modelContext)
                             modelContext.insert(song)
-                            try modelContext.save()
                             song.srcText = srcText
                             song.transpose = Int(transpose)
                             song.toPlaylist(playlist: playlist)
                             
                             song.processSongInBackground(userSettings: userSettings, forPrinting: false)
-                            changed = true
-                        } catch (let error) {
-                            globals.setSongChordsError(error: error)
+                            try modelContext.save()
                         }
+                    } catch (let error) {
+                        globals.setSongChordsError(error: error)
                     }
                     
                     dismiss()
