@@ -79,7 +79,7 @@ struct SongEditView: View {
                             }
                             if changed {
                                 song.processSongInBackground(userSettings: userSettings, forPrinting: false)
-                                try modelContext.save()
+                                if modelContext.hasChanges { try modelContext.save() }
                             }
                         } else {
                             let song = try Song(title: title, modelContext: modelContext)

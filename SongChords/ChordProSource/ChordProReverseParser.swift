@@ -50,7 +50,7 @@ public class ChordProReverseParser {
                 
                 if let lastSection = lastSection { sections.append(lastSection) }
                 sectionName = String(line[s..<e])
-                lastSection = CPPSection(name: sectionName, lines: [], onNewPage: false)
+                lastSection = CPPSection(name: sectionName)
                 
                 continue
             }
@@ -59,7 +59,7 @@ public class ChordProReverseParser {
                 // aktuelle Zeile sind Chords
                 if let last = lastLine, last.isChord {
                     // letzte Zeile waren auch Chords, also eine einzelne Chordzeile ohne Text
-                    if lastSection == nil { lastSection = CPPSection(name: sectionName, lines: [], onNewPage: false) }
+                    if lastSection == nil { lastSection = CPPSection(name: sectionName) }
                     lastSection!.splittedLines.append(SplittedLine(chords: last.textElement))
                 }
                 // für nächste Zeile merken
@@ -69,14 +69,14 @@ public class ChordProReverseParser {
                 // aktuelle Zeile keine Chords
                 if let last = lastLine, last.isChord {
                     // letzte Zeile waren Chords, also komplette Chord/Text-Zeile
-                    if lastSection == nil { lastSection = CPPSection(name: sectionName, lines: [], onNewPage: false)}
+                    if lastSection == nil { lastSection = CPPSection(name: sectionName)}
                     lastSection!.splittedLines.append(SplittedLine(chords: last.textElement, texts: curLine.textElement))
 
                     // Text als erledigt merken
                     lastLine = nil
                 } else  {
                     // letzte Zeile waren keine Chords, also eine einzelne Textzeile ohne Chord
-                    if lastSection == nil { lastSection = CPPSection(name: sectionName, lines: [], onNewPage: false)}
+                    if lastSection == nil { lastSection = CPPSection(name: sectionName)}
                     lastSection!.splittedLines.append(SplittedLine(texts: curLine.textElement))
                  
                     // Text als erledigt merken
