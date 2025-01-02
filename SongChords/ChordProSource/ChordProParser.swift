@@ -21,12 +21,39 @@ public final class SongRepresentation: Identifiable, Sendable {
         self.sections = sections
         self.directiveManager = directiveManager
     }
+    
+    public func toChordProString() -> String {
+        var result = ""
+        
+        for section in sections {
+            result += "'" + section.name + "'" + "\n"
+            for line in section.lines {
+                for element in line.elements {
+                    switch element.type {
+                    case .chord(let chord, _, _):
+                        result += "[" + chord + "]"
+                    case.chordcomment(let comment, _, _):
+                        result += comment
+                    case .text(let text, _):
+                        result += text
+                    case .comment(let text, _):
+                        result += text
+                    }
+                }
+                
+                result += "\n"
+            }
+        }
+        
+        return result
+    }
 }
 
 final class CPPSectionSendable: Identifiable, Sendable {
     public let id = UUID()
     
     let name: String
+    let lines: [LineSendable]
     let splittedLines: [SplittedLine]
     let isNewPage: Bool
     let isColumnBreak: Bool
@@ -38,6 +65,7 @@ final class CPPSectionSendable: Identifiable, Sendable {
         self.isNewPage = cppSection.isNewPage
         self.isColumnBreak = cppSection.isColumnBreak
         self.col = cppSection.col
+        self.lines = cppSection.lines.map({ LineSendable(line: $0) })
     }
 }
 
@@ -112,7 +140,7 @@ struct LineSendable: Identifiable, Sendable {
     }
     
     func toString() -> String {
-        var res = elements.map( { $0.toString() + " " } ).joined()
+        let res = elements.map( { $0.toString() + " " } ).joined()
         return "[np:\(lineIsNewPage)][cb:\(lineIsColumnBreak)]\(res)"
     }
 }
@@ -124,7 +152,7 @@ class Line: Identifiable {
     var lineIsNewPage: Bool = false
     
     func toString() -> String {
-        var res = elements.map( { $0.toString() + " " } ).joined()
+        let res = elements.map( { $0.toString() + " " } ).joined()
         return "[np:\(lineIsNewPage)][cb:\(lineIsColumnBreak)]\(res)"
     }
 }
@@ -303,7 +331,6 @@ public class ChordProParser {
                         // vor dem Löschen die Info übernehmen
                         nextlineIsNewPage = cLine.lineIsNewPage
                         nextlineIsColumnBreak = cLine.lineIsColumnBreak
-                        
                         cSection.lines = cSection.lines.dropLast()
                     }
 
@@ -359,16 +386,21 @@ public class ChordProParser {
 
         func getSection(_ new: Bool = false) -> CPPSection {
             if cSection == nil || new {
-                cSection = CPPSection(name: "")
-                sections.append(cSection!)
+                // leere sections vermeiden
+                if let last = sections.last, last.lines.isEmpty && last.name.isEmpty{
+                    cSection = last
+                } else {
+                    cSection = CPPSection(name: "")
+                    sections.append(cSection!)
+                }
                 cLine = nil
             }
             return cSection!
         }
 
         func getLine(_ new: Bool = false) -> Line {
+            let section = getSection()
             if cLine == nil || new {
-                let section = getSection()
                 cLine = Line()
                 section.lines.append(cLine!)
             }
