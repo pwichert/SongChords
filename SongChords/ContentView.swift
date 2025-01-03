@@ -9,6 +9,8 @@ import SwiftUI
 import SwiftData
 
 struct ContentView: View {
+    let store: SongChordsStore
+    
     @State private var visibility: NavigationSplitViewVisibility = .all
     @State private var selectedPlaylistID: PersistentIdentifier?
     @State private var selectedSongIDs: Set<PersistentIdentifier> = []
@@ -50,9 +52,10 @@ struct ContentView: View {
         .alert((globals.songChordsError?.error as? SongChordsError)?.desc ?? globals.songChordsError?.error.localizedDescription ?? "??", isPresented: $showAlert) {
             Button("Ok") { }
         }
-        .alert(SongChordsError.limitReached.desc, isPresented: $showStore) {
-            // Hier die View zum Kaufen starten
-            Button("Ok, ich überleg's mir") { }
+        .sheet(isPresented: $showStore) {
+            NavigationStack {
+                SongChordsStoreView(store: store)
+            }
         }
         .onChange(of: globals.songChordsError) { globals.songChordsError?.error as? SongChordsError == SongChordsError.limitReached ? showStore.toggle() : showAlert.toggle() }
         .onChange(of: selectedPlaylistID) { selectedSongIDs = [] }      // ContentUnavailable in SongView

@@ -162,6 +162,25 @@ struct SongChordsTests {
         tokens = try ChordProLexer(input: inputText).tokenize()
         songRepresentation = try ChordProParser(userSettings: userSettings, songTranspose: 0, tokens: tokens, forPrinting: false).parse()
         #expect(songRepresentation.toChordProString() == expectedResult)
+
+        
+        inputText = """
+        {title: Simple Song}
+        {sov: vers}
+        [abc]
+        {eov}
+        [G]This is a [C]simple [D]song.
+        """
+        expectedResult = """
+        'vers'
+        'abc'
+        ''
+        [G]This is a [C]simple [D]song.
+        
+        """
+        tokens = try ChordProLexer(input: inputText).tokenize()
+        songRepresentation = try ChordProParser(userSettings: userSettings, songTranspose: 0, tokens: tokens, forPrinting: false).parse()
+        #expect(songRepresentation.toChordProString() == expectedResult)
     }
     
     @Test func testChords() async throws {

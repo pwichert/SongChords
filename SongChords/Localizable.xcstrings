@@ -456,10 +456,17 @@
         }
       }
     },
-    "Ok" : {
-      "shouldTranslate" : false
+    "No products available" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keine Produkte vorhanden"
+          }
+        }
+      }
     },
-    "Ok, ich überleg's mir" : {
+    "Ok" : {
       "shouldTranslate" : false
     },
     "Options" : {
@@ -556,6 +563,9 @@
       }
     },
     "SongChords" : {
+      "shouldTranslate" : false
+    },
+    "SongChords Store" : {
       "shouldTranslate" : false
     },
     "system" : {

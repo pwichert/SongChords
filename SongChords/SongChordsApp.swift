@@ -10,6 +10,8 @@ import SwiftData
 
 @main
 struct SongChordsApp: App {
+    @Environment(\.scenePhase) private var scenePhase
+    
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
             Song.self, PlayList.self
@@ -25,22 +27,37 @@ struct SongChordsApp: App {
 
     @State private var userSettings: UserSettings = UserSettings()
     @State private var globals: Globals = Globals()
+    @State private var songChordsStore: SongChordsStore = SongChordsStore()
 
     var body: some Scene {
         #if os(macOS)
         Window ("SongChords", id: "main") {
-            ContentView()
+            ContentView(store: songChordsStore)
                 .environment(userSettings)
                 .environment(globals)
+                .task(id: scenePhase) {
+                    scenePhaseChanged(scenePhase)
+                }
         }
         .modelContainer(sharedModelContainer)
         #else
         WindowGroup {
-            ContentView()
+            ContentView(store: songChordsStore)
                 .environment(userSettings)
                 .environment(globals)
+                .task(id: scenePhase) {
+                    scenePhaseChanged(scenePhase)
+                }
         }
         .modelContainer(sharedModelContainer)
         #endif
+    }
+    
+    private func scenePhaseChanged(_ phase: ScenePhase) {
+        if scenePhase == .active {
+            songChordsStore.runListener()
+        } else {
+            songChordsStore.stopListener()
+        }
     }
 }

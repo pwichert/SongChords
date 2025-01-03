@@ -199,6 +199,7 @@ extension UTType {
 
 @Observable
 final class RepresentationHolder: @unchecked Sendable {
+    // @MainActor synchronisiert automatisch, ohne expliziten Actor
     @MainActor
     private(set) var songRepresentation: SongRepresentation = SongRepresentation(sections: [], directiveManager: DirectiveManagerSendable(directiveManager: DirectiveManager()))
     
@@ -206,6 +207,7 @@ final class RepresentationHolder: @unchecked Sendable {
     func updateSongRepresentation(_ newRepresentation: SongRepresentation) {
         songRepresentation = newRepresentation
     }
+    
     init() {}
 }
 
@@ -225,7 +227,7 @@ final public class Song: Codable {
     
     @Transient let representationHolder = RepresentationHolder()
     @Transient private static let taskManager = TaskManager()
-    @Transient static let maxSongs = 100000
+    @Transient static let maxSongs = 40000000
     
     private actor TaskManager {
         private var processingTask: Task<Void, Never>?
