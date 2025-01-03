@@ -320,7 +320,7 @@ struct PlaylistEditView: View {
                     
                     dismiss()
                 }
-                .disabled(playlistTitle.isEmpty || !Song.isValidFilename(playlistTitle))
+                .disabled(playlistTitle.isEmpty || !Song.isValidTitle(playlistTitle))
             }
             ToolbarItem(placement: .cancellationAction) {
                 Button("Cancel") {

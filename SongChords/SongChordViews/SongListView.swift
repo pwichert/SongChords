@@ -339,8 +339,9 @@ struct SongListView: View {
         var success = false
         
         do {
-            let (title, srcText) = try Song.srcTextFromText(url: url, modelContext: modelContext)
-            let song = try Song(title: title, modelContext: modelContext)
+            let (filename, srcText) = try Song.srcTextFromText(url: url, modelContext: modelContext)
+            let title = Song.titleFromDirective(srcText: srcText)
+            let song = try Song(title: Song.makeValidTitle(title ?? filename), modelContext: modelContext)
             song.srcText = srcText
             song.toPlaylist(playlist: playlist)
             try modelContext.save()

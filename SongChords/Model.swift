@@ -37,7 +37,7 @@ final class PlayList: Codable {
     @Relationship(deleteRule: .cascade, inverse: \Song.playlist) var songs: [Song]? = [Song]()
     
     init(modelContext: ModelContext, title: String, songs: [Song] = []) throws {
-        if !Song.isValidFilename(title) {
+        if !Song.isValidTitle(title) {
             throw SongChordsError.invalidPlaylisttitle
         }
         
@@ -228,6 +228,7 @@ final public class Song: Codable {
     @Transient let representationHolder = RepresentationHolder()
     @Transient private static let taskManager = TaskManager()
     @Transient static let maxSongs = 40000000
+    @Transient static let invalidTitleCharacters = CharacterSet(charactersIn: "\\").union(.illegalCharacters).union(.controlCharacters).union(.newlines)
     
     private actor TaskManager {
         private var processingTask: Task<Void, Never>?
@@ -239,7 +240,7 @@ final public class Song: Codable {
     }
     
     init(title: String, modelContext: ModelContext) throws {
-        if !Song.isValidFilename(title) {
+        if !Song.isValidTitle(title) {
             throw SongChordsError.invalidSongtitle
         }
         
@@ -339,6 +340,18 @@ final public class Song: Codable {
         return try decoder.decode(Song.self, from: data)
     }
     
+    static func titleFromDirective(srcText: String) -> String? {
+        do {
+            let tokens = try ChordProLexer(input: srcText).tokenize()
+            let songRepresentation = try ChordProParser(userSettings: UserSettings(), songTranspose: 0, tokens: tokens, forPrinting: false).parse()
+            
+            if let titleDirective = songRepresentation.directiveManager.getDirective(DirectiveType.title.rawValue) {
+                return titleDirective
+            }
+        } catch { }
+        return nil
+    }
+    
     func toData() throws -> Data {
         let encoder = JSONEncoder()
         return try encoder.encode(self)
@@ -350,9 +363,7 @@ final public class Song: Codable {
         if startSecurityScope { url.stopAccessingSecurityScopedResource() }
 
         let srcText = String(decoding: songData, as: UTF8.self)
-
         let fileName = url.deletingPathExtension().lastPathComponent
-        if !Song.isValidFilename(fileName) { throw SongChordsError.invalidSongtitle }
         
         return (fileName, srcText)
     }
@@ -380,21 +391,18 @@ final public class Song: Codable {
     static func fetchSong(with id: PersistentIdentifier, in context: ModelContext) -> Song? {
         return id.SCpersistentModel(from: context)
     }
-    
-    static func isValidFilename(_ filename: String) -> Bool {
-        // Liste der ungültigen Zeichen für Dateinamen
-        let invalidCharacters = CharacterSet(charactersIn: "/\\?%*|\"<>:")
-            .union(.illegalCharacters)
-            .union(.controlCharacters)
-            .union(.symbols)
-            .union(.newlines)
-        
-        // Überprüfen, ob der Dateiname leer ist oder ungültige Zeichen enthält
-        if filename.trimmingCharacters(in: .whitespaces).isEmpty || filename.rangeOfCharacter(from: invalidCharacters) != nil || filename.count > 300 {
+
+    static func isValidTitle(_ title: String) -> Bool {
+        // Überprüfen, ob der title leer ist oder ungültige Zeichen enthält
+        if title.trimmingCharacters(in: .whitespaces).isEmpty || title.rangeOfCharacter(from: invalidTitleCharacters) != nil || title.count > 300 {
             return false
         }
         
         return true
+    }
+
+    static func makeValidTitle(_ title: String) -> String {
+        return title.components(separatedBy: invalidTitleCharacters).joined(separator: "-")
     }
     
     static func countSongs(in modelContext: ModelContext) throws -> Int {
