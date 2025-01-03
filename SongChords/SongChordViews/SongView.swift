@@ -117,7 +117,7 @@ struct SongView: View {
 
 struct DetailContent: View {
     let song: Song
-    @ObservedObject var representationHolder: RepresentationHolder
+    var representationHolder: RepresentationHolder
 
     @Environment(UserSettings.self) private var userSettings
     

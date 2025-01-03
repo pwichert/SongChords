@@ -197,14 +197,16 @@ extension UTType {
     static let playlistJSON = UTType(exportedAs: "com.wichert.songchordslist", conformingTo: .json)
 }
 
-final class RepresentationHolder: ObservableObject, @unchecked Sendable {
+@Observable
+final class RepresentationHolder: @unchecked Sendable {
     @MainActor
-    @Published private(set) var songRepresentation: SongRepresentation = SongRepresentation(sections: [], directiveManager: DirectiveManagerSendable(directiveManager: DirectiveManager()))
+    private(set) var songRepresentation: SongRepresentation = SongRepresentation(sections: [], directiveManager: DirectiveManagerSendable(directiveManager: DirectiveManager()))
     
     @MainActor
     func updateSongRepresentation(_ newRepresentation: SongRepresentation) {
         songRepresentation = newRepresentation
     }
+    init() {}
 }
 
 @Model
@@ -223,7 +225,7 @@ final public class Song: Codable {
     
     @Transient let representationHolder = RepresentationHolder()
     @Transient private static let taskManager = TaskManager()
-    @Transient static let maxSongs = 10000000
+    @Transient static let maxSongs = 4
     
     private actor TaskManager {
         private var processingTask: Task<Void, Never>?
