@@ -164,7 +164,7 @@ extension PlayList: Transferable {
         // Export/Import json per AirDrop und Speichern in Datei für Playlist
         // Endung .scplaylist
         CodableRepresentation(contentType: .playlistJSON)
-            .suggestedFileName { $0.title }
+            .suggestedFileName { Song.makeValidFilename($0.title) }
             .exportingCondition { playlist in
                 return !playlist.hideCodable
             }
@@ -172,7 +172,7 @@ extension PlayList: Transferable {
         // Export per FileDialog für PDF-Datei
         // Endung .pdf
         // uttype = .pdf
-        // .fileExporter(isPresented: $showFileExport, item: song, contentTypes: [uttype], defaultFilename: playlist.title)
+        // .fileExporter(isPresented: $showFileExport, item: song, contentTypes: [uttype], defaultFilename: Song.makeValidFilename(playlist.title))
         FileRepresentation(exportedContentType: .pdf, exporting: { playlist in
             print("FileRepresentation (.pdf) exported playlist \(playlist.title)")
             let userSettings = UserSettings()
@@ -186,7 +186,7 @@ extension PlayList: Transferable {
 
             return SentTransferredFile(pdfUrl, allowAccessingOriginalFile: true)
         })
-        .suggestedFileName { $0.title }
+        .suggestedFileName { Song.makeValidFilename($0.title) }
         .exportingCondition { playlist in
             return !playlist.hidePDF
         }
@@ -229,7 +229,8 @@ final public class Song: Codable {
     @Transient private static let taskManager = TaskManager()
     @Transient static let maxSongs = 40000000
     @Transient static let invalidTitleCharacters = CharacterSet(charactersIn: "\\").union(.illegalCharacters).union(.controlCharacters).union(.newlines)
-    
+    @Transient static let invalidFilenameCharacters = CharacterSet(charactersIn: "\\\0/").union(.illegalCharacters).union(.symbols).union(.controlCharacters).union(.newlines)
+
     private actor TaskManager {
         private var processingTask: Task<Void, Never>?
         
@@ -401,8 +402,21 @@ final public class Song: Codable {
         return true
     }
 
+    static func isValidFilename(_ title: String) -> Bool {
+        // Überprüfen, ob der title leer ist oder ungültige Zeichen enthält
+        if title.trimmingCharacters(in: .whitespaces).isEmpty || title.rangeOfCharacter(from: invalidFilenameCharacters) != nil || title.count > 300 {
+            return false
+        }
+        
+        return true
+    }
+
     static func makeValidTitle(_ title: String) -> String {
-        return title.components(separatedBy: invalidTitleCharacters).joined(separator: "-")
+        return title.components(separatedBy: invalidTitleCharacters).joined(separator: "_")
+    }
+    
+    static func makeValidFilename(_ title: String) -> String {
+        return title.components(separatedBy: invalidFilenameCharacters).joined(separator: "_")
     }
     
     static func countSongs(in modelContext: ModelContext) throws -> Int {
@@ -496,7 +510,7 @@ extension Song: Transferable {
         // Export/Import json per AirDrop und Speichern in Datei für Song
         // Endung .songchords
         CodableRepresentation(contentType: .songJSON)
-            .suggestedFileName { $0.title }
+            .suggestedFileName { Song.makeValidFilename($0.title) }
             .exportingCondition { song in
                 return !song.hideCodable
             }
@@ -523,7 +537,7 @@ extension Song: Transferable {
                 throw error
             }
         })
-        .suggestedFileName { $0.title }
+        .suggestedFileName { Song.makeValidFilename($0.title) }
         .exportingCondition { song in
             return !song.hidePDF
         }
@@ -534,14 +548,14 @@ extension Song: Transferable {
         , importing: { data in
             return try fromData(data: data)
         })
-        .suggestedFileName { $0.title }
+        .suggestedFileName { Song.makeValidFilename($0.title) }
         .exportingCondition { song in
             return !song.hideData
         }
 
 //        FileRepresentation(contentType: .songJSON, exporting: { song in
 //            print("FileRepresentation (.songJSON) exported song \(song.title)")
-//            guard let url = song.toTempFile(filename: song.title) else {
+//            guard let url = song.toTempFile(filename: Song.makeValidFilename(song.title)) else {
 //                throw NSError(domain: "Transferable", code: 4, userInfo: ["reason": "Failed to create file"])
 //            }
 //            return SentTransferredFile(url)
@@ -551,13 +565,13 @@ extension Song: Transferable {
 //            let song = try Song.fromUrl(url: received.file)
 //            return song
 //        })
-//        .suggestedFileName { $0.title }
+//        .suggestedFileName { Song.makeValidFilename($0.title) }
 //        .exportingCondition { song in
 //            return !song.hideFile
 //        }
 
 //        ProxyRepresentation(exporting: \.srcText)
-//            .suggestedFileName { $0.title }
+//            .suggestedFileName { Song.makeValidFilename($0.title) }
     }
 }
 

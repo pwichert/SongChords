@@ -87,7 +87,7 @@ struct SongView: View {
                 pdfUrl = nil
             }
         }
-        .fileExporter(isPresented: $showFileExport, item: song, contentTypes: [uttype], defaultFilename: song.title) { result in
+        .fileExporter(isPresented: $showFileExport, item: song, contentTypes: [uttype], defaultFilename: Song.makeValidFilename(song.title)) { result in
             switch result {
             case .success(let url):
                 print("Gespeichert: \(url)")

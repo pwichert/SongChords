@@ -190,7 +190,7 @@ struct SongListView: View {
             #endif
             }
         }
-        .fileExporter(isPresented: $showFileExport, item: playlist, contentTypes: [uttype], defaultFilename: playlist.title) { result in
+        .fileExporter(isPresented: $showFileExport, item: playlist, contentTypes: [uttype], defaultFilename: Song.makeValidFilename(playlist.title)) { result in
             switch result {
             case .success(let url):
                 print("Gespeichert: \(url)")
