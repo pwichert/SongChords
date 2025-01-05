@@ -16,6 +16,10 @@ public enum StoreError: Error {
     case failedVerification
 }
 
+public enum ProductId: String {
+    case songLimit = "iap.songlimit"
+}
+
 @Observable
 final class SongChordsStore: @unchecked Sendable {
     @MainActor
@@ -24,14 +28,43 @@ final class SongChordsStore: @unchecked Sendable {
     @MainActor
     private(set) var purchasedProducts: [Product] = []
     
-    private let productIds = ["sc_lifetime"]
-    private var updateListenerTask: Task<Void, Error>? = nil
-
+    private let productIds = [ProductId.songLimit.rawValue]
+    let freeSongLimit = 5
+    
+#if DEBUG
+    let certificate = "StoreKitTestCertificate"
+#else
+    let certificate = "AppleIncRootCertificate"
+#endif
+    
+    private let taskManager = TaskManager()
+    
+    // Leider können nicht alle Properties in den Actor wandern, da z.B unlockedSongLimit()
+    // in synchronen Umgebungen benötigt wird. Und daraus kann keine synchrone Function gemacht werden(?).
+    // Also bleiben sie erstmal MainActor-synchronisiert.
+    actor TaskManager {
+        private var updateListenerTask: Task<Void, Error>? = nil
+        
+        func stopListener() {
+            print("stop listener")
+            updateListenerTask?.cancel()
+            updateListenerTask = nil
+        }
+        
+        func runListener(store: SongChordsStore) {
+            // Wird vom Scenenwechsel mehrfach unnütz aufgerufen, insb. beim Kaufen (Wechsel .active <-> .inactive)
+            // Daher nicht neu starten, falls er schon läuft.
+            guard updateListenerTask == nil else { return }
+            
+            print("start listener")
+            updateListenerTask = store.listenForTransactions()
+        }
+    }
+    
     init() {
-        //Start a transaction listener as close to app launch as possible so you don't miss any transactions.
-//        runListener()
-
         Task {
+            await taskManager.runListener(store: self)
+
             //During store initialization, request products from the App Store.
             await requestProducts()
 
@@ -41,24 +74,19 @@ final class SongChordsStore: @unchecked Sendable {
     }
     
     deinit {
-        stopListener()
+        print("deinit")
+        
+        Task { [weak self] in
+            await self?.taskManager.stopListener()
+        }
     }
     
-    func stopListener() {
-        print("stop listener")
-        updateListenerTask?.cancel()
-        updateListenerTask = nil
+    func stopListener() async {
+        await taskManager.stopListener()
     }
     
-    func runListener() {
-        print("start listener")
-        updateListenerTask?.cancel()
-        updateListenerTask = listenForTransactions()
-    }
-    
-    @MainActor
-    var isUnlocked: Bool {
-        !purchasedProducts.isEmpty
+    func runListener() async {
+        await taskManager.runListener(store: self)
     }
     
     @MainActor
@@ -69,6 +97,39 @@ final class SongChordsStore: @unchecked Sendable {
     @MainActor
     func setPurchasedProducts(product: [Product]) {
         purchasedProducts = product
+    }
+
+    @MainActor
+    func unlockedSonglimit() -> Bool {
+        return isPurchasedId(ProductId.songLimit.rawValue)
+    }
+    
+    @MainActor
+    func isUnlocked() -> Bool {
+        products.allSatisfy({ isPurchased($0) })
+    }
+    
+    @MainActor
+    func isPurchased(_ product: Product) -> Bool {
+        //Determine whether the user purchases a given product.
+        
+        // Caching, falls kein Netz o.ä.
+//        if UserDefaults.standard.bool(forKey: product.id) { return true }
+
+        return purchasedProducts.contains(product)
+    }
+    
+    @MainActor
+    func isPurchasedId(_ productID: String) -> Bool {
+        //Determine whether the user purchases a given productID.
+        
+        // Caching, falls kein Netz o.ä.
+//        if UserDefaults.standard.bool(forKey: productID) { return true }
+        
+        if let product = products.first(where: { $0.id == productID }) {
+            return purchasedProducts.contains(product)
+        }
+        return false
     }
 
     func listenForTransactions() -> Task<Void, Error> {
@@ -111,35 +172,6 @@ final class SongChordsStore: @unchecked Sendable {
         }
     }
     
-    func purchase(_ product: Product) async throws -> Transaction? {
-        //Begin purchasing the `Product` the user selects.
-        let result = try await product.purchase()
-
-        switch result {
-        case .success(let verification):
-            //Check whether the transaction is verified. If it isn't,
-            //this function rethrows the verification error.
-            let transaction = try checkVerified(verification)
-
-            //The transaction is verified. Deliver content to the user.
-            await updateCustomerProductStatus()
-
-            //Always finish a transaction.
-            await transaction.finish()
-
-            return transaction
-        case .userCancelled, .pending:
-            return nil
-        default:
-            return nil
-        }
-    }
-
-    func isPurchased(_ product: Product) async throws -> Bool {
-        //Determine whether the user purchases a given product.
-        return await purchasedProducts.contains(product)
-    }
-
     func checkVerified<T>(_ result: VerificationResult<T>) throws -> T {
         //Check whether the JWS passes StoreKit verification.
         switch result {
@@ -167,6 +199,12 @@ final class SongChordsStore: @unchecked Sendable {
                     if let product = await products.first(where: { $0.id == transaction.productID }) {
                         if transaction.revocationDate == nil {
                             purchasedProducts.append(product)
+                            // Caching
+                            UserDefaults.standard.set(true, forKey: product.id)
+                        } else {
+                            // kommt bei Transaction.currentEntitlements hier nicht vorbei, da nur die gültigen gelesen werden.
+                            // Führt natürlich dazu, dass zurückgegebene Käufe im Cache nicht bemerkt werden: einmal kaufen, zurückgeben, trotzdem weiternutzen...
+                            UserDefaults.standard.removeObject(forKey: product.id)
                         }
                     }
                 default:
@@ -180,4 +218,28 @@ final class SongChordsStore: @unchecked Sendable {
         //Update the store information with the purchased products.
         await setPurchasedProducts(product: purchasedProducts)
     }
+    
+    //    func purchase(_ product: Product) async throws -> Transaction? {
+    //        //Begin purchasing the `Product` the user selects.
+    //        let result = try await product.purchase()
+    //
+    //        switch result {
+    //        case .success(let verification):
+    //            //Check whether the transaction is verified. If it isn't,
+    //            //this function rethrows the verification error.
+    //            let transaction = try checkVerified(verification)
+    //
+    //            //The transaction is verified. Deliver content to the user.
+    //            await updateCustomerProductStatus()
+    //
+    //            //Always finish a transaction.
+    //            await transaction.finish()
+    //
+    //            return transaction
+    //        case .userCancelled, .pending:
+    //            return nil
+    //        default:
+    //            return nil
+    //        }
+    //    }
 }

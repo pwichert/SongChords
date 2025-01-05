@@ -15,6 +15,7 @@ struct SongEditView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(UserSettings.self) private var userSettings
     @Environment(Globals.self) private var globals
+    @Environment(SongChordsStore.self) private var store
 
     @State private var title: String = ""
     @State private var srcText: String = ""
@@ -82,7 +83,7 @@ struct SongEditView: View {
                                 if modelContext.hasChanges { try modelContext.save() }
                             }
                         } else {
-                            let song = try Song(title: title, modelContext: modelContext)
+                            let song = try Song(title: title, modelContext: modelContext, store: store)
                             modelContext.insert(song)
                             song.srcText = srcText
                             song.transpose = Int(transpose)

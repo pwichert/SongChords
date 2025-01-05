@@ -27,37 +27,40 @@ struct SongChordsApp: App {
 
     @State private var userSettings: UserSettings = UserSettings()
     @State private var globals: Globals = Globals()
-    @State private var songChordsStore: SongChordsStore = SongChordsStore()
+    @State private var store: SongChordsStore = SongChordsStore()
 
     var body: some Scene {
         #if os(macOS)
         Window ("SongChords", id: "main") {
-            ContentView(store: songChordsStore)
+            ContentView(store: store)
                 .environment(userSettings)
                 .environment(globals)
                 .task(id: scenePhase) {
-                    scenePhaseChanged(scenePhase)
+                    await scenePhaseChanged(scenePhase)
                 }
         }
         .modelContainer(sharedModelContainer)
         #else
         WindowGroup {
-            ContentView(store: songChordsStore)
+            ContentView(store: store)
                 .environment(userSettings)
                 .environment(globals)
                 .task(id: scenePhase) {
-                    scenePhaseChanged(scenePhase)
+                    await scenePhaseChanged(scenePhase)
                 }
         }
         .modelContainer(sharedModelContainer)
         #endif
     }
     
-    private func scenePhaseChanged(_ phase: ScenePhase) {
+    private func scenePhaseChanged(_ phase: ScenePhase) async {
         if scenePhase == .active {
-            songChordsStore.runListener()
+            print("wird active")
+            await store.runListener()
         } else {
-            songChordsStore.stopListener()
+            if scenePhase == .background { print("wird background")
+                await store.stopListener()
+            }
         }
     }
 }

@@ -27,6 +27,7 @@ struct ContentView: View {
             PlayListView(selectedPlaylistID: $selectedPlaylistID, visibility: $visibility)
                 .environment(userSettings)
                 .environment(globals)
+                .environment(store)
 
         } content: {
             
@@ -34,6 +35,7 @@ struct ContentView: View {
                 SongListView(playlist: selectedPlaylist, visibility: $visibility, selectedSongIDs: $selectedSongIDs)
                     .environment(userSettings)
                     .environment(globals)
+                    .environment(store)
             } else {
                 ContentUnavailableView("Select a playlist", systemImage: "doc.text.image.fill")
             }
@@ -44,6 +46,7 @@ struct ContentView: View {
                 SongView(song: song, visibility: $visibility)
                     .environment(userSettings)
                     .environment(globals)
+                    .environment(store)
             } else {
                 ContentUnavailableView("Select a song", systemImage: "doc.text.image.fill")
             }
@@ -54,12 +57,24 @@ struct ContentView: View {
         }
         .sheet(isPresented: $showStore) {
             NavigationStack {
-                SongChordsStoreView(store: store)
+                SongChordsStoreView(store: store, songChordsError: globals.songChordsError)
             }
         }
-        .onChange(of: globals.songChordsError) { globals.songChordsError?.error as? SongChordsError == SongChordsError.limitReached ? showStore.toggle() : showAlert.toggle() }
+        .onChange(of: globals.songChordsError) { errorChanged() }
         .onChange(of: selectedPlaylistID) { selectedSongIDs = [] }      // ContentUnavailable in SongView
         .navigationSplitViewStyle(.automatic)
         .preferredColorScheme(userSettings.displayMode == .dark ? .dark : (userSettings.displayMode == .light ? .light : nil))
+    }
+    
+    private func errorChanged() {
+        // Falls es jemals weitere Purchases gibt, müsste die Liste für showStore.toggle() erweitert werden
+        // Jeder Purchase wird von einem SongChordsError getriggert
+        
+        switch globals.songChordsError?.error as? SongChordsError {
+        case .limitReached:
+            showStore.toggle()
+        default:
+            showAlert.toggle()
+        }
     }
 }

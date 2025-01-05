@@ -24,7 +24,7 @@ enum SongChordsError: Error, Equatable {
         case .playlistNotEmpty:
             return String(localized: "Playlist must be empty")
         case .limitReached:
-            return String(localized: "Free songlimit reached.\n\nEnjoying the app? Unlock the full version to manage more songs and make the most out of your experience!")
+            return String(localized: "Free songlimit reached.\n\nEnjoying the app? Unlock song limit to manage unlimited songs and make the most out of your experience!")
         }
     }
 }
@@ -85,9 +85,10 @@ final class PlayList: Codable {
         }
     }
     
-    public func sortAndCopy(songs: [Song]?, modelContext: ModelContext) throws {
+    @MainActor
+    public func sortAndCopy(songs: [Song]?, modelContext: ModelContext, store: SongChordsStore) throws {
         for song in (songs ?? []).sorted(by: { $0.seq < $1.seq }) {
-            let newSong = try Song(title: song.title, modelContext: modelContext)
+            let newSong = try Song(title: song.title, modelContext: modelContext, store: store)
             newSong.updateFromSong(other: song)
             newSong.toPlaylist(playlist: self)
         }
@@ -199,7 +200,8 @@ extension UTType {
 
 @Observable
 final class RepresentationHolder: @unchecked Sendable {
-    // @MainActor synchronisiert automatisch, ohne expliziten Actor
+    // @MainActor synchronisiert automatisch, ohne expliziten Actor.
+    // Ist nötig wegen Aktualisierung durch anderen Thread (processingTask)
     @MainActor
     private(set) var songRepresentation: SongRepresentation = SongRepresentation(sections: [], directiveManager: DirectiveManagerSendable(directiveManager: DirectiveManager()))
     
@@ -227,9 +229,8 @@ final public class Song: Codable {
     
     @Transient let representationHolder = RepresentationHolder()
     @Transient private static let taskManager = TaskManager()
-    @Transient static let maxSongs = 40000000
-    @Transient static let invalidTitleCharacters = CharacterSet(charactersIn: "\\").union(.illegalCharacters).union(.controlCharacters).union(.newlines)
-    @Transient static let invalidFilenameCharacters = CharacterSet(charactersIn: "\\\0/").union(.illegalCharacters).union(.symbols).union(.controlCharacters).union(.newlines)
+    @Transient static let invalidTitleCharacters = CharacterSet(charactersIn: "\t\\\0").union(.illegalCharacters).union(.controlCharacters).union(.newlines)
+    @Transient static let invalidFilenameCharacters = CharacterSet(charactersIn: "\t\\\0/").union(.illegalCharacters).union(.symbols).union(.controlCharacters).union(.newlines)
 
     private actor TaskManager {
         private var processingTask: Task<Void, Never>?
@@ -240,12 +241,13 @@ final public class Song: Codable {
         }
     }
     
-    init(title: String, modelContext: ModelContext) throws {
+    @MainActor
+    init(title: String, modelContext: ModelContext, store: SongChordsStore) throws {
         if !Song.isValidTitle(title) {
             throw SongChordsError.invalidSongtitle
         }
         
-        if try Song.countSongs(in: modelContext) > Song.maxSongs {
+        if try Song.countSongs(in: modelContext) > store.freeSongLimit && !store.unlockedSonglimit() {
             throw SongChordsError.limitReached
         }
         

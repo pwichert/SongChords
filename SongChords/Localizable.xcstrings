@@ -101,6 +101,9 @@
         }
       }
     },
+    "2" : {
+      "shouldTranslate" : false
+    },
     "2nd Option" : {
       "localizations" : {
         "de" : {
@@ -300,12 +303,12 @@
         }
       }
     },
-    "Free songlimit reached.\n\nEnjoying the app? Unlock the full version to manage more songs and make the most out of your experience!" : {
+    "Free songlimit reached.\n\nEnjoying the app? Unlock song limit to manage unlimited songs and make the most out of your experience!" : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Das kostenlose Songlimit ist erreicht.\n\nFalls du die App magst, kannst du sie freischalten und beliebig viele Songs verwalten."
+            "value" : "Das kostenlose Songlimit ist erreicht.\n\nFalls du die App magst, kannst du das Song Limit freischalten und beliebig viele Songs verwalten."
           }
         }
       }
@@ -406,6 +409,16 @@
     "Info" : {
       "shouldTranslate" : false
     },
+    "Internal Error" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Interner Fehler"
+          }
+        }
+      }
+    },
     "Invalid title" : {
       "localizations" : {
         "de" : {
@@ -422,6 +435,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "hell"
+          }
+        }
+      }
+    },
+    "Loading products..." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lade Produkte…"
           }
         }
       }
@@ -456,12 +479,12 @@
         }
       }
     },
-    "No products available" : {
+    "No, thanks" : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Keine Produkte vorhanden"
+            "value" : "Nein, Danke"
           }
         }
       }
@@ -532,6 +555,16 @@
         }
       }
     },
+    "Restore Purchases" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Einkäufe wiederherstellen"
+          }
+        }
+      }
+    },
     "Save" : {
       "localizations" : {
         "de" : {
@@ -565,7 +598,7 @@
     "SongChords" : {
       "shouldTranslate" : false
     },
-    "SongChords Store" : {
+    "SongChords Unlock" : {
       "shouldTranslate" : false
     },
     "system" : {

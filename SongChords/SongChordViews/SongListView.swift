@@ -29,6 +29,7 @@ struct SongListView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(UserSettings.self) private var userSettings
     @Environment(Globals.self) private var globals
+    @Environment(SongChordsStore.self) private var store
 
 #if os(iOS)
     @State private var editMode: EditMode = .inactive
@@ -72,7 +73,7 @@ struct SongListView: View {
                             print("Count: \(s.count)")
                             do {
                                 for song in s {
-                                    let sng = try Song(title: song.title, modelContext: modelContext)
+                                    let sng = try Song(title: song.title, modelContext: modelContext, store: store)
                                     sng.updateFromSong(other: song)
                                     sng.toPlaylist(playlist: playlist, after: song)
                                 }
@@ -108,7 +109,7 @@ struct SongListView: View {
         .toolbar {
             #if os(macOS)
             ToolbarItem {
-                Button(action: { showSongEditView.toggle() }, label: { Image(systemName: "plus.circle") }).help("New Song")
+                Button(action: { trySongEditView() }, label: { Image(systemName: "plus.circle") }).help("New Song")
             }
             ToolbarItem {
                 Button(action: { prepareDelete(songIDs: selectedSongIDs) }, label: { Image(systemName: "trash")} ).help("Delete Song(s)")
@@ -124,7 +125,7 @@ struct SongListView: View {
                         Spacer()
                         Text("\(songs.count) Song").font(.footnote)
                         Spacer()
-                        Button(action: { showSongEditView.toggle() }, label: { Image(systemName: "plus.circle") })
+                        Button(action: { trySongEditView() }, label: { Image(systemName: "plus.circle") })
                     }
                 } else {
                     HStack {
@@ -236,6 +237,18 @@ struct SongListView: View {
         #endif
     }
     
+    private func trySongEditView() {
+        do {
+            if try Song.countSongs(in: modelContext) > store.freeSongLimit && !store.unlockedSonglimit() {
+                throw SongChordsError.limitReached
+            } else {
+                showSongEditView.toggle()
+            }
+        } catch (let error) {
+            globals.setSongChordsError(error: error)
+        }
+    }
+
     private func moveSongs(from source: IndexSet, to destination: Int) {
         var sortedSongs = songs
         
@@ -300,7 +313,7 @@ struct SongListView: View {
             let txt = chordProReverseParser.toString(sections: sections)
             
             do {
-                let song = try Song(title: "Import", modelContext: modelContext)
+                let song = try Song(title: "Import", modelContext: modelContext, store: store)
                 song.toPlaylist(playlist: playlist)
                 
                 song.title = "Import \(song.seq)"
@@ -314,7 +327,7 @@ struct SongListView: View {
     
     private func importSongTemplate() {
         do {
-            let song = try Song(title: String(localized: "New Song"), modelContext: modelContext)
+            let song = try Song(title: String(localized: "New Song"), modelContext: modelContext, store: store)
             song.toPlaylist(playlist: playlist)
             
             song.srcText.append("{st: Subtitle of Song}\n")
@@ -341,7 +354,7 @@ struct SongListView: View {
         do {
             let (filename, srcText) = try Song.srcTextFromText(url: url, modelContext: modelContext)
             let title = Song.titleFromDirective(srcText: srcText)
-            let song = try Song(title: Song.makeValidTitle(title ?? filename), modelContext: modelContext)
+            let song = try Song(title: Song.makeValidTitle(title ?? filename), modelContext: modelContext, store: store)
             song.srcText = srcText
             song.toPlaylist(playlist: playlist)
             try modelContext.save()
@@ -372,6 +385,7 @@ struct MoveToPlaylistView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
     @Environment(Globals.self) private var globals
+    @Environment(SongChordsStore.self) private var store
 
     @State private var selectedPlaylist: PlayList.ID?
     
@@ -392,7 +406,7 @@ struct MoveToPlaylistView: View {
                     do {
                         if let selectedPlaylist = selectedPlaylist {
                             if let pl = PlayList.fetchPlaylist(with: selectedPlaylist, in: modelContext) {
-                                try pl.sortAndCopy(songs: fetchedSongs, modelContext: modelContext)
+                                try pl.sortAndCopy(songs: fetchedSongs, modelContext: modelContext, store: store)
                                 try modelContext.save()
                             }
                         }

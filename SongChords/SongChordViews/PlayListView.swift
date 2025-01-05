@@ -22,6 +22,7 @@ struct PlayListView: View {
     
     @Environment(\.modelContext) private var modelContext
     @Environment(Globals.self) private var globals
+    @Environment(SongChordsStore.self) private var store
 
     #if os(iOS)
     @State private var editMode: EditMode = .inactive
@@ -61,7 +62,7 @@ struct PlayListView: View {
                     }
                     .dropDestination(for: Data.self) { receivedDatas, location in
                         do {
-                            return try dropDestinationData(playlist: playlist, data: receivedDatas, modelContext: modelContext)
+                            return try dropDestinationData(playlist: playlist, data: receivedDatas, modelContext: modelContext, store: store)
                         } catch(let error) {
                             globals.setSongChordsError(error: error)
                             return false
@@ -69,7 +70,7 @@ struct PlayListView: View {
                     }
                     .dropDestination(for: Song.self) { receivedSongs, location in
                         do {
-                            return try dropDestinationSongs(playlist: playlist, songs: receivedSongs, modelContext: modelContext)
+                            return try dropDestinationSongs(playlist: playlist, songs: receivedSongs, modelContext: modelContext, store: store)
                         } catch(let error) {
                             globals.setSongChordsError(error: error)
                             return false
@@ -251,7 +252,7 @@ struct PlayListView: View {
         let playlist = try PlayList.fromUrl(url: url)
         let newPlaylist = try PlayList(modelContext: modelContext, title: playlist.title)
         modelContext.insert(newPlaylist)
-        try newPlaylist.sortAndCopy(songs: playlist.songs, modelContext: modelContext)
+        try newPlaylist.sortAndCopy(songs: playlist.songs, modelContext: modelContext, store: store)
         try modelContext.save()
     }
 
@@ -348,6 +349,7 @@ struct PlaylistSelectionSheet: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) var dismiss
     @Environment(Globals.self) private var globals
+    @Environment(SongChordsStore.self) private var store
 
     @State private var selectedPlaylist: PlayList.ID?
 
@@ -362,7 +364,7 @@ struct PlaylistSelectionSheet: View {
                         if let pl = PlayList.fetchPlaylist(with: selectedPlaylist, in: modelContext) {
                             do {
                                 let urlSong = try Song.fromUrl(url: urlToInsert)
-                                let song = try Song(title: urlSong.title, modelContext: modelContext)
+                                let song = try Song(title: urlSong.title, modelContext: modelContext, store: store)
                                 song.updateFromSong(other: urlSong)
                                 song.toPlaylist(playlist: pl)
                                 try modelContext.save()

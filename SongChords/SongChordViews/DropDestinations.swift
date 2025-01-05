@@ -9,7 +9,7 @@ import SwiftUI
 import SwiftData
 
 extension PlayListView {
-    public func dropDestinationData(playlist: PlayList, data: [Data], modelContext: ModelContext) throws -> Bool {
+    public func dropDestinationData(playlist: PlayList, data: [Data], modelContext: ModelContext, store: SongChordsStore) throws -> Bool {
         print(".dropDestination: received (Data) \(data) for playlist \(playlist.title)")
         // erster Versuch mit Data
         var songs = try? songsFromDatas(data: data)
@@ -19,31 +19,31 @@ extension PlayListView {
 
         if (songs ?? []).isEmpty { print("no result"); return false }
         
-        try playlist.sortAndCopy(songs: songs, modelContext: modelContext)
+        try playlist.sortAndCopy(songs: songs, modelContext: modelContext, store: store)
         try modelContext.save()
         
         for s in songs ?? [] { print(s.title) }
         return true
     }
     
-    public func dropDestinationURL(playlist: PlayList, url: [URL], modelContext: ModelContext) throws -> Bool {
+    public func dropDestinationURL(playlist: PlayList, url: [URL], modelContext: ModelContext, store: SongChordsStore) throws -> Bool {
         print(".dropDestination: received (URL) \(url) for playlist \(playlist.title)")
         let songs = try songsFromURLs(url: url)
         
         if songs.isEmpty { print("no result"); return false }
         
-        try playlist.sortAndCopy(songs: songs, modelContext: modelContext)
+        try playlist.sortAndCopy(songs: songs, modelContext: modelContext, store: store)
         try modelContext.save()
         
         for s in songs { print(s.title) }
         return true
     }
     
-    public func dropDestinationSongs(playlist: PlayList, songs: [Song], modelContext: ModelContext) throws -> Bool {
+    public func dropDestinationSongs(playlist: PlayList, songs: [Song], modelContext: ModelContext, store: SongChordsStore) throws -> Bool {
         print(".dropDestination: received (Songs) \(songs) for playlist \(playlist.title)")
         if songs.isEmpty { print("no result"); return false }
         
-        try playlist.sortAndCopy(songs: songs, modelContext: modelContext)
+        try playlist.sortAndCopy(songs: songs, modelContext: modelContext, store: store)
         try modelContext.save()
         
         for s in songs { print(s.title) }
