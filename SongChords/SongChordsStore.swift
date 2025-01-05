@@ -112,9 +112,9 @@ final class SongChordsStore: @unchecked Sendable {
     @MainActor
     func isPurchased(_ product: Product) -> Bool {
         //Determine whether the user purchases a given product.
-        
+                
         // Caching, falls kein Netz o.ä.
-//        if UserDefaults.standard.bool(forKey: product.id) { return true }
+        if UserDefaults.standard.bool(forKey: product.id) { return true }
 
         return purchasedProducts.contains(product)
     }
@@ -122,9 +122,9 @@ final class SongChordsStore: @unchecked Sendable {
     @MainActor
     func isPurchasedId(_ productID: String) -> Bool {
         //Determine whether the user purchases a given productID.
-        
+                
         // Caching, falls kein Netz o.ä.
-//        if UserDefaults.standard.bool(forKey: productID) { return true }
+        if UserDefaults.standard.bool(forKey: productID) { return true }
         
         if let product = products.first(where: { $0.id == productID }) {
             return purchasedProducts.contains(product)
