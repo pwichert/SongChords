@@ -114,7 +114,7 @@ final class SongChordsStore: @unchecked Sendable {
         //Determine whether the user purchases a given product.
                 
         // Caching, falls kein Netz o.ä.
-//        if UserDefaults.standard.bool(forKey: product.id) { print("cached"); return true }
+        if UserDefaults.standard.bool(forKey: product.id) { return true }
 
         return purchasedProducts.contains(product)
     }
@@ -124,7 +124,7 @@ final class SongChordsStore: @unchecked Sendable {
         //Determine whether the user purchases a given productID.
                 
         // Caching, falls kein Netz o.ä.
-//        if UserDefaults.standard.bool(forKey: productID) { print("cached"); return true }
+        if UserDefaults.standard.bool(forKey: productID) { return true }
         
         if let product = products.first(where: { $0.id == productID }) {
             return purchasedProducts.contains(product)
