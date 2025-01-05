@@ -1,0 +1,100 @@
+{
+  "appPolicies" : {
+    "eula" : "",
+    "policies" : [
+      {
+        "locale" : "en_US",
+        "policyText" : "",
+        "policyURL" : ""
+      }
+    ]
+  },
+  "identifier" : "10CB7261",
+  "nonRenewingSubscriptions" : [
+
+  ],
+  "products" : [
+    {
+      "displayPrice" : "1.99",
+      "familyShareable" : true,
+      "internalID" : "6740180826",
+      "localizations" : [
+        {
+          "description" : "Unlock Songlimit to manage unlimited songs",
+          "displayName" : "Songlimit",
+          "locale" : "en_US"
+        },
+        {
+          "description" : "Freischalten für beliebig viele Songs",
+          "displayName" : "Songlimit",
+          "locale" : "de"
+        }
+      ],
+      "productID" : "iap.songlimit",
+      "referenceName" : "Songlimit",
+      "type" : "NonConsumable"
+    }
+  ],
+  "settings" : {
+    "_applicationInternalID" : "6475011600",
+    "_developerTeamID" : "5BYX2WW545",
+    "_failTransactionsEnabled" : false,
+    "_lastSynchronizedDate" : 757806182.45327699,
+    "_locale" : "en_US",
+    "_storefront" : "DEU",
+    "_storeKitErrors" : [
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Load Products"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Purchase"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Verification"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "App Store Sync"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Subscription Status"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "App Transaction"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Manage Subscriptions Sheet"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Refund Request Sheet"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Offer Code Redeem Sheet"
+      }
+    ]
+  },
+  "subscriptionGroups" : [
+
+  ],
+  "version" : {
+    "major" : 4,
+    "minor" : 0
+  }
+}

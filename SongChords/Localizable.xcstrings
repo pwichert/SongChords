@@ -323,6 +323,16 @@
         }
       }
     },
+    "Have fun!" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Viel Spaß!"
+          }
+        }
+      }
+    },
     "Headersize [%lld]" : {
       "localizations" : {
         "de" : {

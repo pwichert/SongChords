@@ -23,11 +23,18 @@ struct SongChordsStoreView: View {
                 .multilineTextAlignment(.center).padding()
 
             if let scError = (songChordsError?.error as? SongChordsError), let productId = mapErrorToProduct[scError] {
-                Text(scError.desc).font(.headline)
-                    .lineLimit(nil)
-                    .multilineTextAlignment(.center).padding()
-                
-                if store.products.isEmpty {
+                if store.isPurchasedId(productId.rawValue) {
+                    // Ist schon gekauft
+                    Text("Have fun!").font(.headline).padding()
+                    VStack {
+                        HStack {
+                            Spacer()
+                            Button("Ok") { dismiss() }
+                            Spacer()
+                        }.buttonStyle(.bordered)
+                    }.padding()
+                } else if store.products.isEmpty {
+                    // Produkte noch nicht geladen
                     Text("Loading products...").font(.headline).padding()
                     VStack {
                         HStack {
@@ -37,6 +44,11 @@ struct SongChordsStoreView: View {
                         }.buttonStyle(.bordered)
                     }.padding()
                 } else {
+                    // Kaufen des Purchase-Produkts
+                    Text(scError.desc).font(.headline)
+                        .lineLimit(nil)
+                        .multilineTextAlignment(.center).padding()
+                    
                     ProductView(id: productId.rawValue) {
                         Image(systemName: "crown")
                     }
@@ -77,7 +89,7 @@ struct SongChordsStoreView: View {
             }
         }.padding()
         #if os(macOS)
-        .frame(width: 450, height: 500)
+        .frame(width: 350, height: 400)
         #endif
     }
 }
