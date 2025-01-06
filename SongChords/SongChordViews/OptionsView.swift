@@ -18,9 +18,7 @@ struct OptionsView: View {
     @State private var textFollowsChords: Bool = false
     @State private var hideChords: Bool = false
     @State private var displayMode: DisplayMode = .automatic
-    
-    @State private var useStore: Bool = false
-    
+        
     var body: some View {
         #if DEBUG
         Text("Debug Mode").padding()
@@ -34,15 +32,6 @@ struct OptionsView: View {
             }.pickerStyle(.segmented)
             #if os(macOS)
                 .padding(.bottom, 4)
-            #endif
-
-            #if DEBUG
-            Section {
-                Toggle("Use Store", isOn: $useStore)
-            }
-            #if os(macOS)
-            .padding(.bottom, 4)
-            #endif
             #endif
             
             Section {
@@ -147,8 +136,6 @@ struct OptionsView: View {
                     if textFollowsChords != userSettings.textfollowschords { userSettings.textfollowschords = textFollowsChords }
                     if displayMode != userSettings.displayMode { userSettings.displayMode = displayMode }
                     
-                    if useStore != userSettings.useStore { userSettings.useStore = useStore }
-
                     dismiss()
                 }
             }
@@ -166,8 +153,6 @@ struct OptionsView: View {
             hideChords = userSettings.hidechords
             textFollowsChords = userSettings.textfollowschords
             displayMode = userSettings.displayMode
-
-            useStore = userSettings.useStore
         }
     }
 }

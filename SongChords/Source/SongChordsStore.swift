@@ -33,7 +33,7 @@ final class SongChordsStore: @unchecked Sendable {
     
     private let taskManager = TaskManager()
     
-    var useStore: Bool = false
+    let useStore: Bool = false
     
     // Leider können nicht alle Properties in den Actor wandern, da z.B unlockedSongLimit()
     // in synchronen Umgebungen benötigt wird. Und daraus kann keine synchrone Function gemacht werden(?).
@@ -58,6 +58,8 @@ final class SongChordsStore: @unchecked Sendable {
     }
     
     init() {
+        if !useStore { return }
+        
         Task {
             await taskManager.runListener(store: self)
 
@@ -78,10 +80,12 @@ final class SongChordsStore: @unchecked Sendable {
     }
     
     func stopListener() async {
+        if !useStore { return }
         await taskManager.stopListener()
     }
     
     func runListener() async {
+        if !useStore { return }
         await taskManager.runListener(store: self)
     }
     
@@ -97,12 +101,14 @@ final class SongChordsStore: @unchecked Sendable {
 
     @MainActor
     func unlockedSonglimit() -> Bool {
+        if !useStore { return true }
         return isPurchasedId(ProductId.songLimit.rawValue)
     }
     
     @MainActor
     func isUnlocked() -> Bool {
-        products.allSatisfy({ isPurchased($0) })
+        if !useStore { return true }
+        return products.allSatisfy({ isPurchased($0) })
     }
     
     @MainActor
