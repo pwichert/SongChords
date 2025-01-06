@@ -19,7 +19,13 @@ struct OptionsView: View {
     @State private var hideChords: Bool = false
     @State private var displayMode: DisplayMode = .automatic
     
+    @State private var useStore: Bool = false
+    
     var body: some View {
+        #if DEBUG
+        Text("Debug Mode").padding()
+        #endif
+
         Form {
             Picker("Display Mode", selection: $displayMode) {
                 Text("light").tag(DisplayMode.light)
@@ -30,6 +36,15 @@ struct OptionsView: View {
                 .padding(.bottom, 4)
             #endif
 
+            #if DEBUG
+            Section {
+                Toggle("Use Store", isOn: $useStore)
+            }
+            #if os(macOS)
+            .padding(.bottom, 4)
+            #endif
+            #endif
+            
             Section {
                 Toggle("Hide Chords", isOn: $hideChords)
             }
@@ -132,6 +147,8 @@ struct OptionsView: View {
                     if textFollowsChords != userSettings.textfollowschords { userSettings.textfollowschords = textFollowsChords }
                     if displayMode != userSettings.displayMode { userSettings.displayMode = displayMode }
                     
+                    if useStore != userSettings.useStore { userSettings.useStore = useStore }
+
                     dismiss()
                 }
             }
@@ -149,6 +166,8 @@ struct OptionsView: View {
             hideChords = userSettings.hidechords
             textFollowsChords = userSettings.textfollowschords
             displayMode = userSettings.displayMode
+
+            useStore = userSettings.useStore
         }
     }
 }

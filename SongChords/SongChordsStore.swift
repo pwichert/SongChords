@@ -31,13 +31,9 @@ final class SongChordsStore: @unchecked Sendable {
     private let productIds = [ProductId.songLimit.rawValue]
     let freeSongLimit = 5
     
-#if DEBUG
-    let certificate = "StoreKitTestCertificate"
-#else
-    let certificate = "AppleIncRootCertificate"
-#endif
-    
     private let taskManager = TaskManager()
+    
+    var useStore: Bool = false
     
     // Leider können nicht alle Properties in den Actor wandern, da z.B unlockedSongLimit()
     // in synchronen Umgebungen benötigt wird. Und daraus kann keine synchrone Function gemacht werden(?).
@@ -113,8 +109,10 @@ final class SongChordsStore: @unchecked Sendable {
     func isPurchased(_ product: Product) -> Bool {
         //Determine whether the user purchases a given product.
                 
+        if !useStore { return true }
+        
         // Caching, falls kein Netz o.ä.
-        if UserDefaults.standard.bool(forKey: product.id) { return true }
+//        if UserDefaults.standard.bool(forKey: product.id) { return true }
 
         return purchasedProducts.contains(product)
     }
@@ -123,8 +121,10 @@ final class SongChordsStore: @unchecked Sendable {
     func isPurchasedId(_ productID: String) -> Bool {
         //Determine whether the user purchases a given productID.
                 
+        if !useStore { return true }
+
         // Caching, falls kein Netz o.ä.
-        if UserDefaults.standard.bool(forKey: productID) { return true }
+//        if UserDefaults.standard.bool(forKey: productID) { return true }
         
         if let product = products.first(where: { $0.id == productID }) {
             return purchasedProducts.contains(product)
@@ -218,28 +218,4 @@ final class SongChordsStore: @unchecked Sendable {
         //Update the store information with the purchased products.
         await setPurchasedProducts(product: purchasedProducts)
     }
-    
-    //    func purchase(_ product: Product) async throws -> Transaction? {
-    //        //Begin purchasing the `Product` the user selects.
-    //        let result = try await product.purchase()
-    //
-    //        switch result {
-    //        case .success(let verification):
-    //            //Check whether the transaction is verified. If it isn't,
-    //            //this function rethrows the verification error.
-    //            let transaction = try checkVerified(verification)
-    //
-    //            //The transaction is verified. Deliver content to the user.
-    //            await updateCustomerProductStatus()
-    //
-    //            //Always finish a transaction.
-    //            await transaction.finish()
-    //
-    //            return transaction
-    //        case .userCancelled, .pending:
-    //            return nil
-    //        default:
-    //            return nil
-    //        }
-    //    }
 }

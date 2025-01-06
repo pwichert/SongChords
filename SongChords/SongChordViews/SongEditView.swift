@@ -23,9 +23,16 @@ struct SongEditView: View {
     
     @State private var showSrcEditor: Bool = false
     
+    enum FocusedField: Hashable {
+        case songTitle
+    }
+    @FocusState private var focusedField: FocusedField?
+
     var body: some View {
         Form {
             TextField("Title", text: $title)
+                .focused($focusedField, equals: .songTitle)
+                .autocorrectionDisabled()
             #if os(macOS)
                 .padding(.bottom, 4)
             #endif
@@ -117,6 +124,10 @@ struct SongEditView: View {
                 srcText = song.srcText
                 transpose = Double(song.transpose)
             }
+            
+            #if os(iOS)
+            focusedField = .songTitle
+            #endif
         }
     }
 }

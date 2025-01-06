@@ -60,6 +60,7 @@ struct ContentView: View {
                 SongChordsStoreView(store: store, songChordsError: globals.songChordsError)
             }
         }
+        .onChange(of: userSettings.useStore) { store.useStore = userSettings.useStore }
         .onChange(of: globals.songChordsError) { errorChanged() }
         .onChange(of: selectedPlaylistID) { selectedSongIDs = [] }      // ContentUnavailable in SongView
         .navigationSplitViewStyle(.automatic)

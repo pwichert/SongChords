@@ -697,6 +697,9 @@
         }
       }
     },
+    "Use Store" : {
+
+    },
     "You can import a ChordPro file; the app understands the key directives. The song can be inserted into a playlist using 'Import ChordPro File'. The ChordPro file should have the extension .chpro" : {
       "localizations" : {
         "de" : {

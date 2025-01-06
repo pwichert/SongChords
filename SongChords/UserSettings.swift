@@ -20,7 +20,9 @@ public final class UserSettings: @unchecked Sendable {
 #if os(macOS)
     typealias UIFont = NSFont
 #endif
-        
+       
+    var useStore: Bool = false
+    
     var isGermanNotation: Bool = UserDefaults.standard.bool(forKey: "set_isGermanNotation")
     { didSet { UserDefaults.standard.set(isGermanNotation, forKey: "set_isGermanNotation") }}
 
