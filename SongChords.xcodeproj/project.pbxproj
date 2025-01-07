@@ -7,7 +7,6 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		A417DC902D2AE02B008AAA9D /* StoreKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A417DC8F2D2AE02B008AAA9D /* StoreKit.framework */; };
 		A48704E42CDD823200C19EDF /* CloudKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A48704E32CDD823200C19EDF /* CloudKit.framework */; };
 /* End PBXBuildFile section */
 
@@ -29,7 +28,6 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
-		A417DC8F2D2AE02B008AAA9D /* StoreKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = StoreKit.framework; path = System/Library/Frameworks/StoreKit.framework; sourceTree = SDKROOT; };
 		A486F9452CDD00310053A0A1 /* SongChords.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SongChords.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		A486F9592CDD00320053A0A1 /* SongChordsTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SongChordsTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		A486F9632CDD00320053A0A1 /* SongChordsUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SongChordsUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -73,7 +71,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				A48704E42CDD823200C19EDF /* CloudKit.framework in Frameworks */,
-				A417DC902D2AE02B008AAA9D /* StoreKit.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -118,7 +115,6 @@
 		A48704E22CDD823200C19EDF /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
-				A417DC8F2D2AE02B008AAA9D /* StoreKit.framework */,
 				A48704E32CDD823200C19EDF /* CloudKit.framework */,
 			);
 			name = Frameworks;
@@ -334,7 +330,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 15.0;
-				MARKETING_VERSION = 2.2;
+				MARKETING_VERSION = 2.3;
 				PRODUCT_BUNDLE_IDENTIFIER = Wichert.SongChords;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = auto;
@@ -380,7 +376,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 15.0;
-				MARKETING_VERSION = 2.2;
+				MARKETING_VERSION = 2.3;
 				PRODUCT_BUNDLE_IDENTIFIER = Wichert.SongChords;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = auto;

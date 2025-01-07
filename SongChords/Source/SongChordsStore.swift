@@ -16,6 +16,8 @@ public enum StoreError: Error {
     case failedVerification
 }
 
+// Die Product-ID ist in AppStoreConnect gelöscht worden,
+// daher ist dieser Name vermutlich nicht mehr verwendbar.
 public enum ProductId: String {
     case songLimit = "iap.songlimit"
 }
