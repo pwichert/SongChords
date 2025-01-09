@@ -137,9 +137,6 @@
         }
       }
     },
-    "ChordPro Text" : {
-      "shouldTranslate" : false
-    },
     "Chordsize [%lld]" : {
       "localizations" : {
         "de" : {
@@ -262,6 +259,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Playliste ändern"
+          }
+        }
+      }
+    },
+    "Edit Song" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Song ändern"
           }
         }
       }

@@ -61,7 +61,7 @@ struct SongView: View {
             }
             #endif
             ToolbarItem {
-                Button("ChordPro Text", systemImage: "pencil", action: { pdfUrl = nil; showSongEditView.toggle() }).help("Edit ChordPro Text")
+                Button("Edit Song", systemImage: "pencil", action: { pdfUrl = nil; showSongEditView.toggle() }).help("Edit Song")
             }
             ToolbarItem {
                 Button("Toggle PDF", systemImage: pdfUrl == nil ? "text.rectangle.page" : "text.page", action: { if pdfUrl == nil { showPdf() } else { pdfUrl = nil } }).help("Toggle PDF")
@@ -82,6 +82,7 @@ struct SongView: View {
             .interactiveDismissDisabled()
         }
         .onChange(of: song, initial: false) {
+            // bei Songwechsel auf Livedarstellung schalten
             if pdfUrl != nil {
                 print("pdfUrl changed")
                 pdfUrl = nil

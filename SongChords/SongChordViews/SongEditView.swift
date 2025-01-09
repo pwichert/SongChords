@@ -60,7 +60,7 @@ struct SongEditView: View {
 
             Button(action: { showSrcEditor.toggle() }) {
                 Label("Edit ChordPro Text", systemImage: "doc")
-            }
+            }.help("Edit ChordPro Text")
             #if os(macOS)
             .padding(.bottom, 4)
             #endif
