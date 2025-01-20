@@ -250,20 +250,26 @@ struct SongListView: View {
     }
 
     private func moveSongs(from source: IndexSet, to destination: Int) {
-        var sortedSongs = songs
-        
-        // Die Song-Reihenfolge anpassen
-        sortedSongs.move(fromOffsets: source, toOffset: destination)
-        
-        // Die seq-Werte entsprechend der neuen Reihenfolge aktualisieren
-        for index in sortedSongs.indices {
-            if sortedSongs[index].seq != index { sortedSongs[index].seq = index }
+        do {
+            var sortedSongs = songs
+            
+            // Die Song-Reihenfolge anpassen
+            sortedSongs.move(fromOffsets: source, toOffset: destination)
+            
+            // Die seq-Werte entsprechend der neuen Reihenfolge aktualisieren
+            for index in sortedSongs.indices {
+                if sortedSongs[index].seq != index { sortedSongs[index].seq = index }
+            }
+            
+            playlist.songs = sortedSongs
+            #if os(iOS)
+            editMode = .inactive
+            #endif
+            
+            try modelContext.save()
+        } catch (let error) {
+            globals.setSongChordsError(error: error)
         }
-        
-        playlist.songs = sortedSongs
-        #if os(iOS)
-        editMode = .inactive
-        #endif
     }
     
     private func prepareDelete(songIDs: Set<Song.ID>) {

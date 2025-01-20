@@ -237,14 +237,19 @@ struct PlayListView: View {
     }
     
     private func movePlaylists(indices: IndexSet, newOffset: Int) {
-        if indices.isEmpty { return }
-        
-        var sortedPlaylists = playlists
-        sortedPlaylists.move(fromOffsets: indices, toOffset: newOffset)
-        
-        // Die seq-Werte entsprechend der neuen Reihenfolge aktualisieren
-        for index in sortedPlaylists.indices {
-            if sortedPlaylists[index].seq != index { sortedPlaylists[index].seq = index }
+        do {
+            if indices.isEmpty { return }
+            
+            var sortedPlaylists = playlists
+            sortedPlaylists.move(fromOffsets: indices, toOffset: newOffset)
+            
+            // Die seq-Werte entsprechend der neuen Reihenfolge aktualisieren
+            for index in sortedPlaylists.indices {
+                if sortedPlaylists[index].seq != index { sortedPlaylists[index].seq = index }
+            }
+            try modelContext.save()
+        } catch (let error) {
+            globals.setSongChordsError(error: error)
         }
     }
     

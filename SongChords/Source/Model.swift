@@ -47,16 +47,18 @@ final class PlayList: Codable {
     }
     
     private func nextPlaylistSeq(modelContext: ModelContext) throws -> Int {
-        let playlists = try modelContext.fetch(FetchDescriptor<PlayList>())
-        if playlists.isEmpty { print("nextPlaylistSeq: 0"); return 0 }
+        var fetchDescriptor = FetchDescriptor<PlayList>(sortBy: [ SortDescriptor(\.seq, order: .reverse) ])
+        fetchDescriptor.fetchLimit = 1 // retrieve only one object
+
+        let maxPlaylists = try modelContext.fetch(fetchDescriptor)
         
-        var maxSeq = 0
-        for s in playlists {
-            maxSeq = max(maxSeq, s.seq)
+        if let maxPlaylist = maxPlaylists.first {
+            print("nextPlaylistSeq: \(maxPlaylist.seq + 1)")
+            return maxPlaylist.seq + 1
+        } else {
+            print("nextPlaylistSeq: 0")
+            return 0
         }
-        
-        print("nextPlaylistSeq: \(maxSeq + 1)")
-        return maxSeq + 1
     }
     
     func nextSongSeq() -> Int {
