@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		A40F670D2D405C80002D43C4 /* MusicKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A40F670C2D405C80002D43C4 /* MusicKit.framework */; };
 		A48704E42CDD823200C19EDF /* CloudKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A48704E32CDD823200C19EDF /* CloudKit.framework */; };
 /* End PBXBuildFile section */
 
@@ -28,6 +29,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		A40F670C2D405C80002D43C4 /* MusicKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MusicKit.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS18.2.sdk/System/Library/Frameworks/MusicKit.framework; sourceTree = DEVELOPER_DIR; };
 		A486F9452CDD00310053A0A1 /* SongChords.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SongChords.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		A486F9592CDD00320053A0A1 /* SongChordsTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SongChordsTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		A486F9632CDD00320053A0A1 /* SongChordsUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SongChordsUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -71,6 +73,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				A48704E42CDD823200C19EDF /* CloudKit.framework in Frameworks */,
+				A40F670D2D405C80002D43C4 /* MusicKit.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -115,6 +118,7 @@
 		A48704E22CDD823200C19EDF /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				A40F670C2D405C80002D43C4 /* MusicKit.framework */,
 				A48704E32CDD823200C19EDF /* CloudKit.framework */,
 			);
 			name = Frameworks;
@@ -305,7 +309,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = SongChords/SongChords.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 3;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_ASSET_PATHS = "\"SongChords/Preview Content\"";
 				DEVELOPMENT_TEAM = 5BYX2WW545;
@@ -330,7 +334,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 15.0;
-				MARKETING_VERSION = 2.3;
+				MARKETING_VERSION = 2.4;
 				PRODUCT_BUNDLE_IDENTIFIER = Wichert.SongChords;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = auto;
@@ -351,7 +355,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = SongChords/SongChords.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 3;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_ASSET_PATHS = "\"SongChords/Preview Content\"";
 				DEVELOPMENT_TEAM = 5BYX2WW545;
@@ -376,7 +380,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 15.0;
-				MARKETING_VERSION = 2.3;
+				MARKETING_VERSION = 2.4;
 				PRODUCT_BUNDLE_IDENTIFIER = Wichert.SongChords;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = auto;

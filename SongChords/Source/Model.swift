@@ -437,7 +437,7 @@ final public class Song: Codable {
 //        case showchords
 //        case showtext
 //        case duration
-//        case musicitemid
+        case musicitemid
     }
     
     required public init(from decoder: Decoder) throws {
@@ -450,7 +450,7 @@ final public class Song: Codable {
 //        showChords = try container.decode(Bool.self, forKey: .showchords)
 //        showText = try container.decode(Bool.self, forKey: .showtext)
 //        duration = try container.decode(Double.self, forKey: .duration)
-//        musicItemId = try container.decode(String.self, forKey: .musicitemid)
+        if container.contains(.musicitemid) { musicItemId = try container.decode(String.self, forKey: .musicitemid) } else { musicItemId = "" }
     }
     
     public func encode(to encoder: Encoder) throws {
@@ -463,7 +463,7 @@ final public class Song: Codable {
 //        try container.encode(showChords, forKey: .showchords)
 //        try container.encode(showText, forKey: .showtext)
 //        try container.encode(duration, forKey: .duration)
-//        try container.encode(musicItemId, forKey: .musicitemid)
+        try container.encode(musicItemId, forKey: .musicitemid)
     }
 
     @Transient var hideCodable: Bool = false

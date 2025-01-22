@@ -18,6 +18,7 @@ struct ContentView: View {
     @State private var showStore: Bool = false
 
     @Environment(UserSettings.self) private var userSettings
+    @Environment(AudioPlayer.self) private var audioPlayer
     @Environment(Globals.self) private var globals
     @Environment(\.modelContext) private var modelContext
 
@@ -28,6 +29,7 @@ struct ContentView: View {
                 .environment(userSettings)
                 .environment(globals)
                 .environment(store)
+                .environment(audioPlayer)
 
         } content: {
             
@@ -36,6 +38,7 @@ struct ContentView: View {
                     .environment(userSettings)
                     .environment(globals)
                     .environment(store)
+                    .environment(audioPlayer)
             } else {
                 ContentUnavailableView("Select a playlist", systemImage: "doc.text.image.fill")
             }
@@ -47,6 +50,7 @@ struct ContentView: View {
                     .environment(userSettings)
                     .environment(globals)
                     .environment(store)
+                    .environment(audioPlayer)
             } else {
                 ContentUnavailableView("Select a song", systemImage: "doc.text.image.fill")
             }

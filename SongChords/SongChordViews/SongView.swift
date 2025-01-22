@@ -16,7 +16,9 @@ struct SongView: View {
     @Environment(\.horizontalSizeClass) var horizontalSizeClass
     @Environment(\.modelContext) private var modelContext
     @Environment(Globals.self) private var globals
+    @Environment(AudioPlayer.self) private var audioPlayer
 
+    @State private var showAudioPlayer: Bool = false
     @State private var showSongEditView: Bool = false
     @State private var pdfUrl: URL?
     
@@ -24,6 +26,8 @@ struct SongView: View {
     @State private var uttype: UTType = .pdf
     
     var body: some View {
+//        let _ = Self._printChanges()
+
         GeometryReader { viewSize in    // Größe des umgebenden Containers
             ScrollView(userSettings.hidechords ? .vertical : [.horizontal, .vertical], showsIndicators: false) {
                 ZStack(alignment: .topLeading) {
@@ -57,7 +61,12 @@ struct SongView: View {
                     ShareLink (
                         item: pdfUrl != nil ? song.setTransPDF() : song.setTransCodable(), preview: SharePreview(Text(song.title), image: Image("AppIconInternal"))
                     )
-                }.padding(.horizontal)   // TODO funktioniert nicht
+                    Spacer()
+                    Button(action: {
+                        withAnimation(.easeInOut(duration: 0.3)) {
+                            showAudioPlayer.toggle()
+                        }}) { Label("Audio Player", systemImage: "music.note.list") }
+                }
             }
             #endif
             ToolbarItem {
@@ -73,20 +82,45 @@ struct SongView: View {
             ToolbarItem {
                 Button("Export Song", systemImage: "arrow.up.document", action: { uttype = .songJSON; song.setTransAll();showFileExport.toggle() }).help("Export Song")
             }
+            ToolbarItem {
+                Button(action: {
+                    withAnimation(.easeInOut(duration: 0.3)) {
+                        showAudioPlayer.toggle()
+                    }}) { Label("Audio Player", systemImage: "music.note.list") }
+            }
             #endif
         }
+        .overlay(
+            Group {
+                if showAudioPlayer {
+                    AudioPlayerView(song: song)
+                    .padding()
+                    .background(.regularMaterial)
+                    .cornerRadius(12)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12)
+                        .stroke(Color.gray.opacity(0.5), lineWidth: 1)
+                    )
+                    .padding()
+                }
+            }, alignment: .bottom
+        )
         .sheet(isPresented: $showSongEditView) {
             NavigationStack {
-                SongEditView(playlist: song.playlist!, song: song)
+                if let playlist = song.playlist {
+                    SongEditView(playlist: playlist, song: song)
+                }
             }
             .interactiveDismissDisabled()
         }
-        .onChange(of: song, initial: false) {
+        .onChange(of: song, initial: true) {
             // bei Songwechsel auf Livedarstellung schalten
             if pdfUrl != nil {
                 print("pdfUrl changed")
                 pdfUrl = nil
             }
+            
+            audioPlayer.stop()
         }
         .fileExporter(isPresented: $showFileExport, item: song, contentTypes: [uttype], defaultFilename: Song.makeValidFilename(song.title)) { result in
             switch result {
@@ -134,7 +168,6 @@ struct DetailContent: View {
             #if os(macOS)
             Text(song.title).font(.title).fontWeight(.bold).padding(.bottom, 10)
             #endif
-//            let _ = Self._printChanges()
             
             ForEach(representationHolder.songRepresentation.sections) { section in
                 SectionHeaderView(section: section, lightColor: lightColor, darkColor: darkColor).font(Font(userSettings.headerUIFont))

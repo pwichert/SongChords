@@ -16,6 +16,16 @@
     "%@" : {
       "shouldTranslate" : false
     },
+    "%@ - %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ - %2$@"
+          }
+        }
+      }
+    },
     "%@ selected" : {
       "localizations" : {
         "de" : {
@@ -124,8 +134,20 @@
         }
       }
     },
+    "Abort" : {
+
+    },
     "Am          C" : {
       "shouldTranslate" : false
+    },
+    "Apple Music Search" : {
+
+    },
+    "Audio Player" : {
+
+    },
+    "AudioPlayer/AppleMusic ist not available" : {
+
     },
     "Cancel" : {
       "localizations" : {
@@ -469,6 +491,9 @@
         }
       }
     },
+    "Music Songs" : {
+
+    },
     "New Playlist" : {
       "localizations" : {
         "de" : {
@@ -499,6 +524,9 @@
         }
       }
     },
+    "No results found." : {
+
+    },
     "No, thanks" : {
       "localizations" : {
         "de" : {
@@ -522,6 +550,9 @@
         }
       }
     },
+    "Pause" : {
+
+    },
     "PDF Options" : {
       "localizations" : {
         "de" : {
@@ -531,6 +562,9 @@
           }
         }
       }
+    },
+    "Play" : {
+
     },
     "Playlist must be empty" : {
       "localizations" : {
@@ -551,6 +585,9 @@
           }
         }
       }
+    },
+    "Pos" : {
+
     },
     "Print All" : {
       "shouldTranslate" : false
@@ -595,6 +632,15 @@
         }
       }
     },
+    "Search" : {
+
+    },
+    "Search Apple Music" : {
+
+    },
+    "Searching..." : {
+
+    },
     "Select a playlist" : {
       "localizations" : {
         "de" : {
@@ -615,11 +661,26 @@
         }
       }
     },
+    "Select Song" : {
+
+    },
+    "Set Apple Music Title for this Song" : {
+
+    },
     "SongChords" : {
       "shouldTranslate" : false
     },
     "SongChords Unlock" : {
       "shouldTranslate" : false
+    },
+    "Songs" : {
+
+    },
+    "Speed" : {
+
+    },
+    "Stop" : {
+
     },
     "system" : {
       "shouldTranslate" : false

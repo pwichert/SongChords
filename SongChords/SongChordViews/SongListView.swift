@@ -30,6 +30,7 @@ struct SongListView: View {
     @Environment(UserSettings.self) private var userSettings
     @Environment(Globals.self) private var globals
     @Environment(SongChordsStore.self) private var store
+    @Environment(AudioPlayer.self) private var audioPlayer
 
 #if os(iOS)
     @State private var editMode: EditMode = .inactive
@@ -61,31 +62,37 @@ struct SongListView: View {
     var body: some View {
         List(selection: $selectedSongIDs) {
             ForEach(songs) { song in
-                Text(song.title)
-                    .contextMenu {
-                        Button(action: {
-                            // Selektierter Song und Kontext-geklickter sind nicht unbedingt gleich.
-                            songIDsToCopy = IdentifiablePersistentIdentifierSet(identifiers: selectedSongIDs.contains(song.id) ? selectedSongIDs : [song.id])
-                        }) { Label("Copy To", systemImage: "arrow.uturn.left")}
-                        
-                        Button(action: {
-                            let s = Song.fetchSongs(with: selectedSongIDs.contains(song.id) ? selectedSongIDs : [song.id], in: modelContext)
-                            print("Count: \(s.count)")
-                            do {
-                                for song in s {
-                                    let sng = try Song(title: song.title, modelContext: modelContext, store: store)
-                                    sng.updateFromSong(other: song)
-                                    sng.toPlaylist(playlist: playlist, after: song)
-                                }
-                                try modelContext.save()
-                            } catch (let error) {
-                                try? modelContext.save()
-                                globals.setSongChordsError(error: error)
-                            }
-                        }) { Label("Duplicate", systemImage: "doc.on.doc")}
-                        
-                        Button(role: .destructive, action: { prepareDelete(songIDs: selectedSongIDs.contains(song.id) ? selectedSongIDs : [song.id]) }) { Label("Delete", systemImage: "trash")}
+                HStack {
+                    Text(song.title)
+                    if audioPlayer.isAllowed && !song.musicItemId.isEmpty {
+                        Spacer()
+                        Image(systemName: "music.note")
                     }
+                }
+                .contextMenu {
+                    Button(action: {
+                        // Selektierter Song und Kontext-geklickter sind nicht unbedingt gleich.
+                        songIDsToCopy = IdentifiablePersistentIdentifierSet(identifiers: selectedSongIDs.contains(song.id) ? selectedSongIDs : [song.id])
+                    }) { Label("Copy To", systemImage: "arrow.uturn.left")}
+                    
+                    Button(action: {
+                        let s = Song.fetchSongs(with: selectedSongIDs.contains(song.id) ? selectedSongIDs : [song.id], in: modelContext)
+                        print("Count: \(s.count)")
+                        do {
+                            for song in s {
+                                let sng = try Song(title: song.title, modelContext: modelContext, store: store)
+                                sng.updateFromSong(other: song)
+                                sng.toPlaylist(playlist: playlist, after: song)
+                            }
+                            try modelContext.save()
+                        } catch (let error) {
+                            try? modelContext.save()
+                            globals.setSongChordsError(error: error)
+                        }
+                    }) { Label("Duplicate", systemImage: "doc.on.doc")}
+                    
+                    Button(role: .destructive, action: { prepareDelete(songIDs: selectedSongIDs.contains(song.id) ? selectedSongIDs : [song.id]) }) { Label("Delete", systemImage: "trash")}
+                }
                 #if false
                     #if os(iOS)
                     // TODO: zählt in drag-Gesten-Bubble nicht alle selektierten Songs, insb. wenn nicht alle sichtbar sind.

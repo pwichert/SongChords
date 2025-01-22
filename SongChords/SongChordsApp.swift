@@ -28,6 +28,7 @@ struct SongChordsApp: App {
     @State private var userSettings: UserSettings = UserSettings()
     @State private var globals: Globals = Globals()
     @State private var store: SongChordsStore = SongChordsStore()
+    @State private var audioPlayer = AudioPlayer()
 
     var body: some Scene {
         #if os(macOS)
@@ -35,6 +36,7 @@ struct SongChordsApp: App {
             ContentView(store: store)
                 .environment(userSettings)
                 .environment(globals)
+                .environment(audioPlayer)
                 .task(id: scenePhase) {
                     await scenePhaseChanged(scenePhase)
                 }
@@ -45,6 +47,7 @@ struct SongChordsApp: App {
             ContentView(store: store)
                 .environment(userSettings)
                 .environment(globals)
+                .environment(audioPlayer)
                 .task(id: scenePhase) {
                     await scenePhaseChanged(scenePhase)
                 }
@@ -60,6 +63,7 @@ struct SongChordsApp: App {
         } else {
             if scenePhase == .background { print("wird background")
                 await store.stopListener()
+                audioPlayer.stop()
             }
         }
     }
