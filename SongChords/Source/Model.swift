@@ -284,10 +284,10 @@ final public class Song: Codable {
             print("songRepresentation")
             
             let tokens = try ChordProLexer(input: srcText).tokenize()
-            if Task.isCancelled { print("cancelled"); return nil }
+            if Task.isCancelled { print("lexer cancelled"); return nil }
             
             let songRepresentation = try ChordProParser(userSettings: userSettings, songTranspose: transpose, tokens: tokens, forPrinting: forPrinting).parse()
-            if Task.isCancelled { print("cancelled"); return nil }
+            if Task.isCancelled { print("parser cancelled"); return nil }
             
             return songRepresentation
         } catch {
