@@ -66,7 +66,7 @@ struct SongListView: View {
                     Text(song.title)
                     if audioPlayer.isAllowed && !song.musicItemId.isEmpty {
                         Spacer()
-                        Image(systemName: "music.note")
+                        Image(systemName: "music.note").foregroundStyle(Color.gray)
                     }
                 }
                 .contextMenu {

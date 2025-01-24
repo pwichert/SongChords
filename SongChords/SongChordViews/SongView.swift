@@ -7,6 +7,7 @@
 
 import SwiftUI
 import UniformTypeIdentifiers
+import SwiftData
 
 struct SongView: View {
     let song: Song
@@ -99,7 +100,7 @@ struct SongView: View {
                     .cornerRadius(12)
                     .overlay(
                         RoundedRectangle(cornerRadius: 12)
-                        .stroke(Color.gray.opacity(0.5), lineWidth: 1)
+                        .stroke(Color.gray.opacity(0.5), lineWidth: 2)
                     )
                     .padding()
                 }
@@ -113,15 +114,6 @@ struct SongView: View {
             }
             .interactiveDismissDisabled()
         }
-        .onChange(of: song, initial: true) {
-            // bei Songwechsel auf Livedarstellung schalten
-            if pdfUrl != nil {
-                print("pdfUrl changed")
-                pdfUrl = nil
-            }
-            
-            audioPlayer.stop()
-        }
         .fileExporter(isPresented: $showFileExport, item: song, contentTypes: [uttype], defaultFilename: Song.makeValidFilename(song.title)) { result in
             switch result {
             case .success(let url):
@@ -130,6 +122,52 @@ struct SongView: View {
                 globals.setSongChordsError(error: error)
             }
         }
+        // TODO: in iOS wird .task und .onChange 2x aufgerufen. Daher Schutz davor, solange das nicht geklärt ist.
+        .task(id: song.persistentModelID) {
+            // wird evtl. gecancelled
+            #if os(macOS)
+            print("task")
+            updateSongRepresentation()
+            #else
+            if lastID1 != song.persistentModelID {
+                print("task")
+                updateSongRepresentation()
+                lastID1 = song.persistentModelID
+            }
+            #endif
+        }
+        .onChange(of: song.persistentModelID, initial: true) {
+            // bei Songwechsel auf Livedarstellung schalten
+            #if os(macOS)
+            print("onChange")
+            songChangedAction()
+            #else
+            if lastID2 != song.persistentModelID {
+                print("onChange")
+                songChangedAction()
+                lastID2 = song.persistentModelID
+            }
+            #endif
+        }
+        .onChange(of: userSettings.chordsize, initial: false) { print("chordsize changed"); updateSongRepresentation() }
+        .onChange(of: userSettings.txtsize, initial: false) { print("txtsize changed"); updateSongRepresentation() }
+        .onChange(of: userSettings.headersize, initial: false) { print("headersize changed"); updateSongRepresentation() }
+        .onChange(of: userSettings.isGermanNotation, initial: false) { print("isGermanNotation changed"); updateSongRepresentation() }
+        .onChange(of: userSettings.textfollowschords, initial: false) { print("textfollowschords changed"); updateSongRepresentation() }
+    }
+    @State private var lastID1: PersistentIdentifier?
+    @State private var lastID2: PersistentIdentifier?
+
+    private func updateSongRepresentation() {
+        song.processSongInBackground(userSettings: userSettings, forPrinting: false)
+    }
+    
+    private func songChangedAction() {
+        if pdfUrl != nil {
+            print("pdfUrl changed")
+            pdfUrl = nil
+        }
+        audioPlayer.stop()
     }
     
     @MainActor
@@ -155,7 +193,7 @@ struct DetailContent: View {
     var representationHolder: RepresentationHolder
 
     @Environment(UserSettings.self) private var userSettings
-    
+
     @State private var darkColor = Color.init(red: 0.25, green: 0.25, blue: 0.25)
     #if os(macOS)
     @State private var lightColor = Color.init(red: 0.85, green: 0.85, blue: 0.85)
@@ -194,16 +232,6 @@ struct DetailContent: View {
                 }
             }
         }.padding()
-        .onChange(of: song, initial: true) { print("song changed"); updateSongRepresentation() }
-        .onChange(of: userSettings.chordsize, initial: false) { print("chordsize changed"); updateSongRepresentation() }
-        .onChange(of: userSettings.txtsize, initial: false) { print("txtsize changed"); updateSongRepresentation() }
-        .onChange(of: userSettings.headersize, initial: false) { print("headersize changed"); updateSongRepresentation() }
-        .onChange(of: userSettings.isGermanNotation, initial: false) { print("isGermanNotation changed"); updateSongRepresentation() }
-        .onChange(of: userSettings.textfollowschords, initial: false) { print("textfollowschords changed"); updateSongRepresentation() }
-    }
-    
-    private func updateSongRepresentation() {
-        song.processSongInBackground(userSettings: userSettings, forPrinting: false)
     }
 }
 

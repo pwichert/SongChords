@@ -16,17 +16,18 @@ struct AudioPlayerView: View {
     @State private var songSpeed: Double = 1.0
     @State private var songPosition: Double = 0.0
     @State private var showSongSearch: Bool = false
+    @State private var playerState: MusicPlayer.PlaybackStatus = .stopped     // eigener State macht die Verzögerung beim Starten für den Benutzer nicht sichtbar
     
     let timer = Timer.publish(every: 1, tolerance: 0.3, on: .main, in: .common).autoconnect()
     
     var body: some View {
         VStack {
             if !audioPlayer.isAllowed {
-                Text("AudioPlayer/AppleMusic ist not available").padding()
+                AudioPlayerNotAllowedView().padding()
             } else {
                 HStack {
                     Button(action: startPlayback) {
-                        audioPlayer.playerState == .playing ? Label("Pause", systemImage: "pause.fill") : Label("Play", systemImage: "play.fill")
+                        playerState == .playing ? Label("Pause", systemImage: "pause.fill") : Label("Play", systemImage: "play.fill")
                     }.disabled(song.musicItemId == "")
                     Button(action: stopPlayback) {
                         Label("Stop", systemImage: "stop.fill")
@@ -66,6 +67,9 @@ struct AudioPlayerView: View {
                 MusicContentView(song: song)
             }
         }
+        .onChange(of: audioPlayer.playerState, initial: true) { oldState, newState in
+            playerState = newState
+        }
         .onReceive(timer) { time in
             // Songfortschritt anzeigen
             // print("time \(time) state \(audioPlayer.playerState) position \(audioPlayer.songPosition)")
@@ -83,13 +87,17 @@ struct AudioPlayerView: View {
     }
     
     private func startPlayback() {
-        // Implement playback functionality using Apple Music or local audio playback.
+        // Das Setzen des State verhindert die Verzögerungen des "echten" State
         
-        if audioPlayer.playerState == .playing {
+        if playerState == .playing {
+            playerState = .paused
             audioPlayer.pause()
-        } else if audioPlayer.playerState == .paused {
+        } else if playerState == .paused {
+            playerState = .playing
             audioPlayer.play()
         } else {
+            playerState = .playing
+
             if !audioPlayer.isLoaded {
                 audioPlayer.load(id: song.musicItemId)
             }
@@ -99,6 +107,7 @@ struct AudioPlayerView: View {
     }
 
     private func stopPlayback() {
+        playerState = .stopped
         audioPlayer.stop()
     }
 
@@ -108,6 +117,12 @@ struct AudioPlayerView: View {
         formatter.unitsStyle = .positional
         formatter.zeroFormattingBehavior = [.pad]
         return formatter.string(from: timeInterval) ?? "00:00"
+    }
+}
+
+struct AudioPlayerNotAllowedView: View {
+    var body: some View {
+        Text("Audio playback is not allowed in this app")
     }
 }
 
@@ -123,14 +138,31 @@ struct MusicContentView: View {
     
     var body: some View {
         VStack(alignment: .center) {
-            Text("Set Apple Music Title for this Song").font(.headline).padding()
-            TextField("Search", text: $searchTerm)
-                .textFieldStyle(.roundedBorder)
-                .padding()
-    
+            HStack {
+                Image(systemName: "magnifyingglass").foregroundStyle(Color.gray)
+                TextField("Search...", text: $searchTerm)
+                    .textFieldStyle(RoundedBorderTextFieldStyle())
+            }
+            .padding()
+            
+            if let item = selectedSong ?? songMusicItem {
+                HStack {
+                    if let artwork = item.artWork {
+                        ArtworkImage(artwork, width: 80)
+                            .cornerRadius(8)
+                    }
+                    VStack(alignment: .leading) {
+                        Text(item.artistName).font(.headline)
+                        Text(item.title).font(.caption)
+                    }
+                    Spacer()
+                }.padding()
+            }
+            
             searchResultsList
                 .animation(.default, value: songs)
-        }.frame(maxWidth: 500, idealHeight: 500)
+        }
+        .frame(maxWidth: 500, idealHeight: 500)
         .toolbar {
             ToolbarItem(placement: .confirmationAction) {
                 Button(action: {
@@ -152,7 +184,7 @@ struct MusicContentView: View {
                 Button(action: {
                     dismiss()
                 }) {
-                    Text("Abort")
+                    Text("Cancel")
                 }
             }
         }
@@ -160,6 +192,7 @@ struct MusicContentView: View {
         .onChange(of: searchTerm) { requestUpdatedSearchResults(for: searchTerm) }
         .onAppear {
             searchTerm = song.title
+            requestSearchID(for: song.musicItemId)
         }
     }
     
@@ -175,9 +208,9 @@ struct MusicContentView: View {
     private var rootView: some View {
         NavigationView {
             navigationViewContents
-                .navigationTitle("Music Songs")
+                .navigationTitle("Apple Music Search")
         }
-        .searchable(text: $searchTerm, prompt: "Songs")
+        .searchable(text: $searchTerm, prompt: "Search...")
     }
     
     // MARK: - Search results requesting
@@ -188,11 +221,21 @@ struct MusicContentView: View {
     /// The albums the app loads using MusicKit that match the current search term.
     @State private var songs: [MusicItem] = []
     @State private var selectedSong: MusicItem?
-    
+    @State private var songMusicItem: MusicItem?
+
     /// A list of albums to display below the search bar.
     private var searchResultsList: some View {
-        List(songs, id: \.self, selection: $selectedSong) { musicSong in
-            Text("\(musicSong.title) - \(musicSong.artistName)")
+        List(songs, id: \.self, selection: $selectedSong) { musicItem in
+            HStack {
+                if let artwork = musicItem.artWork {
+                    ArtworkImage(artwork, width: 60)
+                        .cornerRadius(3)
+                }
+                VStack(alignment: .leading) {
+                    Text(musicItem.artistName).font(.headline)
+                    Text(musicItem.title).font(.caption)
+                }
+            }
         }
     }
     
@@ -210,7 +253,8 @@ struct MusicContentView: View {
                         MusicItem(
                             id: song.id.rawValue,
                             title: song.title,
-                            artistName: song.artistName
+                            artistName: song.artistName,
+                            artWork: song.artwork
                         )
                     }
                     
@@ -221,6 +265,42 @@ struct MusicContentView: View {
                     await self.reset()
                 }
             }
+        }
+    }
+    
+    private func requestSearchID(for searchID: String) {
+        Task.detached {
+            if searchID.isEmpty {
+            } else {
+                do {
+                    // Issue a catalog search request for albums matching the search term.
+                    var searchRequest = MusicCatalogResourceRequest<MusicKit.Song>(matching: \.id, equalTo: MusicItemID(searchID))
+                    searchRequest.limit = 1
+                    let searchResponse = try await searchRequest.response().items.map { song in
+                        MusicItem(
+                            id: song.id.rawValue,
+                            title: song.title,
+                            artistName: song.artistName,
+                            artWork: song.artwork
+                        )
+                    }
+                    
+                    // Update the user interface with the search response.
+                    if let searchResponse = searchResponse.first {
+                        await self.applySong(searchResponse, for: searchTerm)
+                    }
+                } catch {
+                    print("Search request failed with error: \(error).")
+                }
+            }
+        }
+    }
+    
+    /// Safely updates the `albums` property on the main thread.
+    @MainActor
+    private func applySong(_ searchResponse: MusicItem, for searchTerm: String) {
+        if self.searchTerm == searchTerm {
+            self.songMusicItem = searchResponse
         }
     }
     
@@ -248,13 +328,13 @@ struct AppleMusicSearchView: View {
     var body: some View {
         VStack {
 //            TextField("Search Apple Music", text: $searchText, onCommit: search)
-            TextField("Search Apple Music", text: $searchText)
+            TextField("Apple Music Search", text: $searchText)
                 .textFieldStyle(RoundedBorderTextFieldStyle())
                 .padding()
                 .disableAutocorrection(true)
 
             if isSearching {
-                ProgressView("Searching...")
+                ProgressView("Search...")
                     .padding()
             } else if searchResults.isEmpty && !searchText.isEmpty {
                 Text("No results found.")
@@ -317,4 +397,5 @@ struct MusicItem: Identifiable, Sendable, Hashable {
     let id: String
     let title: String
     let artistName: String
+    let artWork: Artwork?
 }
