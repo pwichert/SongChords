@@ -53,7 +53,7 @@ class AudioPlayer {
     }
 
     func play() {
-        print("play")
+        print("Audioplayer play")
         let pl = player
         Task { @MainActor in
             do {
@@ -66,18 +66,18 @@ class AudioPlayer {
     }
     
     func stop() {
-        print("stop")
+        print("Audioplayer stop")
         player.restartCurrentEntry()
         player.stop()
     }
     
     func pause() {
-        print("pause")
+        print("Audioplayer pause")
         player.pause()
     }
     
     func load(id: String) {
-        print("loadSong")
+        print("Audioplayer loadSong")
         
         if id == loadedId { return }
 
@@ -100,7 +100,7 @@ class AudioPlayer {
                     songPosition = 0
                     player.queue = [songItem]
                     loadedId = id
-                    print("geladen \(songDuration)")
+                    print("Audioplayer geladen \(songDuration)")
                     try await pl.prepareToPlay()
                 }
             } catch (let error) {
@@ -110,7 +110,7 @@ class AudioPlayer {
     }
     
     private func restoreState(state: MusicPlayer.PlaybackStatus) {
-        print("restoring \(state)")
+        print("Audioplayer restoring \(state)")
         switch state {
         case .playing:
             // setzen der Rate started immer das playing, daher hier nicht nochmal
@@ -138,12 +138,12 @@ class AudioPlayer {
                 update(with: musicAuthorizationStatus)
             }
         default:
-            print("musicAuthorizationStatus = \(self.musicAuthorizationStatus)")
+            print("Audioplayer musicAuthorizationStatus = \(self.musicAuthorizationStatus)")
         }
     }
     
     private func update(with musicAuthorizationStatus: MusicAuthorization.Status) {
         self.musicAuthorizationStatus = musicAuthorizationStatus
-        print("update musicAuthorizationStatus \(self.musicAuthorizationStatus)")
+        print("Audioplayer update musicAuthorizationStatus \(self.musicAuthorizationStatus)")
     }
 }

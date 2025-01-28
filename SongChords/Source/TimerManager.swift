@@ -26,7 +26,7 @@ actor TimerManager {
         // Falls der Timer läuft, zuerst stoppen
         stopTimer()
 
-        print("Timer started with interval \(interval) seconds.")
+        print("loopTimer started with interval \(interval) seconds.")
         self.interval = interval
         self.startTime = .now
         self.remaining = interval
@@ -40,7 +40,7 @@ actor TimerManager {
                     Task {
                         await self.nextRun()
                         task()
-                        print("Timer fired at \(Date.now)")
+                        print("loopTimer fired at \(Date.now)")
                     }
                 })
             }
@@ -58,7 +58,7 @@ actor TimerManager {
     /// Pausiert den Timer und speichert die verbleibende Zeit.
     func pauseTimer() {
         guard isRunning else {
-            print("Timer is not running.")
+            print("loopTimer is not running.")
             return
         }
 
@@ -74,18 +74,18 @@ actor TimerManager {
             loopTimer.invalidate()
             self.loopTimer = nil
             self.isRunning = false
-            print("Timer paused with \(self.remaining) seconds remaining.")
+            print("loopTimer paused with \(self.remaining) seconds remaining.")
         }
     }
 
     /// Setzt den Timer fort, falls er pausiert wurde.
     func resumeTimer(task: @escaping @Sendable () -> Void) {
         guard !isRunning, remaining > 0 else {
-            print("Timer is already running or has no remaining time.")
+            print("loopTimer is already running or has no remaining time.")
             return
         }
 
-        print("Resuming timer with \(remaining) seconds remaining.")
+        print("Resuming loopTimer with \(remaining) seconds remaining.")
         self.startTime = .now
         self.isRunning = true
 
@@ -95,7 +95,7 @@ actor TimerManager {
             Task {
                 await setTimer(timer: Timer.scheduledTimer(withTimeInterval: self.remaining, repeats: false) { _ in
                     task()
-                    print("Timer resumed and fired at \(Date.now)")
+                    print("loopTimer resumed and fired at \(Date.now)")
                     Task { await self.startTimer(interval: self.interval, task: task) }
                 })
             }
@@ -107,7 +107,7 @@ actor TimerManager {
         DispatchQueue.main.async { [weak self] in
             guard let self = self else { return }
             Task { @MainActor in await self.setStop() }
-            print("Timer stopped.")
+            print("loopTimer stopped.")
         }
     }
     

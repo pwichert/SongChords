@@ -15,25 +15,32 @@ struct MusicItem: Identifiable, Sendable, Hashable {
     let artWork: Artwork?
 }
 
+enum PlaybackStatus {
+    case playing
+    case paused
+    case stopped
+}
+
 struct AudioPlayerView: View {
     let song: Song
     
     @Environment(AudioPlayer.self) private var audioPlayer
     @Environment(Globals.self) private var globals
     @Environment(\.modelContext) private var modelContext
-    @Environment(TimerManagerWrapper.self) private var timerManagerWrapper
+    @Environment(TimerManagerWrapper.self) private var loopTimerManager
 
     @State private var songSpeed: Double = 1.0
     @State private var songPosition: TimeInterval = 0.0
     @State private var showSongSearch: Bool = false
-    @State private var playerState: MusicPlayer.PlaybackStatus = .stopped     // eigener State macht die Verzögerung beim Starten für den Benutzer nicht sichtbar
+    @State private var playerState: PlaybackStatus = .stopped     // eigener State macht die Verzögerung beim Starten für den Benutzer nicht sichtbar
     
     @State private var playerLoops: [PlayerLoop] = []
     @State private var selectedLoop: PlayerLoop?
     @State private var currentLoop = PlayerLoop(start: 0, stop: 0, title: "")
     @State private var loopActive: Bool = false
         
-    let timer = Timer.publish(every: 1, tolerance: 0.3, on: .main, in: .common).autoconnect()
+    // aktualisiert den Status des AudioPlayers, insb. die Position
+    let statusTimer = Timer.publish(every: 1, tolerance: 0.3, on: .main, in: .common).autoconnect()
     
     var body: some View {
         VStack {
@@ -67,12 +74,12 @@ struct AudioPlayerView: View {
                     )
                 }
                 #endif
-                
+
                 HStack {
-                    Button(action: startPlayback) {
-                        playerState == .playing ? Label("Pause", systemImage: "pause.fill") : Label("Play", systemImage: "play.fill")
+                    Button(action: { startPlayback() }) {
+                        audioPlayer.playerState == .playing ? Label("Pause", systemImage: "pause.fill") : Label("Play", systemImage: "play.fill")
                     }.disabled(song.musicItemId.isEmpty)
-                    Button(action: stopPlayback) {
+                    Button(action: { stopPlayback() }) {
                         Label("Stop", systemImage: "stop.fill")
                     }.disabled(song.musicItemId.isEmpty)
                     Button(action: { showSongSearch.toggle() } ) {
@@ -119,13 +126,21 @@ struct AudioPlayerView: View {
             setCurrentLoopTimer()
         }
         .onChange(of: audioPlayer.playerState, initial: true) { oldState, newState in
+            // wäre gut, führt aber zu merkwürdigem verhalten bei Play-Button
             // Status aktualisieren
-            playerState = newState
+            print("change \(oldState) \(newState)")
+//            switch newState {
+//            case .paused: playerState = .paused
+//            case .stopped: playerState = .stopped
+//            case .playing: playerState = .playing
+//            case .interrupted, .seekingForward, .seekingBackward: playerState = .stopped
+//            @unknown default:
+//                playerState = .stopped
+//            }
         }
-        .onReceive(timer) { time in
+        .onReceive(statusTimer) { time in
             // Songfortschritt anzeigen
-            //             print("time \(time) state \(audioPlayer.playerState) position \(audioPlayer.songPosition)")
-            
+//            print("statusTimer: time \(time) state \(audioPlayer.playerState) position \(audioPlayer.songPosition)")
             songPosition = audioPlayer.songDuration == 0 ? 0 : audioPlayer.songPosition / audioPlayer.songDuration
         }
         .onAppear {
@@ -143,29 +158,26 @@ struct AudioPlayerView: View {
     
     private func startLoopTimer(interval: TimeInterval) {
         Task {
-            await timerManagerWrapper.timerManager.startTimer(interval: interval / Double(audioPlayer.songSpeed), task: {
-                Task { await fireTimer() }
+            await loopTimerManager.timerManager.startTimer(interval: interval / Double(audioPlayer.songSpeed), task: {
+                Task { await fireLoopTimer() }
             } )
         }
     }
     
-    private func fireTimer() {
-        print("Timer fired!")
-        
-        print("set to \(currentLoop.start)")
+    private func fireLoopTimer() {
+        print("loopTimer fired, position set to \(currentLoop.start)")
         audioPlayer.songPosition = currentLoop.start
     }
     
     private func stopLoopTimer() {
         Task {
-            await timerManagerWrapper.timerManager.stopTimer()
+            await loopTimerManager.timerManager.stopTimer()
         }
     }
 
     private func setCurrentLoopTimer() {
         if loopActive {
             audioPlayer.songPosition = currentLoop.start
-            print("start \(currentLoop.start) stop \(currentLoop.stop)")
             startLoopTimer(interval: currentLoop.stop - currentLoop.start)
         }
         if !loopActive {
@@ -175,27 +187,27 @@ struct AudioPlayerView: View {
     
     private func startPlayback() {
         // Das Setzen des State verhindert die Verzögerungen des "echten" State
+        let plState = playerState
         
-        if playerState == .playing {
-            playerState = .paused
+        if plState == .playing {
             audioPlayer.pause()
             
             // TODO weil (noch) keine angefangene Loops mit Restlaufzeit funktionieren
             loopActive = false
             
-        } else if playerState == .paused {
-            playerState = .playing
+            playerState = .paused
+        } else if plState == .paused {
             audioPlayer.play()
             setCurrentLoopTimer()
-        } else {
             playerState = .playing
-
+        } else {
             if !audioPlayer.isLoaded {
                 audioPlayer.load(id: song.musicItemId)
             }
             
             audioPlayer.play()
             setCurrentLoopTimer()
+            playerState = .playing
         }
     }
 
