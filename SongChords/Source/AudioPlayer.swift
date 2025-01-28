@@ -18,7 +18,7 @@ enum PlayerState: String, CaseIterable, Sendable {
 @MainActor
 class AudioPlayer {
     /// The MusicKit player to use for Apple Music playback.
-    private let player = ApplicationMusicPlayer.shared
+    let player = ApplicationMusicPlayer.shared
     
     private(set) var songDuration: TimeInterval = 0.0
     

@@ -77,7 +77,7 @@ struct AudioPlayerView: View {
 
                 HStack {
                     Button(action: { startPlayback() }) {
-                        audioPlayer.playerState == .playing ? Label("Pause", systemImage: "pause.fill") : Label("Play", systemImage: "play.fill")
+                        playerState == .playing ? Label("Pause", systemImage: "pause.fill") : Label("Play", systemImage: "play.fill")
                     }.disabled(song.musicItemId.isEmpty)
                     Button(action: { stopPlayback() }) {
                         Label("Stop", systemImage: "stop.fill")
@@ -126,9 +126,11 @@ struct AudioPlayerView: View {
             setCurrentLoopTimer()
         }
         .onChange(of: audioPlayer.playerState, initial: true) { oldState, newState in
-            // wäre gut, führt aber zu merkwürdigem verhalten bei Play-Button
             // Status aktualisieren
             print("change \(oldState) \(newState)")
+            
+            // Merkwürdiges Verhalten
+            
 //            switch newState {
 //            case .paused: playerState = .paused
 //            case .stopped: playerState = .stopped
