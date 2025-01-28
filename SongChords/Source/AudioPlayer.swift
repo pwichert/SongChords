@@ -22,15 +22,17 @@ class AudioPlayer {
     
     private(set) var songDuration: TimeInterval = 0.0
     
-    var songPosition: Double { get {
-        return songDuration == 0 ? 0 : Double(player.playbackTime) / songDuration
+    var songPosition: TimeInterval { get {
+        return player.playbackTime
     } set {
-        player.playbackTime = newValue * songDuration
+        player.playbackTime = newValue
     }}
     
     // Speed-Änderung started den Player, daher Status merken und restaurieren
     private var songSpeed_: Float = 1.0
-    var songSpeed: Float { get { return songSpeed_ } set {
+    var songSpeed: Float { get {
+        return songSpeed_
+    } set {
         songSpeed_ = newValue
         let state = player.state.playbackStatus
         player.state.playbackRate = newValue
@@ -86,6 +88,7 @@ class AudioPlayer {
         loadedId = nil
         
         if id.isEmpty { return }
+        let pl = player
         
         Task { @MainActor in
             do {
@@ -98,6 +101,7 @@ class AudioPlayer {
                     player.queue = [songItem]
                     loadedId = id
                     print("geladen \(songDuration)")
+                    try await pl.prepareToPlay()
                 }
             } catch (let error) {
                 print(error)
@@ -126,14 +130,15 @@ class AudioPlayer {
         }
     }
     
-    private func handleAuthorizationStatus() {
+    func handleAuthorizationStatus() {
         switch musicAuthorizationStatus {
         case .notDetermined:
             Task { @MainActor in
                 let musicAuthorizationStatus = await MusicAuthorization.request()
                 update(with: musicAuthorizationStatus)
             }
-        default: break
+        default:
+            print("musicAuthorizationStatus = \(self.musicAuthorizationStatus)")
         }
     }
     

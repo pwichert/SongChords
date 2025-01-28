@@ -8,16 +8,31 @@
 import SwiftUI
 import MusicKit
 
+struct MusicItem: Identifiable, Sendable, Hashable {
+    let id: String
+    let title: String
+    let artistName: String
+    let artWork: Artwork?
+}
+
 struct AudioPlayerView: View {
     let song: Song
     
     @Environment(AudioPlayer.self) private var audioPlayer
+    @Environment(Globals.self) private var globals
+    @Environment(\.modelContext) private var modelContext
+    @Environment(TimerManagerWrapper.self) private var timerManagerWrapper
 
     @State private var songSpeed: Double = 1.0
-    @State private var songPosition: Double = 0.0
+    @State private var songPosition: TimeInterval = 0.0
     @State private var showSongSearch: Bool = false
     @State private var playerState: MusicPlayer.PlaybackStatus = .stopped     // eigener State macht die Verzögerung beim Starten für den Benutzer nicht sichtbar
     
+    @State private var playerLoops: [PlayerLoop] = []
+    @State private var selectedLoop: PlayerLoop?
+    @State private var currentLoop = PlayerLoop(start: 0, stop: 0, title: "")
+    @State private var loopActive: Bool = false
+        
     let timer = Timer.publish(every: 1, tolerance: 0.3, on: .main, in: .common).autoconnect()
     
     var body: some View {
@@ -25,35 +40,61 @@ struct AudioPlayerView: View {
             if !audioPlayer.isAllowed {
                 AudioPlayerNotAllowedView().padding()
             } else {
+                #if DEBUG || os(iOS)
+                VStack {
+                    PlayerLoopEditView(song: song, playerLoop: $currentLoop, playerLoopList: $playerLoops, active: $loopActive)
+                        .lineLimit(1)
+                    
+                    List(selection: $selectedLoop) {
+                        ForEach(playerLoops.sorted(by: { $0.start < $1.start }), id: \.self) { playerLoop in
+                            Text(playerLoop.title.isEmpty ? "-" : playerLoop.title).font(.subheadline)
+                        }
+                        .onDelete(perform: { indices in
+                            for index in indices { playerLoops.remove(at: index) }
+                            song.playerLoops = playerLoops
+                            
+                            do {
+                                try modelContext.save()
+                            } catch (let error) {
+                                globals.setSongChordsError(error: error)
+                            }
+                        } )
+                    }
+                    .frame(maxHeight: 200).cornerRadius(10)
+                    .overlay( /// apply a rounded border
+                        RoundedRectangle(cornerRadius: 10)
+                        .stroke(.secondary, lineWidth: 1)
+                    )
+                }
+                #endif
+                
                 HStack {
                     Button(action: startPlayback) {
                         playerState == .playing ? Label("Pause", systemImage: "pause.fill") : Label("Play", systemImage: "play.fill")
-                    }.disabled(song.musicItemId == "")
+                    }.disabled(song.musicItemId.isEmpty)
                     Button(action: stopPlayback) {
                         Label("Stop", systemImage: "stop.fill")
-                    }.disabled(song.musicItemId == "")
+                    }.disabled(song.musicItemId.isEmpty)
                     Button(action: { showSongSearch.toggle() } ) {
                         Label("Select Song", systemImage: "music.note.list")
-                    }
+                    }.lineLimit(1)
                 }.buttonStyle(BorderedButtonStyle()).font(.footnote)
                 
                 Grid(alignment: .trailing) {
+                    #if DEBUG || os(iOS)
                     GridRow {
                         Text("Pos")
-                        Slider(value: $songPosition, in: 0...1.0, step: 0.01, onEditingChanged:
-                                { editing in
-                            if !editing { audioPlayer.songPosition = songPosition }
-                        }
-                        ) {}
+                        Slider(value: $songPosition, in: 0...1.0, step: 0.01, onEditingChanged: { editing in
+                            if !editing { audioPlayer.songPosition = songPosition * audioPlayer.songDuration }
+                        }).disabled(song.musicItemId.isEmpty)
                         Text(formatTimeInterval(songPosition * audioPlayer.songDuration)).font(.footnote).frame(width: 50).lineLimit(1)
                     }
+                    #endif
                     GridRow {
                         Text("Speed")
-                        Slider(value: $songSpeed, in: 0.3...1.0, step: 0.01, onEditingChanged:
-                                { editing in
-                            if !editing { audioPlayer.songSpeed = Float(songSpeed) }
-                        }
-                        ) {}
+                        Slider(value: $songSpeed, in: 0.3...1.0, step: 0.01, onEditingChanged: { editing in
+                            if !editing { audioPlayer.songSpeed = Float(songSpeed); setCurrentLoopTimer() }
+                        }).disabled(song.musicItemId.isEmpty)
                         Text(String(format: "%.0f%%", songSpeed * 100.0)).font(.footnote).frame(width: 50).lineLimit(1)
                     }
                 }
@@ -67,22 +108,68 @@ struct AudioPlayerView: View {
                 MusicContentView(song: song)
             }
         }
+        .onChange(of: loopActive, initial: false) {
+            setCurrentLoopTimer()
+        }
+        .onChange(of: selectedLoop, initial: false) {
+            if let selectedLoop {
+                // currentLoop übernimmt die Werte der Auswahl in neuem Objekt, nicht das Objekt selbst
+                currentLoop = PlayerLoop(start: selectedLoop.start, stop: selectedLoop.stop, title: selectedLoop.title)
+            }
+            setCurrentLoopTimer()
+        }
         .onChange(of: audioPlayer.playerState, initial: true) { oldState, newState in
+            // Status aktualisieren
             playerState = newState
         }
         .onReceive(timer) { time in
             // Songfortschritt anzeigen
-            // print("time \(time) state \(audioPlayer.playerState) position \(audioPlayer.songPosition)")
-            songPosition = audioPlayer.songPosition
+            //             print("time \(time) state \(audioPlayer.playerState) position \(audioPlayer.songPosition)")
+            
+            songPosition = audioPlayer.songDuration == 0 ? 0 : audioPlayer.songPosition / audioPlayer.songDuration
         }
         .onAppear {
             // bei jedem Anzeigen der View aktualisieren, laufenden Song nicht unterbrechen
             songSpeed = Double(audioPlayer.songSpeed)
-            songPosition = audioPlayer.songPosition
+            songPosition = audioPlayer.songDuration == 0 ? 0 : audioPlayer.songPosition / audioPlayer.songDuration
         }
         .task(id: song.persistentModelID) {
             // beim ersten Anzeigen des Songs
             audioPlayer.load(id: song.musicItemId)
+            playerLoops = song.playerLoops
+            loopActive = false
+        }
+    }
+    
+    private func startLoopTimer(interval: TimeInterval) {
+        Task {
+            await timerManagerWrapper.timerManager.startTimer(interval: interval / Double(audioPlayer.songSpeed), task: {
+                Task { await fireTimer() }
+            } )
+        }
+    }
+    
+    private func fireTimer() {
+        print("Timer fired!")
+        
+        print("set to \(currentLoop.start)")
+        audioPlayer.songPosition = currentLoop.start
+    }
+    
+    private func stopLoopTimer() {
+        Task {
+            await timerManagerWrapper.timerManager.stopTimer()
+        }
+    }
+
+    private func setCurrentLoopTimer() {
+        if loopActive {
+            audioPlayer.songPosition = currentLoop.start
+            print("start \(currentLoop.start) stop \(currentLoop.stop)")
+            startLoopTimer(interval: currentLoop.stop - currentLoop.start)
+        }
+        if !loopActive {
+            stopLoopTimer()
         }
     }
     
@@ -92,9 +179,14 @@ struct AudioPlayerView: View {
         if playerState == .playing {
             playerState = .paused
             audioPlayer.pause()
+            
+            // TODO weil (noch) keine angefangene Loops mit Restlaufzeit funktionieren
+            loopActive = false
+            
         } else if playerState == .paused {
             playerState = .playing
             audioPlayer.play()
+            setCurrentLoopTimer()
         } else {
             playerState = .playing
 
@@ -103,12 +195,14 @@ struct AudioPlayerView: View {
             }
             
             audioPlayer.play()
+            setCurrentLoopTimer()
         }
     }
 
     private func stopPlayback() {
         playerState = .stopped
         audioPlayer.stop()
+        stopLoopTimer()
     }
 
     private func formatTimeInterval(_ timeInterval: TimeInterval) -> String {
@@ -121,8 +215,12 @@ struct AudioPlayerView: View {
 }
 
 struct AudioPlayerNotAllowedView: View {
+    @Environment(AudioPlayer.self) private var audioPlayer
     var body: some View {
         Text("Audio playback is not allowed in this app")
+            .onAppear {
+                audioPlayer.handleAuthorizationStatus()
+            }
     }
 }
 
@@ -157,6 +255,8 @@ struct MusicContentView: View {
                     }
                     Spacer()
                 }.padding()
+            } else {
+                Text("No song assigned").font(.headline).padding()
             }
             
             searchResultsList
@@ -319,83 +419,81 @@ struct MusicContentView: View {
     }
 }
 
-struct AppleMusicSearchView: View {
-    @State private var searchText: String = ""
-    @State private var searchResults: [MusicItem] = []
-    @State private var isSearching: Bool = false
-    let song: Song // Das Song-Objekt, in dem die MusicItemID gespeichert werden soll
+struct PlayerLoopEditView: View {
+    let song: Song
+    @Binding var playerLoop: PlayerLoop
+    @Binding var playerLoopList: [PlayerLoop]
+    @Binding var active: Bool
+    
+    @Environment(\.modelContext) private var modelContext
+    @Environment(Globals.self) private var globals
 
     var body: some View {
-        VStack {
-//            TextField("Search Apple Music", text: $searchText, onCommit: search)
-            TextField("Apple Music Search", text: $searchText)
-                .textFieldStyle(RoundedBorderTextFieldStyle())
-                .padding()
-                .disableAutocorrection(true)
-
-            if isSearching {
-                ProgressView("Search...")
-                    .padding()
-            } else if searchResults.isEmpty && !searchText.isEmpty {
-                Text("No results found.")
-                    .padding()
-            } else {
-                List(searchResults, id: \.id) { item in
-                    Button(action: {
-                        saveMusicItemID(item.id)
-                    }) {
-                        HStack {
-                            Text(item.title)
-                                .font(.headline)
-                            Spacer()
-                            Text(item.artistName)
-                                .font(.subheadline)
-                                .foregroundColor(.secondary)
-                        }
-                    }
+        HStack(alignment: .center) {
+            VStack {
+                Text("Active").font(.footnote)
+                Button {
+                    active.toggle()
+                } label: {
+                    Image(systemName: active ? "checkmark.square" : "square").font(.title)
                 }
+                .disabled(song.musicItemId.isEmpty || playerLoop.stop == 0 || playerLoop.start >= playerLoop.stop)
+                Text("").font(.footnote)
+            }
+            
+            TextField("Looptitle", text: $playerLoop.title)
+                .autocorrectionDisabled(true)
+                .disabled(song.musicItemId.isEmpty)
+                .font(.body)
+                .textFieldStyle(RoundedBorderTextFieldStyle())
+            SetButtonView(song: song, txt: "Start", point: $playerLoop.start)
+            SetButtonView(song: song, txt: "End", point: $playerLoop.stop)
+            
+            VStack {
+                Text("Save").font(.footnote)
+                Button {
+                    saveToList()
+                } label: {
+                    Image(systemName: "square.and.arrow.down").font(.title)
+                }
+                .disabled(song.musicItemId.isEmpty || playerLoop.stop == 0 || playerLoop.start >= playerLoop.stop)
+                Text("").font(.footnote)
             }
         }
-        .navigationTitle("Apple Music Search")
-        .onAppear {
-            requestMusicAuthorization()
-        }
     }
-
-//    private func search() {
-//        guard !searchText.isEmpty else { return }
-//        isSearching = true
-//
-//        Task {
-//            do {
-//                let request = MusicCatalogSearchRequest(term: searchText, types: [MusicKit.Song.self])
-//                let response = try await request.response()
-//                self.searchResults = response.songs.map { MusicItem(id: $0.id.rawValue, title: $0.title, artistName: $0.artistName) }
-//            } catch {
-//                print("Error searching Apple Music: \(error.localizedDescription)")
-//            }
-//            isSearching = false
-//        }
-//    }
-
-    private func saveMusicItemID(_ id: String) {
-        song.musicItemId = id // Speichere die ID im Song-Modell
-        print("Saved MusicItemID: \(id)")
-    }
-
-    private func requestMusicAuthorization() {
-        Task {
-            let status = await MusicAuthorization.request()
-            if status != .authorized {
-                print("Apple Music authorization not granted.")
-            }
+    
+    func saveToList() {
+        playerLoopList.append(PlayerLoop(start: playerLoop.start, stop: playerLoop.stop, title: playerLoop.title.isEmpty ? "Loop \(playerLoopList.count)" : playerLoop.title))
+        song.playerLoops = playerLoopList
+        
+        do {
+            try modelContext.save()
+        } catch (let error) {
+            globals.setSongChordsError(error: error)
         }
     }
 }
 
-struct MusicItem: Identifiable, Sendable, Hashable {
-    let id: String
-    let title: String
-    let artistName: String
-    let artWork: Artwork?
+struct SetButtonView: View {
+    let song: Song
+    let txt: String
+    @Binding var point: TimeInterval
+
+    @Environment(AudioPlayer.self) private var audioPlayer
+
+    var body: some View {
+        VStack(alignment: .center) {
+            Text(txt).font(.footnote)
+            Button { point = audioPlayer.songPosition } label: { Image(systemName: "button.programmable").font(.title) }.disabled(song.musicItemId.isEmpty)
+            Text(formatTimeInterval(point)).font(.footnote)
+        }
+    }
+                
+    private func formatTimeInterval(_ timeInterval: TimeInterval) -> String {
+        let formatter = DateComponentsFormatter()
+        formatter.allowedUnits = [.minute, .second]
+        formatter.unitsStyle = .positional
+        formatter.zeroFormattingBehavior = [.pad]
+        return formatter.string(from: timeInterval) ?? "00:00"
+    }
 }

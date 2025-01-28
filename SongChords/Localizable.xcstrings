@@ -124,6 +124,16 @@
         }
       }
     },
+    "Active" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aktiv"
+          }
+        }
+      }
+    },
     "Am          C" : {
       "shouldTranslate" : false
     },
@@ -498,6 +508,16 @@
         }
       }
     },
+    "Looptitle" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Looptitel"
+          }
+        }
+      }
+    },
     "New Playlist" : {
       "localizations" : {
         "de" : {
@@ -528,12 +548,12 @@
         }
       }
     },
-    "No results found." : {
+    "No song assigned" : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Keine Ergebnisse."
+            "value" : "Kein Song zugeordnet"
           }
         }
       }
@@ -756,6 +776,9 @@
           }
         }
       }
+    },
+    "title" : {
+      "shouldTranslate" : false
     },
     "Title" : {
       "localizations" : {

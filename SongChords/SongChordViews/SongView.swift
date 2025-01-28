@@ -18,6 +18,7 @@ struct SongView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(Globals.self) private var globals
     @Environment(AudioPlayer.self) private var audioPlayer
+    @Environment(TimerManagerWrapper.self) private var timerManagerWrapper
 
     @State private var showAudioPlayer: Bool = false
     @State private var showSongEditView: Bool = false
@@ -168,6 +169,9 @@ struct SongView: View {
             pdfUrl = nil
         }
         audioPlayer.stop()
+        Task {
+            await timerManagerWrapper.timerManager.stopTimer()
+        }
     }
     
     @MainActor

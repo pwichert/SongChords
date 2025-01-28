@@ -113,7 +113,7 @@ class DirectiveManager {
 
     // Fügt eine Direktive hinzu, entweder als vollständigen Namen oder als Abkürzung
     func addDirective(_ input: String) -> DirectiveType? {
-        let arrWithLabel = delimitedStringToArray(str: input)
+        let arrWithLabel = delimitedStringToArray(str: input.trimmingCharacters(in: .whitespaces))
         let arr = arrWithLabel.arr
         let label = arrWithLabel.label
             

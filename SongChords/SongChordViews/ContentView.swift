@@ -17,6 +17,7 @@ struct ContentView: View {
     @State private var showAlert: Bool = false
     @State private var showStore: Bool = false
 
+    @Environment(TimerManagerWrapper.self) private var timerManagerWrapper
     @Environment(UserSettings.self) private var userSettings
     @Environment(AudioPlayer.self) private var audioPlayer
     @Environment(Globals.self) private var globals
@@ -30,6 +31,7 @@ struct ContentView: View {
                 .environment(globals)
                 .environment(store)
                 .environment(audioPlayer)
+                .environment(timerManagerWrapper)
 
         } content: {
             
@@ -39,6 +41,7 @@ struct ContentView: View {
                     .environment(globals)
                     .environment(store)
                     .environment(audioPlayer)
+                    .environment(timerManagerWrapper)
             } else {
                 ContentUnavailableView("Select a playlist", systemImage: "doc.text.image.fill")
             }
@@ -51,6 +54,7 @@ struct ContentView: View {
                     .environment(globals)
                     .environment(store)
                     .environment(audioPlayer)
+                    .environment(timerManagerWrapper)
             } else {
                 ContentUnavailableView("Select a song", systemImage: "doc.text.image.fill")
             }

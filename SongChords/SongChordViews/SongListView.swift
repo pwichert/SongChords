@@ -66,7 +66,7 @@ struct SongListView: View {
                     Text(song.title)
                     if audioPlayer.isAllowed && !song.musicItemId.isEmpty {
                         Spacer()
-                        Image(systemName: "music.note").foregroundStyle(Color.gray)
+                        Image(systemName: "music.note")
                     }
                 }
                 .contextMenu {
@@ -269,10 +269,6 @@ struct SongListView: View {
             }
             
             playlist.songs = sortedSongs
-            #if os(iOS)
-            editMode = .inactive
-            #endif
-            
             try modelContext.save()
         } catch (let error) {
             globals.setSongChordsError(error: error)

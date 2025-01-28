@@ -226,6 +226,7 @@ final public class Song: Codable {
     var showHeader: Bool = true
     var transpose: Int = 0
     var duration: Double = 200
+    var playerLoops: [PlayerLoop] = []
     
     var playlist: PlayList?
     
@@ -297,10 +298,10 @@ final public class Song: Codable {
     }
 
     func updateFromSong(other: Song) {
-        updateFrom(title: other.title, srcText: other.srcText, transpose: other.transpose, showChords: other.showChords, showText: other.showText, showHeader: other.showHeader, duration: other.duration, musicItemId: other.musicItemId)
+        updateFrom(title: other.title, srcText: other.srcText, transpose: other.transpose, showChords: other.showChords, showText: other.showText, showHeader: other.showHeader, duration: other.duration, musicItemId: other.musicItemId, playerLoops: other.playerLoops)
     }
     
-    func updateFrom(title: String, srcText: String, transpose: Int, showChords: Bool, showText: Bool, showHeader: Bool, duration: Double, musicItemId: String) {
+    func updateFrom(title: String, srcText: String, transpose: Int, showChords: Bool, showText: Bool, showHeader: Bool, duration: Double, musicItemId: String, playerLoops: [PlayerLoop]) {
         self.title = title
         self.srcText = srcText
         self.transpose = transpose
@@ -309,6 +310,7 @@ final public class Song: Codable {
         self.showHeader = showHeader
         self.duration = duration
         self.musicItemId = musicItemId
+        self.playerLoops = playerLoops
     }
     
     func toPlaylist(playlist: PlayList, after: Song? = nil) {
@@ -438,6 +440,7 @@ final public class Song: Codable {
 //        case showtext
 //        case duration
         case musicitemid
+        case playerloops
     }
     
     required public init(from decoder: Decoder) throws {
@@ -451,6 +454,7 @@ final public class Song: Codable {
 //        showText = try container.decode(Bool.self, forKey: .showtext)
 //        duration = try container.decode(Double.self, forKey: .duration)
         if container.contains(.musicitemid) { musicItemId = try container.decode(String.self, forKey: .musicitemid) } else { musicItemId = "" }
+        if container.contains(.playerloops) { playerLoops = try container.decode([PlayerLoop].self, forKey: .playerloops) } else { playerLoops = [] }
     }
     
     public func encode(to encoder: Encoder) throws {
@@ -464,6 +468,7 @@ final public class Song: Codable {
 //        try container.encode(showText, forKey: .showtext)
 //        try container.encode(duration, forKey: .duration)
         try container.encode(musicItemId, forKey: .musicitemid)
+        try container.encode(playerLoops, forKey: .playerloops)
     }
 
     @Transient var hideCodable: Bool = false

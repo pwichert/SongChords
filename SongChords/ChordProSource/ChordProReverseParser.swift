@@ -94,10 +94,12 @@ public class ChordProReverseParser {
         let spl = splitWords(line: line)
         
         var chords: [TextElement] = []
+        var txts: [TextElement] = []
         var numChords: Int = 0
         var numTexts: Int = 0
         
         for word in spl {
+            // falls es Chords sind
             if let chord = ParsedChord.parse(word.txt, rootSystem: &rootSystem, strict: true) {
                 chords.append(TextElement(txt: "[" + chord.name + "]", fontOffset: Double(word.pos), background: false))
                 numChords += 1
@@ -105,10 +107,13 @@ public class ChordProReverseParser {
                 chords.append(TextElement(txt: word.txt, fontOffset: Double(word.pos), background: false))
                 numTexts += 1
             }
+            
+            // falls es keine Chords sind
+            txts.append(TextElement(txt: word.txt, fontOffset: Double(word.pos), background: false))
         }
         
         if numChords > 0 && numChords > spl.count / 2 { return (chords, true) }
-        return (chords, false)
+        return (txts, false)
     }
     
     private func splitWords(line: String) -> [(pos: Int, txt: String)] {

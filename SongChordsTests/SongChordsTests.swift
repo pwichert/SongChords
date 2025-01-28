@@ -16,8 +16,8 @@ struct SongChordsTests {
         let userSettings = UserSettings()
 
         var inputText: String = """
-        {title: Simple Song}
-        {artist: The Example Band}
+        { title: Simple Song}
+        {artist: The Example Band }
         Artist: %{artist}
         [G]This is a [C]simple [D]song.
         [Verse]
@@ -318,5 +318,28 @@ struct SongChordsTests {
         
         """
         sections = chordProReverseParser.parse(input: inputText, rootSystem: &englishDutchRoot)
+        #expect(chordProReverseParser.toString(sections: sections) == expectedResult)
+        
+        inputText = """
+        [Verse]
+             Cm7               F
+        The power of love is a curious thing
+        Cm7                         F
+        Make a one man weep, make another man sing
+        Cm7                  F
+        Change a heart to a little white dove
+        Cm7                  F
+        More than a feeling, that's the power of love
+        """
+        expectedResult = """
+        [Verse]
+        The p[Cm7]ower of love is a [F]curious thing
+        [Cm7]Make a one man weep, make an[F]other man sing
+        [Cm7]Change a heart to a l[F]ittle white dove
+        [Cm7]More than a feeling, [F]that's the power of love
+        
+        """
+        sections = chordProReverseParser.parse(input: inputText, rootSystem: &englishDutchRoot)
+        #expect(chordProReverseParser.toString(sections: sections) == expectedResult)
     }
 }
