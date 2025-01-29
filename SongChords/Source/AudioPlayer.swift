@@ -77,7 +77,7 @@ class AudioPlayer {
     }
     
     func loadAndPlay(id: String) {
-        print("Audioplayer loadSong")
+        print("Audioplayer loadAndPlay")
         
         if id == loadedId { play(); return }
 
@@ -103,6 +103,39 @@ class AudioPlayer {
                     print("Audioplayer geladen \(songDuration)")
                     try await pl.prepareToPlay()
                     play()
+                }
+            } catch (let error) {
+                print(error)
+            }
+        }
+    }
+    
+    func load(id: String) {
+        print("Audioplayer load")
+        
+        if id == loadedId { return }
+
+        player.stop()
+        songResponse = nil
+        songDuration = 0
+        player.queue = []
+        loadedId = nil
+        
+        if id.isEmpty { return }
+        let pl = player
+        
+        Task { @MainActor in
+            do {
+                let songRequest = MusicCatalogResourceRequest<MusicKit.Song>(matching: \.id, equalTo: MusicItemID(rawValue: id)) // MusicItemID(rawValue: "83445997"))
+                songResponse = try await songRequest.response()
+                
+                if let songItem = songResponse?.items.first {
+                    songDuration = songItem.duration ?? 0
+                    songPosition = 0
+                    player.queue = [songItem]
+                    loadedId = id
+                    print("Audioplayer geladen \(songDuration)")
+                    try await pl.prepareToPlay()
                 }
             } catch (let error) {
                 print(error)

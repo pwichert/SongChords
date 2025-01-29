@@ -24,6 +24,7 @@ enum PlaybackStatus {
 struct AudioPlayerView: View {
     @Bindable var song: Song
     @Binding var currentLoop: PlayerLoop
+    @Binding var selectedLoop: PlayerLoop?
     @Binding var loopActive: Bool
     @Binding var songSpeed: Double
     @Binding var songPosition: TimeInterval
@@ -32,12 +33,10 @@ struct AudioPlayerView: View {
     @Environment(AudioPlayer.self) private var audioPlayer
     @Environment(Globals.self) private var globals
     @Environment(\.modelContext) private var modelContext
-    @Environment(TimerManagerWrapper.self) private var loopTimerManager
+    @Environment(TimerManager.self) private var loopTimerManager
 
     @State private var showSongSearch: Bool = false
-    
-    @State private var selectedLoop: PlayerLoop?
-        
+            
     // aktualisiert den Status des AudioPlayers, insb. die Position
     let statusTimer = Timer.publish(every: 1, tolerance: 0.3, on: .main, in: .common).autoconnect()
     
@@ -127,7 +126,7 @@ struct AudioPlayerView: View {
         }
         .onChange(of: audioPlayer.playerState, initial: true) { oldState, newState in
             // Status aktualisieren
-            print("change \(oldState) \(newState)")
+//            print("change \(oldState) \(newState)")
             
             // Merkwürdiges Verhalten
             
@@ -149,7 +148,15 @@ struct AudioPlayerView: View {
 
     private func startLoopTimer(interval: TimeInterval) {
         Task {
-            await loopTimerManager.timerManager.startTimer(interval: interval / Double(audioPlayer.songSpeed), task: {
+            await loopTimerManager.startTimer(interval: interval / Double(audioPlayer.songSpeed), task: {
+                Task { await fireLoopTimer() }
+            } )
+        }
+    }
+    
+    private func resumeLoopTimer(remainingInterval: TimeInterval, normalInterval: TimeInterval) {
+        Task {
+            await loopTimerManager.resumeTimer(remainingInterval: remainingInterval / Double(audioPlayer.songSpeed), normalInterval: normalInterval / Double(audioPlayer.songSpeed), task: {
                 Task { await fireLoopTimer() }
             } )
         }
@@ -162,14 +169,21 @@ struct AudioPlayerView: View {
     
     private func stopLoopTimer() {
         Task {
-            await loopTimerManager.timerManager.stopTimer()
+            await loopTimerManager.stopTimer()
         }
     }
-
+    
     private func setCurrentLoopTimer() {
+        audioPlayer.load(id: song.musicItemId)
+
         if loopActive {
-            audioPlayer.songPosition = currentLoop.start
-            startLoopTimer(interval: currentLoop.stop - currentLoop.start)
+            if audioPlayer.songPosition <= currentLoop.start || audioPlayer.songPosition >= currentLoop.stop {
+                audioPlayer.songPosition = currentLoop.start
+                if playerState == .playing { startLoopTimer(interval: currentLoop.stop - currentLoop.start) }
+            } else {
+                let rest = currentLoop.stop - audioPlayer.songPosition
+                if playerState == .playing { resumeLoopTimer(remainingInterval: rest, normalInterval: currentLoop.stop - currentLoop.start)}
+            }
         } else {
             stopLoopTimer()
         }
@@ -181,16 +195,12 @@ struct AudioPlayerView: View {
         
         if plState == .playing {
             audioPlayer.pause()
-            
-            // TODO weil (noch) keine angefangene Loops mit Restlaufzeit funktionieren
-            loopActive = false
-            
+            stopLoopTimer()
             playerState = .paused
         } else {
             audioPlayer.loadAndPlay(id: song.musicItemId)
-//            audioPlayer.play()
-            setCurrentLoopTimer()
             playerState = .playing
+            setCurrentLoopTimer()
         }
     }
 
@@ -458,7 +468,7 @@ struct PlayerLoopEditView: View {
     func saveToList() {
         if currentLoop.title.trimmingCharacters(in: .whitespaces).isEmpty { return }
         
-        // currentLoop.id in song.playerLoops suchen
+        // currentLoop in song.playerLoops suchen
         // wenn gefunden, dann updaten
         let list = song.playerLoops
         if let listIndex = list.firstIndex(where: { $0.title == currentLoop.title }) {
@@ -470,9 +480,7 @@ struct PlayerLoopEditView: View {
             // wenn nicht gefunden, dann currentLoop neu hinzufügen
             song.playerLoops.append(PlayerLoop(start: currentLoop.start, stop: currentLoop.stop, title: currentLoop.title.trimmingCharacters(in: .whitespaces).isEmpty ? "Loop \(song.playerLoops.count)" : currentLoop.title))
         }
-        
-//        currentLoop = PlayerLoop(start: 0, stop: 0, title: "")
-        
+                
         do {
             try modelContext.save()
         } catch (let error) {

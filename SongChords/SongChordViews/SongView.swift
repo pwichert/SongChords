@@ -18,7 +18,7 @@ struct SongView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(Globals.self) private var globals
     @Environment(AudioPlayer.self) private var audioPlayer
-    @Environment(TimerManagerWrapper.self) private var timerManagerWrapper
+    @Environment(TimerManager.self) private var timerManager
 
     @State private var showAudioPlayer: Bool = false
     @State private var showSongEditView: Bool = false
@@ -28,6 +28,7 @@ struct SongView: View {
     @State private var uttype: UTType = .pdf
     
     @State private var currentLoop = PlayerLoop(start: 0, stop: 0, title: "")
+    @State private var selectedLoop: PlayerLoop?
     @State private var loopActive: Bool = false
     @State private var songSpeed: Double = 1.0
     @State private var songPosition: TimeInterval = 0.0
@@ -101,7 +102,7 @@ struct SongView: View {
         .overlay(
             Group {
                 if showAudioPlayer {
-                    AudioPlayerView(song: song, currentLoop: $currentLoop, loopActive: $loopActive, songSpeed: $songSpeed, songPosition: $songPosition, playerState: $playerState)
+                    AudioPlayerView(song: song, currentLoop: $currentLoop, selectedLoop: $selectedLoop, loopActive: $loopActive, songSpeed: $songSpeed, songPosition: $songPosition, playerState: $playerState)
                     .padding()
                     .background(.regularMaterial)
                     .cornerRadius(12)
@@ -179,11 +180,12 @@ struct SongView: View {
     }
     
     private func initAudioView() {
-        Task { await timerManagerWrapper.timerManager.stopTimer() }
+        Task { await timerManager.stopTimer() }
         audioPlayer.stop()
         playerState = .stopped
         loopActive = false
         currentLoop = PlayerLoop(start: 0, stop: 0, title: "")
+        selectedLoop = nil
         songSpeed = 1.0
         songPosition = 0.0
     }
