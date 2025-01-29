@@ -16,12 +16,13 @@ class PlayerLoop: Codable, Identifiable, Hashable {
         hasher.combine(id)
     }
     
-    var id = UUID()
+    private(set) var id = UUID()
     var start: TimeInterval = 0
     var stop: TimeInterval = 0
     var title: String = ""
     
     init(start: TimeInterval, stop: TimeInterval, title: String) {
+        self.id = UUID()
         self.start = start
         self.stop = stop
         self.title = title

@@ -76,10 +76,10 @@ class AudioPlayer {
         player.pause()
     }
     
-    func load(id: String) {
+    func loadAndPlay(id: String) {
         print("Audioplayer loadSong")
         
-        if id == loadedId { return }
+        if id == loadedId { play(); return }
 
         player.stop()
         songResponse = nil
@@ -102,6 +102,7 @@ class AudioPlayer {
                     loadedId = id
                     print("Audioplayer geladen \(songDuration)")
                     try await pl.prepareToPlay()
+                    play()
                 }
             } catch (let error) {
                 print(error)

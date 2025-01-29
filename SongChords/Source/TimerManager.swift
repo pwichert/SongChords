@@ -7,14 +7,15 @@
 
 import SwiftUI
 
-// TimerManagerWrapper, damit TimerManager @Observable wird und
-// als @State var initialisiert werden kann.
+// für @State var
 @Observable
+@MainActor
 final class TimerManagerWrapper: Sendable {
     let timerManager: TimerManager = TimerManager()
 }
 
-actor TimerManager {
+@MainActor
+class TimerManager {
     private var loopTimer: Timer? = nil
     private var startTime: Date = .now
     private var remaining: TimeInterval = 0
@@ -22,9 +23,9 @@ actor TimerManager {
     private var isRunning: Bool = false
 
     /// Startet einen wiederholenden Timer mit einem bestimmten Intervall und einer auszuführenden Aufgabe.
-    func startTimer(interval: TimeInterval, task: @escaping @Sendable () -> Void) {
+    func startTimer(interval: TimeInterval, task: @escaping @Sendable () -> Void) async {
         // Falls der Timer läuft, zuerst stoppen
-        stopTimer()
+        await stopTimer()
 
         print("loopTimer started with interval \(interval) seconds.")
         self.interval = interval
@@ -32,26 +33,19 @@ actor TimerManager {
         self.remaining = interval
         self.isRunning = true
 
-        // Erstelle den Timer im Main Thread
-        DispatchQueue.main.async { [weak self] in
-            guard let self = self else { return }
+        await self.setTimer(timer: Timer.scheduledTimer(withTimeInterval: interval, repeats: true) { _ in
             Task {
-                await setTimer(timer: Timer.scheduledTimer(withTimeInterval: interval, repeats: true) { _ in
-                    Task {
-                        await self.nextRun()
-                        task()
-                        print("loopTimer fired at \(Date.now)")
-                    }
-                })
+                await self.nextRun()
+                task()
             }
-        }
+        })
     }
 
-    private func setTimer(timer: Timer) {
+    private func setTimer(timer: Timer) async {
         self.loopTimer = timer
     }
     
-    private func nextRun() {
+    private func nextRun() async {
         startTime = .now
     }
     
@@ -62,13 +56,6 @@ actor TimerManager {
             return
         }
 
-        DispatchQueue.main.async { [weak self] in
-            guard let self = self else { return }
-            Task { @MainActor in await setPause() }
-        }
-    }
-    
-    private func setPause() {
         if let loopTimer = self.loopTimer {
             self.remaining = self.interval - Date.now.timeIntervalSince(self.startTime)
             loopTimer.invalidate()
@@ -79,7 +66,7 @@ actor TimerManager {
     }
 
     /// Setzt den Timer fort, falls er pausiert wurde.
-    func resumeTimer(task: @escaping @Sendable () -> Void) {
+    func resumeTimer(task: @escaping @Sendable () -> Void) async {
         guard !isRunning, remaining > 0 else {
             print("loopTimer is already running or has no remaining time.")
             return
@@ -88,33 +75,25 @@ actor TimerManager {
         print("Resuming loopTimer with \(remaining) seconds remaining.")
         self.startTime = .now
         self.isRunning = true
-
-        // Erstelle den Timer im Main Thread
-        DispatchQueue.main.async { [weak self] in
-            guard let self = self else { return }
-            Task {
-                await setTimer(timer: Timer.scheduledTimer(withTimeInterval: self.remaining, repeats: false) { _ in
-                    task()
-                    print("loopTimer resumed and fired at \(Date.now)")
-                    Task { await self.startTimer(interval: self.interval, task: task) }
-                })
-            }
-        }
+        
+        await setTimer(timer: Timer.scheduledTimer(withTimeInterval: self.remaining, repeats: false) { _ in
+            task()
+            print("loopTimer resumed and fired at \(Date.now)")
+            Task { await self.startTimer(interval: self.interval, task: task) }
+        })
     }
 
     /// Stoppt den Timer und setzt den Zustand zurück.
-    func stopTimer() {
-        DispatchQueue.main.async { [weak self] in
-            guard let self = self else { return }
-            Task { @MainActor in await self.setStop() }
-            print("loopTimer stopped.")
+    func stopTimer() async {
+        guard isRunning else {
+            print("loopTimer is not running.")
+            return
         }
-    }
-    
-    private func setStop() {
+
         self.loopTimer?.invalidate()
         self.loopTimer = nil
         self.remaining = 0
         self.isRunning = false
+        print("loopTimer stopped.")
     }
 }

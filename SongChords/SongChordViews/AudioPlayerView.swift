@@ -22,22 +22,21 @@ enum PlaybackStatus {
 }
 
 struct AudioPlayerView: View {
-    let song: Song
+    @Bindable var song: Song
+    @Binding var currentLoop: PlayerLoop
+    @Binding var loopActive: Bool
+    @Binding var songSpeed: Double
+    @Binding var songPosition: TimeInterval
+    @Binding var playerState: PlaybackStatus
     
     @Environment(AudioPlayer.self) private var audioPlayer
     @Environment(Globals.self) private var globals
     @Environment(\.modelContext) private var modelContext
     @Environment(TimerManagerWrapper.self) private var loopTimerManager
 
-    @State private var songSpeed: Double = 1.0
-    @State private var songPosition: TimeInterval = 0.0
     @State private var showSongSearch: Bool = false
-    @State private var playerState: PlaybackStatus = .stopped     // eigener State macht die Verzögerung beim Starten für den Benutzer nicht sichtbar
     
-    @State private var playerLoops: [PlayerLoop] = []
     @State private var selectedLoop: PlayerLoop?
-    @State private var currentLoop = PlayerLoop(start: 0, stop: 0, title: "")
-    @State private var loopActive: Bool = false
         
     // aktualisiert den Status des AudioPlayers, insb. die Position
     let statusTimer = Timer.publish(every: 1, tolerance: 0.3, on: .main, in: .common).autoconnect()
@@ -49,17 +48,18 @@ struct AudioPlayerView: View {
             } else {
                 #if DEBUG || os(iOS)
                 VStack {
-                    PlayerLoopEditView(song: song, playerLoop: $currentLoop, playerLoopList: $playerLoops, active: $loopActive)
+                    PlayerLoopEditView(song: song, currentLoop: $currentLoop, active: $loopActive)
                         .lineLimit(1)
                     
                     List(selection: $selectedLoop) {
-                        ForEach(playerLoops.sorted(by: { $0.start < $1.start }), id: \.self) { playerLoop in
+                        ForEach(song.playerLoops.sorted(by: { $0.start < $1.start }), id: \.self) { playerLoop in
                             Text(playerLoop.title.isEmpty ? "-" : playerLoop.title).font(.subheadline)
                         }
                         .onDelete(perform: { indices in
-                            for index in indices { playerLoops.remove(at: index) }
-                            song.playerLoops = playerLoops
-                            
+                            var idxSet = Set<UUID>()
+                            for index in indices { idxSet.insert(song.playerLoops.sorted(by: { $0.start < $1.start })[index].id )}
+                            for index in idxSet { song.playerLoops.removeAll(where: { $0.id == index })}
+
                             do {
                                 try modelContext.save()
                             } catch (let error) {
@@ -145,19 +145,8 @@ struct AudioPlayerView: View {
 //            print("statusTimer: time \(time) state \(audioPlayer.playerState) position \(audioPlayer.songPosition)")
             songPosition = audioPlayer.songDuration == 0 ? 0 : audioPlayer.songPosition / audioPlayer.songDuration
         }
-        .onAppear {
-            // bei jedem Anzeigen der View aktualisieren, laufenden Song nicht unterbrechen
-            songSpeed = Double(audioPlayer.songSpeed)
-            songPosition = audioPlayer.songDuration == 0 ? 0 : audioPlayer.songPosition / audioPlayer.songDuration
-        }
-        .task(id: song.persistentModelID) {
-            // beim ersten Anzeigen des Songs
-            audioPlayer.load(id: song.musicItemId)
-            playerLoops = song.playerLoops
-            loopActive = false
-        }
     }
-    
+
     private func startLoopTimer(interval: TimeInterval) {
         Task {
             await loopTimerManager.timerManager.startTimer(interval: interval / Double(audioPlayer.songSpeed), task: {
@@ -167,7 +156,7 @@ struct AudioPlayerView: View {
     }
     
     private func fireLoopTimer() {
-        print("loopTimer fired, position set to \(currentLoop.start)")
+        print("loopTimer ended, position set to \(currentLoop.start)")
         audioPlayer.songPosition = currentLoop.start
     }
     
@@ -181,8 +170,7 @@ struct AudioPlayerView: View {
         if loopActive {
             audioPlayer.songPosition = currentLoop.start
             startLoopTimer(interval: currentLoop.stop - currentLoop.start)
-        }
-        if !loopActive {
+        } else {
             stopLoopTimer()
         }
     }
@@ -198,16 +186,9 @@ struct AudioPlayerView: View {
             loopActive = false
             
             playerState = .paused
-        } else if plState == .paused {
-            audioPlayer.play()
-            setCurrentLoopTimer()
-            playerState = .playing
         } else {
-            if !audioPlayer.isLoaded {
-                audioPlayer.load(id: song.musicItemId)
-            }
-            
-            audioPlayer.play()
+            audioPlayer.loadAndPlay(id: song.musicItemId)
+//            audioPlayer.play()
             setCurrentLoopTimer()
             playerState = .playing
         }
@@ -284,7 +265,6 @@ struct MusicContentView: View {
                         let id = String(selectedSong?.id ?? "")
                         song.musicItemId = id
                         try modelContext.save()
-                        audioPlayer.load(id: id)
                     } catch (let error) {
                         globals.setSongChordsError(error: error)
                     }
@@ -435,8 +415,7 @@ struct MusicContentView: View {
 
 struct PlayerLoopEditView: View {
     let song: Song
-    @Binding var playerLoop: PlayerLoop
-    @Binding var playerLoopList: [PlayerLoop]
+    @Binding var currentLoop: PlayerLoop
     @Binding var active: Bool
     
     @Environment(\.modelContext) private var modelContext
@@ -451,17 +430,17 @@ struct PlayerLoopEditView: View {
                 } label: {
                     Image(systemName: active ? "checkmark.square" : "square").font(.title)
                 }
-                .disabled(song.musicItemId.isEmpty || playerLoop.stop == 0 || playerLoop.start >= playerLoop.stop)
+                .disabled(song.musicItemId.isEmpty || currentLoop.stop == 0 || currentLoop.start >= currentLoop.stop)
                 Text("").font(.footnote)
             }
             
-            TextField("Looptitle", text: $playerLoop.title)
+            TextField("Looptitle", text: $currentLoop.title)
                 .autocorrectionDisabled(true)
                 .disabled(song.musicItemId.isEmpty)
                 .font(.body)
                 .textFieldStyle(RoundedBorderTextFieldStyle())
-            SetButtonView(song: song, txt: "Start", point: $playerLoop.start)
-            SetButtonView(song: song, txt: "End", point: $playerLoop.stop)
+            SetButtonView(song: song, txt: "Start", point: $currentLoop.start)
+            SetButtonView(song: song, txt: "End", point: $currentLoop.stop)
             
             VStack {
                 Text("Save").font(.footnote)
@@ -470,20 +449,35 @@ struct PlayerLoopEditView: View {
                 } label: {
                     Image(systemName: "square.and.arrow.down").font(.title)
                 }
-                .disabled(song.musicItemId.isEmpty || playerLoop.stop == 0 || playerLoop.start >= playerLoop.stop)
+                .disabled(song.musicItemId.isEmpty || currentLoop.stop == 0 || currentLoop.start >= currentLoop.stop)
                 Text("").font(.footnote)
             }
         }
     }
     
     func saveToList() {
-        playerLoopList.append(PlayerLoop(start: playerLoop.start, stop: playerLoop.stop, title: playerLoop.title.isEmpty ? "Loop \(playerLoopList.count)" : playerLoop.title))
-        song.playerLoops = playerLoopList
+        if currentLoop.title.trimmingCharacters(in: .whitespaces).isEmpty { return }
+        
+        // currentLoop.id in song.playerLoops suchen
+        // wenn gefunden, dann updaten
+        let list = song.playerLoops
+        if let listIndex = list.firstIndex(where: { $0.title == currentLoop.title }) {
+            list[listIndex].start = currentLoop.start
+            list[listIndex].stop = currentLoop.stop
+            list[listIndex].title = currentLoop.title
+            song.playerLoops = list
+        } else {
+            // wenn nicht gefunden, dann currentLoop neu hinzufügen
+            song.playerLoops.append(PlayerLoop(start: currentLoop.start, stop: currentLoop.stop, title: currentLoop.title.trimmingCharacters(in: .whitespaces).isEmpty ? "Loop \(song.playerLoops.count)" : currentLoop.title))
+        }
+        
+//        currentLoop = PlayerLoop(start: 0, stop: 0, title: "")
         
         do {
             try modelContext.save()
         } catch (let error) {
             globals.setSongChordsError(error: error)
+            print("Fehler beim Speichern: \(error.localizedDescription)")
         }
     }
 }
