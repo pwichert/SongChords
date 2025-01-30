@@ -15,11 +15,11 @@ struct MusicItem: Identifiable, Sendable, Hashable {
     let artWork: Artwork?
 }
 
-enum PlaybackStatus {
-    case playing
-    case paused
-    case stopped
-}
+//enum PlaybackStatus {
+//    case playing
+//    case paused
+//    case stopped
+//}
 
 struct AudioPlayerView: View {
     @Bindable var song: Song
@@ -28,7 +28,7 @@ struct AudioPlayerView: View {
     @Binding var loopActive: Bool
     @Binding var songSpeed: Double
     @Binding var songPosition: TimeInterval
-    @Binding var playerState: PlaybackStatus
+//    @Binding var playerState: PlaybackStatus
     
     @Environment(AudioPlayer.self) private var audioPlayer
     @Environment(Globals.self) private var globals
@@ -36,7 +36,8 @@ struct AudioPlayerView: View {
     @Environment(TimerManager.self) private var loopTimerManager
 
     @State private var showSongSearch: Bool = false
-            
+    @State private var inPositionEditing: Bool = false
+    
     // aktualisiert den Status des AudioPlayers, insb. die Position
     let statusTimer = Timer.publish(every: 1, tolerance: 0.3, on: .main, in: .common).autoconnect()
     
@@ -45,7 +46,6 @@ struct AudioPlayerView: View {
             if !audioPlayer.isAllowed {
                 AudioPlayerNotAllowedView().padding()
             } else {
-                #if DEBUG || os(iOS)
                 VStack {
                     PlayerLoopEditView(song: song, currentLoop: $currentLoop, active: $loopActive)
                         .lineLimit(1)
@@ -72,11 +72,10 @@ struct AudioPlayerView: View {
                         .stroke(.secondary, lineWidth: 1)
                     )
                 }
-                #endif
 
                 HStack {
                     Button(action: { startPlayback() }) {
-                        playerState == .playing ? Label("Pause", systemImage: "pause.fill") : Label("Play", systemImage: "play.fill")
+                        audioPlayer.playerState == .playing ? Label("Pause", systemImage: "pause.fill") : Label("Play", systemImage: "play.fill")
                     }.disabled(song.musicItemId.isEmpty)
                     Button(action: { stopPlayback() }) {
                         Label("Stop", systemImage: "stop.fill")
@@ -87,15 +86,18 @@ struct AudioPlayerView: View {
                 }.buttonStyle(BorderedButtonStyle()).font(.footnote)
                 
                 Grid(alignment: .trailing) {
-                    #if DEBUG || os(iOS)
                     GridRow {
                         Text("Pos")
                         Slider(value: $songPosition, in: 0...1.0, step: 0.01, onEditingChanged: { editing in
-                            if !editing { audioPlayer.songPosition = songPosition * audioPlayer.songDuration }
+                            if editing {
+                                inPositionEditing = true
+                            } else {
+                                audioPlayer.songPosition = songPosition * audioPlayer.songDuration
+                                inPositionEditing = false
+                            }
                         }).disabled(song.musicItemId.isEmpty)
                         Text(formatTimeInterval(songPosition * audioPlayer.songDuration)).font(.footnote).frame(width: 50).lineLimit(1)
                     }
-                    #endif
                     GridRow {
                         Text("Speed")
                         Slider(value: $songSpeed, in: 0.3...1.0, step: 0.01, onEditingChanged: { editing in
@@ -124,7 +126,7 @@ struct AudioPlayerView: View {
             }
             setCurrentLoopTimer()
         }
-        .onChange(of: audioPlayer.playerState, initial: true) { oldState, newState in
+//        .onChange(of: audioPlayer.playerState, initial: true) { oldState, newState in
             // Status aktualisieren
 //            print("change \(oldState) \(newState)")
             
@@ -138,11 +140,13 @@ struct AudioPlayerView: View {
 //            @unknown default:
 //                playerState = .stopped
 //            }
-        }
+//        }
         .onReceive(statusTimer) { time in
             // Songfortschritt anzeigen
 //            print("statusTimer: time \(time) state \(audioPlayer.playerState) position \(audioPlayer.songPosition)")
-            songPosition = audioPlayer.songDuration == 0 ? 0 : audioPlayer.songPosition / audioPlayer.songDuration
+            if !inPositionEditing {
+                songPosition = audioPlayer.songDuration == 0 ? 0 : audioPlayer.songPosition / audioPlayer.songDuration
+            }
         }
     }
 
@@ -173,16 +177,16 @@ struct AudioPlayerView: View {
         }
     }
     
-    private func setCurrentLoopTimer() {
-        audioPlayer.load(id: song.musicItemId)
+    private func setCurrentLoopTimer(_ load: Bool = true) {
+        if load { audioPlayer.load(id: song.musicItemId) }
 
         if loopActive {
             if audioPlayer.songPosition <= currentLoop.start || audioPlayer.songPosition >= currentLoop.stop {
                 audioPlayer.songPosition = currentLoop.start
-                if playerState == .playing { startLoopTimer(interval: currentLoop.stop - currentLoop.start) }
+                if audioPlayer.playerState == .playing { startLoopTimer(interval: currentLoop.stop - currentLoop.start) }
             } else {
                 let rest = currentLoop.stop - audioPlayer.songPosition
-                if playerState == .playing { resumeLoopTimer(remainingInterval: rest, normalInterval: currentLoop.stop - currentLoop.start)}
+                if audioPlayer.playerState == .playing { resumeLoopTimer(remainingInterval: rest, normalInterval: currentLoop.stop - currentLoop.start)}
             }
         } else {
             stopLoopTimer()
@@ -191,21 +195,21 @@ struct AudioPlayerView: View {
     
     private func startPlayback() {
         // Das Setzen des State verhindert die Verzögerungen des "echten" State
-        let plState = playerState
+        let plState = audioPlayer.playerState
         
         if plState == .playing {
             audioPlayer.pause()
             stopLoopTimer()
-            playerState = .paused
+//            playerState = .paused
         } else {
             audioPlayer.loadAndPlay(id: song.musicItemId)
-            playerState = .playing
-            setCurrentLoopTimer()
+//            playerState = .playing
+            setCurrentLoopTimer(false)
         }
     }
 
     private func stopPlayback() {
-        playerState = .stopped
+//        playerState = .stopped
         audioPlayer.stop()
         stopLoopTimer()
     }
@@ -275,6 +279,7 @@ struct MusicContentView: View {
                         let id = String(selectedSong?.id ?? "")
                         song.musicItemId = id
                         try modelContext.save()
+                        audioPlayer.load(id: id)
                     } catch (let error) {
                         globals.setSongChordsError(error: error)
                     }

@@ -32,7 +32,7 @@ struct SongView: View {
     @State private var loopActive: Bool = false
     @State private var songSpeed: Double = 1.0
     @State private var songPosition: TimeInterval = 0.0
-    @State private var playerState: PlaybackStatus = .stopped     // eigener State macht die Verzögerung beim Starten für den Benutzer nicht sichtbar
+//    @State private var playerState: PlaybackStatus = .stopped     // eigener State macht die Verzögerung beim Starten für den Benutzer nicht sichtbar
 
     var body: some View {
 //        let _ = Self._printChanges()
@@ -102,7 +102,7 @@ struct SongView: View {
         .overlay(
             Group {
                 if showAudioPlayer {
-                    AudioPlayerView(song: song, currentLoop: $currentLoop, selectedLoop: $selectedLoop, loopActive: $loopActive, songSpeed: $songSpeed, songPosition: $songPosition, playerState: $playerState)
+                    AudioPlayerView(song: song, currentLoop: $currentLoop, selectedLoop: $selectedLoop, loopActive: $loopActive, songSpeed: $songSpeed, songPosition: $songPosition)//, playerState: $playerState)
                     .padding()
                     .background(.regularMaterial)
                     .cornerRadius(12)
@@ -182,7 +182,7 @@ struct SongView: View {
     private func initAudioView() {
         Task { await timerManager.stopTimer() }
         audioPlayer.stop()
-        playerState = .stopped
+//        playerState = .stopped
         loopActive = false
         currentLoop = PlayerLoop(start: 0, stop: 0, title: "")
         selectedLoop = nil
