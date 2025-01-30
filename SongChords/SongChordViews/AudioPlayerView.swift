@@ -52,7 +52,16 @@ struct AudioPlayerView: View {
                     
                     List(selection: $selectedLoop) {
                         ForEach(song.playerLoops.sorted(by: { $0.start < $1.start }), id: \.self) { playerLoop in
-                            Text(playerLoop.title.isEmpty ? "-" : playerLoop.title).font(.subheadline)
+                            HStack {
+                                Text(playerLoop.title.isEmpty ? "-" : playerLoop.title)
+                                Spacer()
+                                Text(GlobalFunctions.formatTimeInterval(playerLoop.stop - playerLoop.start))
+                            }
+                            #if os(iOS)
+                            .font(.footnote).listRowInsets(.init(top: 8, leading: 8, bottom: 8, trailing: 8))
+                            #else
+                            .font(.subheadline)
+                            #endif
                         }
                         .onDelete(perform: { indices in
                             var idxSet = Set<UUID>()
@@ -66,6 +75,9 @@ struct AudioPlayerView: View {
                             }
                         } )
                     }
+                    #if os(iOS)
+                    .environment(\.defaultMinListRowHeight, 10)
+                    #endif
                     .frame(maxHeight: 150).cornerRadius(10)
                     .overlay( /// apply a rounded border
                         RoundedRectangle(cornerRadius: 10)
@@ -99,22 +111,23 @@ struct AudioPlayerView: View {
                                 inPositionEditing = false
                             }
                         }).disabled(song.musicItemId.isEmpty)
-                        Text(formatTimeInterval(songPosition * audioPlayer.songDuration)).font(.footnote).frame(width: 50).lineLimit(1)
+                        Text(GlobalFunctions.formatTimeInterval(songPosition * audioPlayer.songDuration)).font(.footnote).frame(width: 50).lineLimit(1)
                     }
                     GridRow {
                         Text("Speed")
                         Slider(value: $songSpeed, in: 0.3...1.0, step: 0.01, onEditingChanged: { editing in
                             if !editing { audioPlayer.songSpeed = Float(songSpeed); setCurrentLoopTimer() }
                         }).disabled(song.musicItemId.isEmpty)
-                        Text(String(format: "%.0f%%", songSpeed * 100.0)).font(.footnote).frame(width: 50).lineLimit(1)
+                        Text("\(Int(round(songSpeed * 100.0)))%").font(.footnote).frame(width: 50).lineLimit(1)
                     }
                 }
-                .padding()
+                .padding(.horizontal)
                 .font(.footnote)
 
                 Button(action: { showSongSearch.toggle() } ) {
                     Label("Select Song", systemImage: "music.note.list").padding(.horizontal)
-                }.lineLimit(1)
+                }
+                .buttonStyle(BorderedButtonStyle())
             }
         }
         .frame(maxWidth: 500)
@@ -213,14 +226,6 @@ struct AudioPlayerView: View {
             audioPlayer.songPosition = 0
         }
         setCurrentLoopTimer()
-    }
-    
-    private func formatTimeInterval(_ timeInterval: TimeInterval) -> String {
-        let formatter = DateComponentsFormatter()
-        formatter.allowedUnits = [.minute, .second]
-        formatter.unitsStyle = .positional
-        formatter.zeroFormattingBehavior = [.pad]
-        return formatter.string(from: timeInterval) ?? "00:00"
     }
 }
 
@@ -507,15 +512,7 @@ struct SetButtonView: View {
         VStack(alignment: .center) {
             Text(txt).font(.footnote)
             Button { point = audioPlayer.songPosition } label: { Image(systemName: "button.programmable").font(.title) }.disabled(song.musicItemId.isEmpty)
-            Text(formatTimeInterval(point)).font(.footnote)
+            Text(GlobalFunctions.formatTimeInterval(point)).font(.footnote)
         }
-    }
-                
-    private func formatTimeInterval(_ timeInterval: TimeInterval) -> String {
-        let formatter = DateComponentsFormatter()
-        formatter.allowedUnits = [.minute, .second]
-        formatter.unitsStyle = .positional
-        formatter.zeroFormattingBehavior = [.pad]
-        return formatter.string(from: timeInterval) ?? "00:00"
     }
 }

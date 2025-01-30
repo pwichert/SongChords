@@ -37,6 +37,12 @@
       },
       "shouldTranslate" : false
     },
+    "%lf" : {
+
+    },
+    "%lld" : {
+
+    },
     "%lld Song" : {
       "localizations" : {
         "de" : {
@@ -87,6 +93,9 @@
         }
       },
       "shouldTranslate" : false
+    },
+    "%lld%%" : {
+
     },
     "+" : {
       "shouldTranslate" : false
@@ -170,9 +179,6 @@
         }
       }
     },
-    "Categories" : {
-      "shouldTranslate" : false
-    },
     "Chordsize [%lld]" : {
       "localizations" : {
         "de" : {
@@ -255,9 +261,6 @@
           }
         }
       }
-    },
-    "Details for %@" : {
-      "shouldTranslate" : false
     },
     "Display Mode" : {
       "shouldTranslate" : false
@@ -676,9 +679,6 @@
         }
       }
     },
-    "Select a Category" : {
-      "shouldTranslate" : false
-    },
     "Select a playlist" : {
       "localizations" : {
         "de" : {
@@ -698,9 +698,6 @@
           }
         }
       }
-    },
-    "Select an Item" : {
-      "shouldTranslate" : false
     },
     "Select Song" : {
       "localizations" : {
