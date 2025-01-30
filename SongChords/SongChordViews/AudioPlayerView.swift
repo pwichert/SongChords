@@ -127,7 +127,7 @@ struct AudioPlayerView: View {
                 Button(action: { showSongSearch.toggle() } ) {
                     Label("Select Song", systemImage: "music.note.list").padding(.horizontal)
                 }
-                .buttonStyle(BorderedButtonStyle())
+                .buttonStyle(BorderedButtonStyle()).font(.footnote)
             }
         }
         .frame(maxWidth: 500)
