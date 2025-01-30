@@ -653,6 +653,9 @@
         }
       }
     },
+    "rewind" : {
+      "shouldTranslate" : false
+    },
     "Save" : {
       "localizations" : {
         "de" : {

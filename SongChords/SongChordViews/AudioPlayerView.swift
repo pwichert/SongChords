@@ -66,7 +66,7 @@ struct AudioPlayerView: View {
                             }
                         } )
                     }
-                    .frame(maxHeight: 200).cornerRadius(10)
+                    .frame(maxHeight: 150).cornerRadius(10)
                     .overlay( /// apply a rounded border
                         RoundedRectangle(cornerRadius: 10)
                         .stroke(.secondary, lineWidth: 1)
@@ -74,15 +74,18 @@ struct AudioPlayerView: View {
                 }
 
                 HStack {
+                    Button(action: { rewindPlayback() }) {
+                        HStack(alignment: .center, spacing: 1) {
+                            Label("rewind", systemImage: "play.fill").rotationEffect(.degrees(180)).labelStyle(.iconOnly)
+                            Label("rewind", systemImage: "play.fill").rotationEffect(.degrees(180)).labelStyle(.iconOnly)
+                        }.padding(.horizontal)
+                    }.disabled(song.musicItemId.isEmpty)
                     Button(action: { startPlayback() }) {
                         audioPlayer.playerState == .playing ? Label("Pause", systemImage: "pause.fill") : Label("Play", systemImage: "play.fill")
                     }.disabled(song.musicItemId.isEmpty)
                     Button(action: { stopPlayback() }) {
                         Label("Stop", systemImage: "stop.fill")
                     }.disabled(song.musicItemId.isEmpty)
-                    Button(action: { showSongSearch.toggle() } ) {
-                        Label("Select Song", systemImage: "music.note.list")
-                    }.lineLimit(1)
                 }.buttonStyle(BorderedButtonStyle()).font(.footnote)
                 
                 Grid(alignment: .trailing) {
@@ -106,8 +109,12 @@ struct AudioPlayerView: View {
                         Text(String(format: "%.0f%%", songSpeed * 100.0)).font(.footnote).frame(width: 50).lineLimit(1)
                     }
                 }
-                .font(.footnote)
                 .padding()
+                .font(.footnote)
+
+                Button(action: { showSongSearch.toggle() } ) {
+                    Label("Select Song", systemImage: "music.note.list").padding(.horizontal)
+                }.lineLimit(1)
             }
         }
         .frame(maxWidth: 500)
@@ -126,21 +133,6 @@ struct AudioPlayerView: View {
             }
             setCurrentLoopTimer()
         }
-//        .onChange(of: audioPlayer.playerState, initial: true) { oldState, newState in
-            // Status aktualisieren
-//            print("change \(oldState) \(newState)")
-            
-            // Merkwürdiges Verhalten
-            
-//            switch newState {
-//            case .paused: playerState = .paused
-//            case .stopped: playerState = .stopped
-//            case .playing: playerState = .playing
-//            case .interrupted, .seekingForward, .seekingBackward: playerState = .stopped
-//            @unknown default:
-//                playerState = .stopped
-//            }
-//        }
         .onReceive(statusTimer) { time in
             // Songfortschritt anzeigen
 //            print("statusTimer: time \(time) state \(audioPlayer.playerState) position \(audioPlayer.songPosition)")
@@ -214,6 +206,15 @@ struct AudioPlayerView: View {
         stopLoopTimer()
     }
 
+    private func rewindPlayback() {
+        if loopActive {
+            audioPlayer.songPosition = currentLoop.start
+        } else {
+            audioPlayer.songPosition = 0
+        }
+        setCurrentLoopTimer()
+    }
+    
     private func formatTimeInterval(_ timeInterval: TimeInterval) -> String {
         let formatter = DateComponentsFormatter()
         formatter.allowedUnits = [.minute, .second]
