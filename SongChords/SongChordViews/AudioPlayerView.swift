@@ -15,12 +15,6 @@ struct MusicItem: Identifiable, Sendable, Hashable {
     let artWork: Artwork?
 }
 
-//enum PlaybackStatus {
-//    case playing
-//    case paused
-//    case stopped
-//}
-
 struct AudioPlayerView: View {
     @Bindable var song: Song
     @Binding var currentLoop: PlayerLoop

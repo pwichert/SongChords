@@ -171,17 +171,15 @@ struct SongView: View {
             pdfUrl = nil
         }
         
-        initAudioView()        
+        initAudio()
     }
     
-    private func initAudioView() {
+    private func initAudio() {
         Task { await timerManager.stopTimer() }
         audioPlayer.stop()
         loopActive = false
         currentLoop = PlayerLoop(start: 0, stop: 0, title: "")
         selectedLoop = nil
-        songSpeed = 1.0
-        songPosition = 0.0
     }
     
     @MainActor
