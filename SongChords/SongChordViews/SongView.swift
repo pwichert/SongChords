@@ -177,6 +177,7 @@ struct SongView: View {
     private func initAudio() {
         Task { await timerManager.stopTimer() }
         audioPlayer.stop()
+        songSpeed = Double(audioPlayer.songSpeed)
         loopActive = false
         currentLoop = PlayerLoop(start: 0, stop: 0, title: "")
         selectedLoop = nil
