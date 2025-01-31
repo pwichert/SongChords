@@ -8,25 +8,14 @@
 import SwiftUI
 import MusicKit
 
-enum PlayerState: String, CaseIterable, Sendable {
-    case playing
-    case stopped
-    case paused
-}
-
 @Observable
 @MainActor
 class AudioPlayer {
     /// The MusicKit player to use for Apple Music playback.
-    let player = ApplicationMusicPlayer.shared
+    private let player = ApplicationMusicPlayer.shared
     
     private(set) var songDuration: TimeInterval = 0.0
-    
-    var songPosition: TimeInterval { get {
-        return player.playbackTime
-    } set {
-        player.playbackTime = newValue
-    }}
+    var songPosition: TimeInterval { get { return player.playbackTime } set { player.playbackTime = newValue }}
     
     // Speed-Änderung started den Player, daher Status merken und restaurieren
     private var songSpeed_: Float = 1.0
@@ -101,7 +90,7 @@ class AudioPlayer {
                     player.queue = [songItem]
                     loadedId = id
                     print("Audioplayer geladen \(songDuration)")
-                    try await pl.prepareToPlay()
+                    try? await pl.prepareToPlay()
                     play()
                 }
             } catch (let error) {
@@ -135,7 +124,7 @@ class AudioPlayer {
                     player.queue = [songItem]
                     loadedId = id
                     print("Audioplayer geladen \(songDuration)")
-                    try await pl.prepareToPlay()
+                    try? await pl.prepareToPlay()
                 }
             } catch (let error) {
                 print(error)

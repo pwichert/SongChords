@@ -28,7 +28,6 @@ struct AudioPlayerView: View {
     @Binding var loopActive: Bool
     @Binding var songSpeed: Double
     @Binding var songPosition: TimeInterval
-//    @Binding var playerState: PlaybackStatus
     
     @Environment(AudioPlayer.self) private var audioPlayer
     @Environment(Globals.self) private var globals
@@ -62,6 +61,7 @@ struct AudioPlayerView: View {
                             #else
                             .font(.subheadline)
                             #endif
+                            .foregroundStyle(loopOutOfSongLimits(loop: playerLoop) ? Color.red : Color.primary)
                         }
                         .onDelete(perform: { indices in
                             var idxSet = Set<UUID>()
@@ -185,7 +185,7 @@ struct AudioPlayerView: View {
     private func setCurrentLoopTimer(_ load: Bool = true) {
         if load { audioPlayer.load(id: song.musicItemId) }
 
-        if loopActive {
+        if loopActive && !loopOutOfSongLimits(loop: currentLoop) {
             if audioPlayer.songPosition <= currentLoop.start || audioPlayer.songPosition >= currentLoop.stop {
                 audioPlayer.songPosition = currentLoop.start
                 if audioPlayer.playerState == .playing { startLoopTimer(interval: currentLoop.stop - currentLoop.start) }
@@ -199,22 +199,18 @@ struct AudioPlayerView: View {
     }
     
     private func startPlayback() {
-        // Das Setzen des State verhindert die Verzögerungen des "echten" State
         let plState = audioPlayer.playerState
         
         if plState == .playing {
             audioPlayer.pause()
             stopLoopTimer()
-//            playerState = .paused
         } else {
             audioPlayer.loadAndPlay(id: song.musicItemId)
-//            playerState = .playing
             setCurrentLoopTimer(false)
         }
     }
 
     private func stopPlayback() {
-//        playerState = .stopped
         audioPlayer.stop()
         stopLoopTimer()
     }
@@ -226,6 +222,12 @@ struct AudioPlayerView: View {
             audioPlayer.songPosition = 0
         }
         setCurrentLoopTimer()
+    }
+    
+    private func loopOutOfSongLimits(loop: PlayerLoop) -> Bool {
+        guard audioPlayer.isLoaded else { return false }
+        let songDuration = audioPlayer.songDuration
+        return loop.start >= songDuration || loop.stop > songDuration + 1 || loop.start >= loop.stop
     }
 }
 

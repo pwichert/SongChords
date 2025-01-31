@@ -32,7 +32,6 @@ struct SongView: View {
     @State private var loopActive: Bool = false
     @State private var songSpeed: Double = 1.0
     @State private var songPosition: TimeInterval = 0.0
-//    @State private var playerState: PlaybackStatus = .stopped     // eigener State macht die Verzögerung beim Starten für den Benutzer nicht sichtbar
 
     var body: some View {
 //        let _ = Self._printChanges()
@@ -134,11 +133,9 @@ struct SongView: View {
         .task(id: song.persistentModelID) {
             // wird evtl. gecancelled
             #if os(macOS)
-            print("task")
             updateSongRepresentation()
             #else
             if lastID1 != song.persistentModelID {
-                print("task")
                 updateSongRepresentation()
                 lastID1 = song.persistentModelID
             }
@@ -147,11 +144,9 @@ struct SongView: View {
         .onChange(of: song.persistentModelID, initial: true) {
             // bei Songwechsel auf Livedarstellung schalten
             #if os(macOS)
-            print("onChange")
             songChangedAction()
             #else
             if lastID2 != song.persistentModelID {
-                print("onChange")
                 songChangedAction()
                 lastID2 = song.persistentModelID
             }
@@ -182,7 +177,6 @@ struct SongView: View {
     private func initAudioView() {
         Task { await timerManager.stopTimer() }
         audioPlayer.stop()
-//        playerState = .stopped
         loopActive = false
         currentLoop = PlayerLoop(start: 0, stop: 0, title: "")
         selectedLoop = nil
