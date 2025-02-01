@@ -145,6 +145,12 @@ struct AudioPlayerView: View {
                 if audioPlayer.playerState == .playing { setCurrentLoopTimer() }
             }
         }
+        .onChange(of: currentLoop.start, initial: false) {
+            if audioPlayer.playerState == .playing { setCurrentLoopTimer() }
+        }
+        .onChange(of: currentLoop.stop, initial: false) {
+            if audioPlayer.playerState == .playing { setCurrentLoopTimer() }
+        }
         .onReceive(statusTimer) { time in
             // Songfortschritt anzeigen
 //            print("statusTimer: time \(time) state \(audioPlayer.playerState) position \(audioPlayer.songPosition)")
@@ -189,8 +195,14 @@ struct AudioPlayerView: View {
         }
     }
     
+    @State private var isLoopTimerRunning = false
     private func setCurrentLoopTimer(_ load: Bool = true) {
+        guard !isLoopTimerRunning else { return }
+        isLoopTimerRunning = true
+        
         Task {
+            defer { isLoopTimerRunning = false } // Flag zurücksetzen, wenn die Task endet
+
             if load { await audioPlayer.load(id: song.musicItemId) }
             
             if loopActive && validLoop(loop: currentLoop) {
