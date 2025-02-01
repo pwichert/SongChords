@@ -86,7 +86,7 @@ struct AudioPlayerView: View {
                             Label("rewind", systemImage: "play.fill").rotationEffect(.degrees(180)).labelStyle(.iconOnly)
                         }.padding(.horizontal)
                     }.disabled(song.musicItemId.isEmpty)
-                    Button(action: { startPlayback() }) {
+                    Button(action: { Task { await startPlayback() }}) {
                         audioPlayer.playerState == .playing ? Label("Pause", systemImage: "pause.fill") : Label("Play", systemImage: "play.fill")
                     }.disabled(song.musicItemId.isEmpty || shouldOfferSubscription)
                     Button(action: { stopPlayback() }) {
@@ -97,7 +97,7 @@ struct AudioPlayerView: View {
                 Grid(alignment: .trailing) {
                     GridRow {
                         Text("Pos")
-                        Slider(value: $songPosition, in: 0...1.0, step: 0.01, onEditingChanged: { editing in
+                        Slider(value: $songPosition, in: 0...1.0, onEditingChanged: { editing in
                             if editing {
                                 inPositionEditing = true
                             } else {
@@ -109,7 +109,7 @@ struct AudioPlayerView: View {
                     }
                     GridRow {
                         Text("Speed")
-                        Slider(value: $songSpeed, in: 0.3...1.0, step: 0.01, onEditingChanged: { editing in
+                        Slider(value: $songSpeed, in: 0.3...1.0, onEditingChanged: { editing in
                             if !editing { audioPlayer.songSpeed = Float(songSpeed); setCurrentLoopTimer() }
                         }).disabled(song.musicItemId.isEmpty)
                         Text("\(Int(round(songSpeed * 100.0)))%").font(.footnote).frame(width: 50).lineLimit(1)
@@ -123,8 +123,7 @@ struct AudioPlayerView: View {
                 } else {
                     Button(action: { showSongSearch.toggle() } ) {
                         Label("Select Song", systemImage: "music.note.list").padding(.horizontal)
-                            .buttonStyle(BorderedButtonStyle()).font(.footnote)
-                    }
+                    }.buttonStyle(BorderedButtonStyle()).font(.footnote)
                 }
             }
         }
@@ -137,11 +136,9 @@ struct AudioPlayerView: View {
             }
         }
         .onChange(of: loopActive, initial: false) {
-            audioPlayer.load(id: song.musicItemId)
             if audioPlayer.playerState == .playing { setCurrentLoopTimer() }
         }
         .onChange(of: selectedLoop, initial: false) {
-            audioPlayer.load(id: song.musicItemId)
             if let selectedLoop {
                 // currentLoop übernimmt die Werte der Auswahl in neuem Objekt, nicht das Objekt selbst
                 currentLoop = PlayerLoop(start: selectedLoop.start, stop: selectedLoop.stop, title: selectedLoop.title)
@@ -193,29 +190,31 @@ struct AudioPlayerView: View {
     }
     
     private func setCurrentLoopTimer(_ load: Bool = true) {
-        if load { audioPlayer.load(id: song.musicItemId) }
-
-        if loopActive && validLoop(loop: currentLoop) {
-            if audioPlayer.songPosition <= currentLoop.start || audioPlayer.songPosition >= currentLoop.stop {
-                audioPlayer.songPosition = currentLoop.start
-                startLoopTimer(interval: currentLoop.stop - currentLoop.start)
+        Task {
+            if load { await audioPlayer.load(id: song.musicItemId) }
+            
+            if loopActive && validLoop(loop: currentLoop) {
+                if audioPlayer.songPosition <= currentLoop.start || audioPlayer.songPosition >= currentLoop.stop {
+                    audioPlayer.songPosition = currentLoop.start
+                    startLoopTimer(interval: currentLoop.stop - currentLoop.start)
+                } else {
+                    let rest = currentLoop.stop - audioPlayer.songPosition
+                    resumeLoopTimer(remainingInterval: rest, normalInterval: currentLoop.stop - currentLoop.start)
+                }
             } else {
-                let rest = currentLoop.stop - audioPlayer.songPosition
-                resumeLoopTimer(remainingInterval: rest, normalInterval: currentLoop.stop - currentLoop.start)
+                stopLoopTimer()
             }
-        } else {
-            stopLoopTimer()
         }
     }
     
-    private func startPlayback() {
+    private func startPlayback() async {
         let plState = audioPlayer.playerState
         
         if plState == .playing {
             audioPlayer.pause()
             stopLoopTimer()
         } else {
-            audioPlayer.loadAndPlay(id: song.musicItemId)
+            await audioPlayer.loadAndPlay(id: song.musicItemId)
             setCurrentLoopTimer(false)
         }
     }
@@ -332,7 +331,7 @@ struct MusicContentView: View {
                         let id = String(selectedSong?.id ?? "")
                         song.musicItemId = id
                         try modelContext.save()
-                        audioPlayer.load(id: id)
+                        Task { await audioPlayer.load(id: id) }
                     } catch (let error) {
                         globals.setSongChordsError(error: error)
                     }

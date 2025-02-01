@@ -37,23 +37,42 @@ class AudioPlayer {
     private var musicAuthorizationStatus: MusicAuthorization.Status = .notDetermined
     private var songResponse: MusicCatalogResourceResponse<MusicKit.Song>?
 
+    private var playerTask: Task<Void, Never>? // Speichert die aktuelle Player-Task
+
     init() {
         handleAuthorizationStatus()
     }
-
-    func play() {
+    
+    func play() async {
         print("Audioplayer play")
+        
+        // Falls bereits ein Play-Vorgang läuft, abbrechen
+        playerTask?.cancel()
+        
         let pl = player
-        Task { @MainActor in
+        
+        playerTask = Task {
             do {
+                // Falls die Task während des Starts abgebrochen wird, direkt raus
+                if Task.isCancelled { return }
+                
                 try await pl.play()
+                
+                // Falls die Task während des Wartens abgebrochen wird, nicht weiter ausführen
+                if Task.isCancelled { return }
+                
                 pl.state.playbackRate = songSpeed_
-            } catch (let error) {
-                print(error)
+                print("Wiedergabe gestartet mit Speed \(songSpeed_)")
+            } catch {
+                print("Fehler beim Starten der Wiedergabe: \(error)")
             }
         }
+        
+        // Optional: Falls der Aufruf blockierend sein soll, auf Task-Ende warten
+        await playerTask?.value
+        playerTask = nil
     }
-    
+
     func stop() {
         print("Audioplayer stop")
         player.restartCurrentEntry()
@@ -65,59 +84,85 @@ class AudioPlayer {
         player.pause()
     }
     
-    func loadAndPlay(id: String) {
+    func loadAndPlay(id: String) async {
         print("Audioplayer loadAndPlay")
         
-        if id == loadedId { play(); return }
+        if id == loadedId { await play(); return }
 
-        player.stop()
-        songResponse = nil
-        songDuration = 0
-        player.queue = []
-        loadedId = nil
+        // Falls bereits ein loadAndPlay-Vorgang läuft, abbrechen
+        playerTask?.cancel()
         
         if id.isEmpty { return }
         let pl = player
         
-        Task { @MainActor in
+        playerTask = Task {
             do {
+                player.stop()
+                songResponse = nil
+                songDuration = 0
+                player.queue = []
+                loadedId = nil
+                
+                if Task.isCancelled { return }
+
                 let songRequest = MusicCatalogResourceRequest<MusicKit.Song>(matching: \.id, equalTo: MusicItemID(rawValue: id)) // MusicItemID(rawValue: "83445997"))
                 songResponse = try await songRequest.response()
                 
+                if Task.isCancelled { return }
+
                 if let songItem = songResponse?.items.first {
                     songDuration = songItem.duration ?? 0
                     songPosition = 0
                     player.queue = [songItem]
                     loadedId = id
+                    
                     print("Audioplayer geladen \(songDuration)")
                     try? await pl.prepareToPlay()
-                    play()
+                    if Task.isCancelled { return }
+
+                    print("Audioplayer play")
+                    try await pl.play()
+                    if Task.isCancelled { return }
+
+                    pl.state.playbackRate = songSpeed_
+                    print("Wiedergabe gestartet mit Speed \(songSpeed_)")
                 }
             } catch (let error) {
                 print(error)
             }
         }
+        
+        // Optional: Falls der Aufruf blockierend sein soll, auf Task-Ende warten
+        await playerTask?.value
+        playerTask = nil
     }
     
-    func load(id: String) {
+    func load(id: String) async {
         print("Audioplayer load")
         
         if id == loadedId { return }
 
-        player.stop()
-        songResponse = nil
-        songDuration = 0
-        player.queue = []
-        loadedId = nil
+        // Falls bereits ein loadTask-Vorgang läuft, abbrechen
+        playerTask?.cancel()
         
         if id.isEmpty { return }
         let pl = player
         
-        Task { @MainActor in
+        playerTask = Task {
             do {
+                player.stop()
+                songResponse = nil
+                songDuration = 0
+                player.queue = []
+                loadedId = nil
+
+                if Task.isCancelled { return }
+
                 let songRequest = MusicCatalogResourceRequest<MusicKit.Song>(matching: \.id, equalTo: MusicItemID(rawValue: id)) // MusicItemID(rawValue: "83445997"))
                 songResponse = try await songRequest.response()
                 
+                if Task.isCancelled { return }
+
                 if let songItem = songResponse?.items.first {
                     songDuration = songItem.duration ?? 0
                     songPosition = 0
@@ -130,6 +175,10 @@ class AudioPlayer {
                 print(error)
             }
         }
+        
+        // Optional: Falls der Aufruf blockierend sein soll, auf Task-Ende warten
+        await playerTask?.value
+        playerTask = nil
     }
     
     private func restoreState(state: MusicPlayer.PlaybackStatus) {
