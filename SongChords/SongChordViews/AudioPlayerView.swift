@@ -44,7 +44,7 @@ struct AudioPlayerView: View {
                         .lineLimit(1)
                     
                     List(selection: $selectedLoop) {
-                        ForEach(song.playerLoops.sorted(by: { $0.start < $1.start }), id: \.self) { playerLoop in
+                        ForEach(song.playerLoops.sorted(by: { $0.start == $1.start ? $0.stop < $1.stop : $0.start < $1.start }), id: \.self) { playerLoop in
                             HStack {
                                 Text(playerLoop.title.isEmpty ? "-" : playerLoop.title)
                                 Spacer()
@@ -55,7 +55,7 @@ struct AudioPlayerView: View {
                             #else
                             .font(.subheadline)
                             #endif
-                            .foregroundStyle(loopOutOfSongLimits(loop: playerLoop) ? Color.red : Color.primary)
+                            .foregroundStyle(validLoop(loop: playerLoop) ? Color.primary : Color.red)
                         }
                         .onDelete(perform: { indices in
                             var idxSet = Set<UUID>()
@@ -88,7 +88,7 @@ struct AudioPlayerView: View {
                     }.disabled(song.musicItemId.isEmpty)
                     Button(action: { startPlayback() }) {
                         audioPlayer.playerState == .playing ? Label("Pause", systemImage: "pause.fill") : Label("Play", systemImage: "play.fill")
-                    }.disabled(song.musicItemId.isEmpty)
+                    }.disabled(song.musicItemId.isEmpty || shouldOfferSubscription)
                     Button(action: { stopPlayback() }) {
                         Label("Stop", systemImage: "stop.fill")
                     }.disabled(song.musicItemId.isEmpty)
@@ -118,27 +118,35 @@ struct AudioPlayerView: View {
                 .padding(.horizontal)
                 .font(.footnote)
 
-                Button(action: { showSongSearch.toggle() } ) {
-                    Label("Select Song", systemImage: "music.note.list").padding(.horizontal)
+                if shouldOfferSubscription {
+                    subscriptionOfferButton
+                } else {
+                    Button(action: { showSongSearch.toggle() } ) {
+                        Label("Select Song", systemImage: "music.note.list").padding(.horizontal)
+                            .buttonStyle(BorderedButtonStyle()).font(.footnote)
+                    }
                 }
-                .buttonStyle(BorderedButtonStyle()).font(.footnote)
             }
         }
         .frame(maxWidth: 500)
+        // Display the subscription offer when appropriate.
+        .musicSubscriptionOffer(isPresented: $isShowingSubscriptionOffer, options: subscriptionOfferOptions)
         .sheet(isPresented: $showSongSearch) {
             NavigationStack {
                 MusicContentView(song: song)
             }
         }
         .onChange(of: loopActive, initial: false) {
-            setCurrentLoopTimer()
+            audioPlayer.load(id: song.musicItemId)
+            if audioPlayer.playerState == .playing { setCurrentLoopTimer() }
         }
         .onChange(of: selectedLoop, initial: false) {
+            audioPlayer.load(id: song.musicItemId)
             if let selectedLoop {
                 // currentLoop übernimmt die Werte der Auswahl in neuem Objekt, nicht das Objekt selbst
                 currentLoop = PlayerLoop(start: selectedLoop.start, stop: selectedLoop.stop, title: selectedLoop.title)
+                if audioPlayer.playerState == .playing { setCurrentLoopTimer() }
             }
-            setCurrentLoopTimer()
         }
         .onReceive(statusTimer) { time in
             // Songfortschritt anzeigen
@@ -146,6 +154,14 @@ struct AudioPlayerView: View {
             if !inPositionEditing {
                 songPosition = audioPlayer.songDuration == 0 ? 0 : audioPlayer.songPosition / audioPlayer.songDuration
             }
+        }
+        // Start observing changes to the music subscription.
+        .task {
+            print("subscription observer gestartet")
+            for await subscription in MusicSubscription.subscriptionUpdates {
+                musicSubscription = subscription
+            }
+            print("subscription observer gestoppt")
         }
     }
 
@@ -179,13 +195,13 @@ struct AudioPlayerView: View {
     private func setCurrentLoopTimer(_ load: Bool = true) {
         if load { audioPlayer.load(id: song.musicItemId) }
 
-        if loopActive && !loopOutOfSongLimits(loop: currentLoop) {
+        if loopActive && validLoop(loop: currentLoop) {
             if audioPlayer.songPosition <= currentLoop.start || audioPlayer.songPosition >= currentLoop.stop {
                 audioPlayer.songPosition = currentLoop.start
-                if audioPlayer.playerState == .playing { startLoopTimer(interval: currentLoop.stop - currentLoop.start) }
+                startLoopTimer(interval: currentLoop.stop - currentLoop.start)
             } else {
                 let rest = currentLoop.stop - audioPlayer.songPosition
-                if audioPlayer.playerState == .playing { resumeLoopTimer(remainingInterval: rest, normalInterval: currentLoop.stop - currentLoop.start)}
+                resumeLoopTimer(remainingInterval: rest, normalInterval: currentLoop.stop - currentLoop.start)
             }
         } else {
             stopLoopTimer()
@@ -218,10 +234,45 @@ struct AudioPlayerView: View {
         setCurrentLoopTimer()
     }
     
-    private func loopOutOfSongLimits(loop: PlayerLoop) -> Bool {
-        guard audioPlayer.isLoaded else { return false }
+    private func validLoop(loop: PlayerLoop) -> Bool {
+        guard audioPlayer.isLoaded else { return true }
         let songDuration = audioPlayer.songDuration
-        return loop.start >= songDuration || loop.stop > songDuration + 1 || loop.start >= loop.stop
+        return loop.start < songDuration && loop.stop < songDuration + 0.1 && loop.start < loop.stop
+    }
+    
+    // MARK: - Subscription offer
+    
+    /// The Apple Music subscription of the current user.
+    @State private var musicSubscription: MusicSubscription?
+    
+    /// `true` when the album detail view needs to offer an Apple Music subscription to the user.
+    private var shouldOfferSubscription: Bool {
+        let canBecomeSubscriber = musicSubscription?.canBecomeSubscriber ?? false
+        return canBecomeSubscriber
+    }
+    
+    private var subscriptionOfferButton: some View {
+        Button(action: handleSubscriptionOfferButtonSelected) {
+            HStack {
+                Image(systemName: "applelogo")
+                Text("Join")
+            }
+            .frame(maxWidth: 200)
+        }
+        .buttonStyle(BorderedProminentButtonStyle())
+    }
+    
+    /// The state that controls whether the album detail view displays a subscription offer for Apple Music.
+    @State private var isShowingSubscriptionOffer = false
+    
+    /// The options for the Apple Music subscription offer.
+    @State private var subscriptionOfferOptions: MusicSubscriptionOffer.Options = .default
+    
+    /// Computes the presentation state for a subscription offer.
+    private func handleSubscriptionOfferButtonSelected() {
+        subscriptionOfferOptions.messageIdentifier = .join
+        subscriptionOfferOptions.itemID = MusicItemID(song.musicItemId)
+        isShowingSubscriptionOffer = true
     }
 }
 
@@ -473,19 +524,18 @@ struct PlayerLoopEditView: View {
     }
     
     func saveToList() {
-        if currentLoop.title.trimmingCharacters(in: .whitespaces).isEmpty { return }
-        
         // currentLoop in song.playerLoops suchen
         // wenn gefunden, dann updaten
         let list = song.playerLoops
-        if let listIndex = list.firstIndex(where: { $0.title == currentLoop.title }) {
+        let loopTitle = currentLoop.title.trimmingCharacters(in: .whitespaces)
+        if !loopTitle.isEmpty, let listIndex = list.firstIndex(where: { $0.title == loopTitle }) {
             list[listIndex].start = currentLoop.start
             list[listIndex].stop = currentLoop.stop
-            list[listIndex].title = currentLoop.title
+            list[listIndex].title = loopTitle
             song.playerLoops = list
         } else {
             // wenn nicht gefunden, dann currentLoop neu hinzufügen
-            song.playerLoops.append(PlayerLoop(start: currentLoop.start, stop: currentLoop.stop, title: currentLoop.title.trimmingCharacters(in: .whitespaces).isEmpty ? "Loop \(song.playerLoops.count)" : currentLoop.title))
+            song.playerLoops.append(PlayerLoop(start: currentLoop.start, stop: currentLoop.stop, title: loopTitle.isEmpty ? "Loop \(song.playerLoops.count)" : loopTitle))
         }
                 
         do {
