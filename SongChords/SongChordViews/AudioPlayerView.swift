@@ -39,7 +39,7 @@ struct AudioPlayerView: View {
     
     var body: some View {
         VStack {
-            if audioPlayer.isAllowed {
+            if !audioPlayer.isAllowed {
                 AudioPlayerNotAllowedView().padding()
             } else {
                 VStack {
