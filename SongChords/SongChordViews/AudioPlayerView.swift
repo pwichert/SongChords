@@ -539,7 +539,7 @@ struct PlayerLoopEditView: View {
         // wenn gefunden, dann updaten
         let list = song.playerLoops
         let loopTitle = currentLoop.title.trimmingCharacters(in: .whitespaces)
-        if !loopTitle.isEmpty, let listIndex = list.firstIndex(where: { $0.title == loopTitle }) {
+        if !loopTitle.isEmpty, let listIndex = list.firstIndex(where: { $0.title.trimmingCharacters(in: .whitespaces) == loopTitle }) {
             list[listIndex].start = currentLoop.start
             list[listIndex].stop = currentLoop.stop
             list[listIndex].title = loopTitle
