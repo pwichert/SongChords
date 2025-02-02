@@ -7,6 +7,9 @@
 
 import SwiftUI
 import MusicKit
+#if os(macOS)
+import AppKit
+#endif
 
 struct MusicItem: Identifiable, Sendable, Hashable {
     let id: String
@@ -36,7 +39,7 @@ struct AudioPlayerView: View {
     
     var body: some View {
         VStack {
-            if !audioPlayer.isAllowed {
+            if audioPlayer.isAllowed {
                 AudioPlayerNotAllowedView().padding()
             } else {
                 VStack {
@@ -290,10 +293,23 @@ struct AudioPlayerView: View {
 struct AudioPlayerNotAllowedView: View {
     @Environment(AudioPlayer.self) private var audioPlayer
     var body: some View {
-        Text("Audio playback is not allowed in this app")
-            .onAppear {
-                audioPlayer.handleAuthorizationStatus()
-            }
+        VStack {
+            Text("Audio playback is not allowed in this app")
+            Button("Open Settings") {
+                #if os(macOS)
+                if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security") {
+                    NSWorkspace.shared.open(url)
+                }
+                #else
+                if let url = URL(string: UIApplication.openSettingsURLString) {
+                    UIApplication.shared.open(url)
+                }
+                #endif
+            }.buttonStyle(BorderedButtonStyle()).padding()
+        }
+        .onAppear {
+            audioPlayer.handleAuthorizationStatus()
+        }
     }
 }
 

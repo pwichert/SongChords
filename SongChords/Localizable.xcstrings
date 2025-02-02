@@ -38,10 +38,10 @@
       "shouldTranslate" : false
     },
     "%lf" : {
-
+      "shouldTranslate" : false
     },
     "%lld" : {
-
+      "shouldTranslate" : false
     },
     "%lld Song" : {
       "localizations" : {
@@ -95,7 +95,7 @@
       "shouldTranslate" : false
     },
     "%lld%%" : {
-
+      "shouldTranslate" : false
     },
     "+" : {
       "shouldTranslate" : false
@@ -492,7 +492,7 @@
       }
     },
     "Join" : {
-
+      "shouldTranslate" : false
     },
     "light" : {
       "localizations" : {
@@ -576,6 +576,16 @@
     },
     "Ok" : {
       "shouldTranslate" : false
+    },
+    "Open Settings" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Einstellungen öffnen"
+          }
+        }
+      }
     },
     "Options" : {
       "localizations" : {
