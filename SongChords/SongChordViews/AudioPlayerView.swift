@@ -7,9 +7,6 @@
 
 import SwiftUI
 import MusicKit
-#if os(macOS)
-import AppKit
-#endif
 
 struct MusicItem: Identifiable, Sendable, Hashable {
     let id: String
@@ -33,6 +30,7 @@ struct AudioPlayerView: View {
 
     @State private var showSongSearch: Bool = false
     @State private var inPositionEditing: Bool = false
+    @State private var buttonBusy: Bool = false
     
     // aktualisiert den Status des AudioPlayers, insb. die Position
     let statusTimer = Timer.publish(every: 1, tolerance: 0.3, on: .main, in: .common).autoconnect()
@@ -62,7 +60,7 @@ struct AudioPlayerView: View {
                         }
                         .onDelete(perform: { indices in
                             var idxSet = Set<UUID>()
-                            for index in indices { idxSet.insert(song.playerLoops.sorted(by: { $0.start < $1.start })[index].id )}
+                            for index in indices { idxSet.insert(song.playerLoops.sorted(by: { $0.start == $1.start ? $0.stop < $1.stop : $0.start < $1.start })[index].id )}
                             for index in idxSet { song.playerLoops.removeAll(where: { $0.id == index })}
 
                             do {
@@ -89,9 +87,18 @@ struct AudioPlayerView: View {
                             Label("rewind", systemImage: "play.fill").rotationEffect(.degrees(180)).labelStyle(.iconOnly)
                         }.padding(.horizontal)
                     }.disabled(song.musicItemId.isEmpty)
+                    
                     Button(action: { Task { await startPlayback() }}) {
-                        audioPlayer.playerState == .playing ? Label("Pause", systemImage: "pause.fill") : Label("Play", systemImage: "play.fill")
+                        HStack(alignment: .center, spacing: nil) {
+                            if buttonBusy {
+                                ProgressView().progressViewStyle(.circular).controlSize(.mini)
+                            } else {
+                                audioPlayer.playerState == .playing ? Image(systemName: "pause.fill") : Image(systemName: "play.fill")
+                            }
+                            Text(audioPlayer.playerState == .playing ? "Pause" : "Play")
+                        }.frame(minWidth: 70) // hält die Buttonbreite konstant, wenn sich Texte Pause/Play ändern
                     }.disabled(song.musicItemId.isEmpty || shouldOfferSubscription)
+                    
                     Button(action: { stopPlayback() }) {
                         Label("Stop", systemImage: "stop.fill")
                     }.disabled(song.musicItemId.isEmpty)
@@ -156,10 +163,13 @@ struct AudioPlayerView: View {
         }
         .onReceive(statusTimer) { time in
             // Songfortschritt anzeigen
-//            print("statusTimer: time \(time) state \(audioPlayer.playerState) position \(audioPlayer.songPosition)")
+            // print("statusTimer: time \(time) state \(audioPlayer.playerState) position \(audioPlayer.songPosition)")
             if !inPositionEditing {
                 songPosition = audioPlayer.songDuration == 0 ? 0 : audioPlayer.songPosition / audioPlayer.songDuration
             }
+        }
+        .onChange(of: audioPlayer.playerState, initial: false) {
+            buttonBusy = false
         }
         // Start observing changes to the music subscription.
         .task {
@@ -206,7 +216,7 @@ struct AudioPlayerView: View {
         Task {
             defer { isLoopTimerRunning = false } // Flag zurücksetzen, wenn die Task endet
 
-            if load { await audioPlayer.load(id: song.musicItemId) }
+            if load { let _ = await audioPlayer.load(id: song.musicItemId) }
             
             if loopActive && validLoop(loop: currentLoop) {
                 if audioPlayer.songPosition <= currentLoop.start || audioPlayer.songPosition >= currentLoop.stop {
@@ -225,16 +235,22 @@ struct AudioPlayerView: View {
     private func startPlayback() async {
         let plState = audioPlayer.playerState
         
+        buttonBusy = true
+        
         if plState == .playing {
             audioPlayer.pause()
             stopLoopTimer()
         } else {
-            await audioPlayer.loadAndPlay(id: song.musicItemId)
+            // falls Fehler auftritt, Spinner weg
+            if await audioPlayer.loadAndPlay(id: song.musicItemId) == false { buttonBusy = false }
+            
             setCurrentLoopTimer(false)
         }
     }
 
     private func stopPlayback() {
+        buttonBusy = false
+        
         audioPlayer.stop()
         stopLoopTimer()
     }

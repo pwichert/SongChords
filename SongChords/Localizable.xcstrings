@@ -598,7 +598,7 @@
       }
     },
     "Pause" : {
-      "shouldTranslate" : false
+
     },
     "PDF Options" : {
       "localizations" : {
@@ -611,7 +611,7 @@
       }
     },
     "Play" : {
-      "shouldTranslate" : false
+
     },
     "Playlist must be empty" : {
       "localizations" : {
