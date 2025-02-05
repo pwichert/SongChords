@@ -20,6 +20,7 @@ struct SongEditView: View {
     @State private var title: String = ""
     @State private var srcText: String = ""
     @State private var transpose: Double = 0
+    @State private var showText: Bool = true
     
     @State private var showSrcEditor: Bool = false
     
@@ -37,6 +38,13 @@ struct SongEditView: View {
                 .padding(.bottom, 4)
             #endif
             
+            Section {
+                Toggle("Show Text", isOn: $showText)
+            }
+            #if os(macOS)
+                .padding(.bottom, 4)
+            #endif
+                        
             HStack {
                 #if os(iOS)
                 Text("Transpose [\(Int(transpose))]")
@@ -73,25 +81,27 @@ struct SongEditView: View {
             ToolbarItem(placement: .confirmationAction) {
                 Button("Save") {
                     do {
-                        var changed: Bool = false
+                        var processSong: Bool = false
 
                         if let song {
-                            if song.title != title { song.title = title; try modelContext.save() }
+                            if song.title != title { song.title = title }
+                            if song.showText != showText { song.showText = showText }
+
                             if song.srcText != srcText {
                                 song.srcText = srcText
-                                changed = true
+                                processSong = true
                             }
                             if song.transpose != Int(transpose) {
                                 song.transpose = Int(transpose)
-                                changed = true
+                                processSong = true
                             }
-                            if changed {
-                                song.processSongInBackground(userSettings: userSettings, forPrinting: false)
-                                if modelContext.hasChanges { try modelContext.save() }
-                            }
+                            
+                            if processSong { song.processSongInBackground(userSettings: userSettings, forPrinting: false) }
+                            if modelContext.hasChanges { try modelContext.save() }
                         } else {
                             let song = try Song(title: title, modelContext: modelContext, store: store)
                             modelContext.insert(song)
+                            song.showText = showText
                             song.srcText = srcText
                             song.transpose = Int(transpose)
                             song.toPlaylist(playlist: playlist)
@@ -121,6 +131,7 @@ struct SongEditView: View {
         .onAppear {
             if let song {
                 title = song.title
+                showText = song.showText
                 srcText = song.srcText
                 transpose = Double(song.transpose)
             }

@@ -415,6 +415,16 @@
         }
       }
     },
+    "If you are a singer and don't need chords. This is global for all songs." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Falls du Sänger/-in bist und keine Akkorde benötigst. Dies gilt für alle Songs."
+          }
+        }
+      }
+    },
     "If you have already displayed the song somewhere in the typical chord/text format, e.g., in a browser or PDF:" : {
       "localizations" : {
         "de" : {
@@ -598,7 +608,7 @@
       }
     },
     "Pause" : {
-
+      "shouldTranslate" : false
     },
     "PDF Options" : {
       "localizations" : {
@@ -611,7 +621,7 @@
       }
     },
     "Play" : {
-
+      "shouldTranslate" : false
     },
     "Playlist must be empty" : {
       "localizations" : {
@@ -718,6 +728,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Wähle Song"
+          }
+        }
+      }
+    },
+    "Show Text" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Text darstellen"
           }
         }
       }

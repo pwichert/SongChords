@@ -34,22 +34,21 @@ struct OptionsView: View {
                 .padding(.bottom, 4)
             #endif
             
-            Section {
+            Section(footer: Text("If you are a singer and don't need chords. This is global for all songs.")
+                #if os(macOS)
+                .font(.footnote).padding(.bottom, 4)
+                #endif
+            ){
                 Toggle("Hide Chords", isOn: $hideChords)
             }
-            #if os(macOS)
-                .padding(.bottom, 4)
-            #endif
 
-            #if os(macOS)
-            Section(footer: Text("The text is always positioned below the chord").font(.footnote).padding(.bottom, 4)) {
+            Section(footer: Text("The text is always positioned below the chord")
+                #if os(macOS)
+                .font(.footnote).padding(.bottom, 4)
+                #endif
+            ){
                 Toggle("Text follows Chords", isOn: $textFollowsChords).disabled(hideChords)
             }
-            #else
-            Section(footer: Text("The text is always positioned below the chord")) {
-                Toggle("Text follows Chords", isOn: $textFollowsChords).disabled(hideChords)
-            }
-            #endif
 
             Section {
                 Toggle("German Notation", isOn: $isGermanNotation)

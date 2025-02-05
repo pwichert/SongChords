@@ -66,7 +66,7 @@ struct SongChordsApp: App {
         } else {
             if scenePhase == .background { print("wird background")
                 await store.stopListener()
-                audioPlayer.stop()
+                if audioPlayer.isLoaded { audioPlayer.stop() }
                 await timerManager.stopTimer()
             }
         }

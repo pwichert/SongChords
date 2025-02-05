@@ -235,10 +235,14 @@ struct DetailContent: View {
                                 Text(" ").font(Font(userSettings.txtUIFont))
                             } else if userSettings.hidechords {
                                 // ist nicht leer
-                                Text(line.plainText).font(Font(userSettings.txtUIFont))
+                                if song.showText { Text(line.plainText).font(Font(userSettings.txtUIFont)) }
                             } else {
-                                ChordsLineView(line: line, lightColor: lightColor, darkColor: darkColor).font(Font(userSettings.chordUIFont))
-                                TextsLineView(line: line).font(Font(userSettings.txtUIFont))
+                                if song.showText {
+                                    ChordsLineView(line: line, lightColor: lightColor, darkColor: darkColor).font(Font(userSettings.chordUIFont))
+                                    TextsLineView(line: line).font(Font(userSettings.txtUIFont))
+                                } else {
+                                    ChordsPlainView(line: line, lightColor: lightColor, darkColor: darkColor).font(Font(userSettings.chordUIFont))
+                                }
                             }
                         }.padding(EdgeInsets(top: 0, leading: 0, bottom: userSettings.linespacing, trailing: 0))
                     }
@@ -305,6 +309,33 @@ struct ChordsLineView: View {
                                 .offset(CGSize(width: chord.fontOffset, height: 0))
                         }
                     }
+                }
+            }
+        }
+    }
+}
+
+struct ChordsPlainView: View {
+    let line: SplittedLine
+    let lightColor: Color
+    let darkColor: Color
+    
+    @Environment(UserSettings.self) private var userSettings
+    @Environment(\.colorScheme) var colorScheme
+
+    var body: some View {
+        if line.chords.isEmpty {
+            EmptyView()
+        } else {
+            HStack(alignment: .center, spacing: 0) {
+                ForEach(line.chords) { chord in
+                    if chord != line.chords.first { Text(" ").lineLimit(1) }
+                    
+                    Text(chord.txt)
+                        .lineLimit(1)
+                        .padding(.horizontal, 0.8)
+                        .background(chord.background ? (colorScheme == .dark ? darkColor : lightColor) : Color.clear)
+                        .clipShape(RoundedRectangle(cornerRadius: 4, style: .circular))
                 }
             }
         }

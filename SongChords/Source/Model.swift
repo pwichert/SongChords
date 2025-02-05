@@ -437,7 +437,7 @@ final public class Song: Codable {
         case transpose
 //        case showheader
 //        case showchords
-//        case showtext
+        case showtext
 //        case duration
         case musicitemid
         case playerloops
@@ -451,10 +451,10 @@ final public class Song: Codable {
         transpose = try container.decode(Int.self, forKey: .transpose)
 //        showHeader = try container.decode(Bool.self, forKey: .showheader)
 //        showChords = try container.decode(Bool.self, forKey: .showchords)
-//        showText = try container.decode(Bool.self, forKey: .showtext)
 //        duration = try container.decode(Double.self, forKey: .duration)
         if container.contains(.musicitemid) { musicItemId = try container.decode(String.self, forKey: .musicitemid) } else { musicItemId = "" }
         if container.contains(.playerloops) { playerLoops = try container.decode([PlayerLoop].self, forKey: .playerloops) } else { playerLoops = [] }
+        if container.contains(.showtext) { showText = try container.decode(Bool.self, forKey: .showtext) }
     }
     
     public func encode(to encoder: Encoder) throws {
@@ -465,7 +465,7 @@ final public class Song: Codable {
         try container.encode(transpose, forKey: .transpose)
 //        try container.encode(showHeader, forKey: .showheader)
 //        try container.encode(showChords, forKey: .showchords)
-//        try container.encode(showText, forKey: .showtext)
+        try container.encode(showText, forKey: .showtext)
 //        try container.encode(duration, forKey: .duration)
         try container.encode(musicItemId, forKey: .musicitemid)
         try container.encode(playerLoops, forKey: .playerloops)

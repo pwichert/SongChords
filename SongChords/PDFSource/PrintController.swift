@@ -111,19 +111,33 @@ class PrintSongDelegate: NSObject, PrintDelegateBase, UIPrintInteractionControll
                         gen.draw(col: line.col, view: Text(" ").font(Font(userSettings.txtPDFUIFont))
                             .padding(EdgeInsets(top: lineSpacing, leading: 0, bottom: 0, trailing: 0)))
                     } else if userSettings.hidechords {
-                        gen.draw(col: line.col, view: Text(line.plainText).font(Font(userSettings.txtPDFUIFont))
-                            .padding(EdgeInsets(top: lineSpacing, leading: 0, bottom: 0, trailing: 0)))
-                    } else {
-                        if !line.chords.isEmpty {
-                            gen.draw(col: line.col, view: ChordsLineView(line: line, lightColor: Color.init(red: 0.95, green: 0.95, blue: 0.95), darkColor: Color.init(red: 0.15, green: 0.15, blue: 0.15)).font(Font(userSettings.chordPDFUIFont))
+                        if song.showText {
+                            gen.draw(col: line.col, view: Text(line.plainText).font(Font(userSettings.txtPDFUIFont))
                                 .padding(EdgeInsets(top: lineSpacing, leading: 0, bottom: 0, trailing: 0)))
-                            
-                            // nur der erste von ChordsLineView oder TextsLineView soll linespacen
-                            lineSpacing = 0
                         }
-                        if !line.texts.isEmpty {
-                            gen.draw(col: line.col, view: TextsLineView(line: line).font(Font(userSettings.txtPDFUIFont))
-                                .padding(EdgeInsets(top: lineSpacing, leading: 0, bottom: 0, trailing: 0)))
+                    } else {
+                        if song.showText {
+                            if !line.chords.isEmpty {
+                                gen.draw(col: line.col, view: ChordsLineView(line: line, lightColor: Color.init(red: 0.95, green: 0.95, blue: 0.95), darkColor: Color.init(red: 0.15, green: 0.15, blue: 0.15)).font(Font(userSettings.chordPDFUIFont))
+                                    .padding(EdgeInsets(top: lineSpacing, leading: 0, bottom: 0, trailing: 0)))
+                                
+                                // nur der erste von ChordsLineView oder TextsLineView soll linespacen
+                                lineSpacing = 0
+                            }
+                        } else {
+                            if !line.chords.isEmpty {
+                                gen.draw(col: line.col, view: ChordsPlainView(line: line, lightColor: Color.init(red: 0.95, green: 0.95, blue: 0.95), darkColor: Color.init(red: 0.15, green: 0.15, blue: 0.15)).font(Font(userSettings.chordPDFUIFont))
+                                    .padding(EdgeInsets(top: lineSpacing, leading: 0, bottom: 0, trailing: 0)))
+                                
+                                // nur der erste von ChordsLineView oder TextsLineView soll linespacen
+                                lineSpacing = 0
+                            }
+                        }
+                        if song.showText {
+                            if !line.texts.isEmpty {
+                                gen.draw(col: line.col, view: TextsLineView(line: line).font(Font(userSettings.txtPDFUIFont))
+                                    .padding(EdgeInsets(top: lineSpacing, leading: 0, bottom: 0, trailing: 0)))
+                            }
                         }
                     }
                 }

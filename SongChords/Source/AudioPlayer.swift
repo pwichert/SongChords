@@ -12,8 +12,8 @@ import MusicKit
 @MainActor
 class AudioPlayer {
     /// The MusicKit player to use for Apple Music playback.
-    private let player = ApplicationMusicPlayer.shared
-    
+    private var player: ApplicationMusicPlayer { get { ApplicationMusicPlayer.shared }}
+
     private(set) var songDuration: TimeInterval = 0.0
     var songPosition: TimeInterval { get { return player.playbackTime } set { player.playbackTime = newValue }}
     
