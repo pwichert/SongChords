@@ -102,6 +102,11 @@ struct SplittedLine: Identifiable, Sendable {
     var onNewPage: Bool = false
     var col: Int = 0
     
+    func textsIsWhithespaceOrEmpty() -> Bool {
+        if texts.isEmpty { return true }
+        return texts.allSatisfy { $0.txt.trimmingCharacters(in: .whitespaces).isEmpty }
+    }
+    
     func textsToString() -> String? {
         if texts.isEmpty { return nil }
         

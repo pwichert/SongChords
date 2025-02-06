@@ -7,8 +7,8 @@
 
 import SwiftUI
 
-class GlobalFunctions {
-    static func formatTimeInterval(_ timeInterval: TimeInterval) -> String {
+public class GlobalFunctions {
+    public static func formatTimeInterval(_ timeInterval: TimeInterval) -> String {
         let formatter = DateComponentsFormatter()
         formatter.allowedUnits = [.minute, .second]
         formatter.unitsStyle = .positional

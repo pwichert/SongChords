@@ -226,11 +226,17 @@ struct DetailContent: View {
                 
                 ForEach(section.splittedLines) { line in
                     if userSettings.hidechords && line.texts.isEmpty && !line.chords.isEmpty {
-                        // bei hidechords sollen alle Zeilen verschwinden und auch kein linespacing machen, die nur chords haben 
+                        // bei hidechords sollen alle Zeilen verschwinden und auch kein linespacing machen, die nur chords haben
+                        EmptyView()
+                    } else if !song.showText && !line.texts.isEmpty && line.chords.isEmpty {
+                        // bei hidetext sollen alle Zeilen verschwinden und auch kein linespacing machen, die nur text haben
+                        EmptyView()
+                    } else if !song.showText && userSettings.hidechords && !line.texts.isEmpty && !line.chords.isEmpty {
+                        // ... ebenso
                         EmptyView()
                     } else {
                         VStack(alignment: .leading, spacing: 0) {
-                            if line.chords.isEmpty && line.texts.isEmpty {
+                            if line.chords.isEmpty && line.textsIsWhithespaceOrEmpty() {
                                 // Leerzeile
                                 Text(" ").font(Font(userSettings.txtUIFont))
                             } else if userSettings.hidechords {
