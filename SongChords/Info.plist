@@ -4,8 +4,6 @@
 <dict>
 	<key>NSAppleMusicUsageDescription</key>
 	<string>Listen to Apple Music while playing to the song</string>
-	<key>CFBundleIdentifier</key>
-	<string></string>
 	<key>CFBundleDocumentTypes</key>
 	<array>
 		<dict>
