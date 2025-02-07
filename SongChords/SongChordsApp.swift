@@ -61,10 +61,10 @@ struct SongChordsApp: App {
     
     private func scenePhaseChanged(_ phase: ScenePhase) async {
         if scenePhase == .active {
-            print("wird active")
+            print("-> active")
             await store.runListener()
         } else {
-            if scenePhase == .background { print("wird background")
+            if scenePhase == .background { print("-> background")
                 await store.stopListener()
                 if audioPlayer.isLoaded { audioPlayer.stop() }
                 await timerManager.stopTimer()

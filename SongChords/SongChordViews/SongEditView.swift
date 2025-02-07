@@ -38,7 +38,11 @@ struct SongEditView: View {
                 .padding(.bottom, 4)
             #endif
             
-            Section {
+            Section(footer: Text("Without lyrics, you have a more compact overview of the chords.")
+                #if os(macOS)
+                .font(.footnote).padding(.bottom, 4)
+                #endif
+            ){
                 Toggle("Show Text", isOn: $showText)
             }
             #if os(macOS)

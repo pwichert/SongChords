@@ -236,7 +236,6 @@ public class ChordProParser {
         let txtf = forPrinting ? userSettings.txtPDFUIFont : userSettings.txtUIFont
         let chordf = forPrinting ? userSettings.chordPDFUIFont : userSettings.chordUIFont
         
-        let showText: Bool = true
         let showChords: Bool = !userSettings.hidechords
         let textFollowsChords: Bool = userSettings.textfollowschords
         
@@ -488,10 +487,7 @@ public class ChordProParser {
                             // Text direkt hintereinander setzen
                             nextTextPosition += len
                             
-                            // wenn Text angezeigt wird, sollen sich die Chords danach richten
-                            if (showText) {
-                                nextChordPosition = max(nextTextPosition, nextChordPosition)
-                            }
+                            nextChordPosition = max(nextTextPosition, nextChordPosition)
                         }
                     }
                     
