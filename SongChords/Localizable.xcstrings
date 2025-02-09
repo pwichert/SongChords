@@ -790,12 +790,12 @@
     "The sky was blue" : {
       "shouldTranslate" : false
     },
-    "The text is always positioned below the chord" : {
+    "The text is always positioned below the chord." : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Der Text steht immer unter der Akkordposition"
+            "value" : "Der Text steht immer unter der Akkordposition."
           }
         }
       }
@@ -843,12 +843,12 @@
         }
       }
     },
-    "Without lyrics, you have a more compact overview of the chords." : {
+    "Without lyrics, you could get a more compact overview of the chords." : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ohne Songtext erhältst du eine übersichtlichere Darstellung der Akkorde."
+            "value" : "Ohne Texte könntest du einen kompakteren Überblick über die Akkorde bekommen."
           }
         }
       }

@@ -42,7 +42,7 @@ struct OptionsView: View {
                 Toggle("Hide Chords", isOn: $hideChords)
             }
 
-            Section(footer: Text("The text is always positioned below the chord")
+            Section(footer: Text("The text is always positioned below the chord.")
                 #if os(macOS)
                 .font(.footnote).padding(.bottom, 4)
                 #endif
@@ -64,7 +64,7 @@ struct OptionsView: View {
                 #endif
                 Slider(
                     value: $headerSize,
-                    in: 5...20,
+                    in: 5...30,
                     step: 1,
                     minimumValueLabel:
                         Text("-"),
@@ -85,7 +85,7 @@ struct OptionsView: View {
                 #endif
                 Slider(
                     value: $chordSize,
-                    in: 5...20,
+                    in: 5...30,
                     step: 1,
                     minimumValueLabel:
                         Text("-"),
@@ -106,7 +106,7 @@ struct OptionsView: View {
                 #endif
                 Slider(
                     value: $txtSize,
-                    in: 5...20,
+                    in: 5...30,
                     step: 1,
                     minimumValueLabel:
                         Text("-"),
@@ -173,7 +173,7 @@ struct PrintOptionsView: View {
                 #endif
                 Slider(
                     value: $headerSize,
-                    in: 5...20,
+                    in: 5...30,
                     step: 1,
                     minimumValueLabel:
                         Text("-"),
@@ -194,7 +194,7 @@ struct PrintOptionsView: View {
                 #endif
                 Slider(
                     value: $chordSize,
-                    in: 5...20,
+                    in: 5...30,
                     step: 1,
                     minimumValueLabel:
                         Text("-"),
@@ -215,7 +215,7 @@ struct PrintOptionsView: View {
                 #endif
                 Slider(
                     value: $txtSize,
-                    in: 5...20,
+                    in: 5...30,
                     step: 1,
                     minimumValueLabel:
                         Text("-"),
