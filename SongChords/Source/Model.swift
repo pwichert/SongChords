@@ -201,18 +201,16 @@ extension UTType {
 }
 
 @Observable
-final class RepresentationHolder: @unchecked Sendable {
-    // @MainActor synchronisiert automatisch, ohne expliziten Actor.
-    // Ist nötig wegen Aktualisierung durch anderen Thread (processingTask)
-    @MainActor
+@MainActor
+final class RepresentationHolder {
     private(set) var songRepresentation: SongRepresentation = SongRepresentation(sections: [], directiveManager: DirectiveManagerSendable(directiveManager: DirectiveManager()))
-    
-    @MainActor
+
     func updateSongRepresentation(_ newRepresentation: SongRepresentation) {
         songRepresentation = newRepresentation
     }
     
-    init() {}
+    // nonisolated wegen Default-Initialisierung in Song
+    nonisolated init() {}
 }
 
 @Model
@@ -261,11 +259,12 @@ final public class Song: Codable {
         let representationHolder = self.representationHolder
         let srcText = self.srcText
         let transpose = self.transpose
+        let userSettingsSendable = userSettings.makeSendable()
         // kein self im closure
         Task {
             await Song.taskManager.run(Task.detached {
                 // Aufgabe im Hintergrund ausführen
-                let result = Song.createSongRepresentation(userSettings: userSettings, srcText: srcText, transpose: transpose, forPrinting: forPrinting)
+                let result = Song.createSongRepresentation(userSettings: userSettingsSendable, srcText: srcText, transpose: transpose, forPrinting: forPrinting)
                 
                 // Ergebnis auf dem Main-Thread aktualisieren
                 if let result = result {
@@ -275,12 +274,12 @@ final public class Song: Codable {
         }
     }
 
-    func createSongRepresentation(userSettings: UserSettings, forPrinting: Bool) -> SongRepresentation? {
+    func createSongRepresentation(userSettings: UserSettingsSendable, forPrinting: Bool) -> SongRepresentation? {
         return Song.createSongRepresentation(userSettings: userSettings, srcText: self.srcText, transpose: self.transpose, forPrinting: forPrinting)
     }
     
     // Ist static, um "self" im Closure bei processSongInBackground() weg zu bekommen. Self == Song ist nicht Sendable
-    static private func createSongRepresentation(userSettings: UserSettings, srcText: String, transpose: Int, forPrinting: Bool) -> SongRepresentation? {
+    static private func createSongRepresentation(userSettings: UserSettingsSendable, srcText: String, transpose: Int, forPrinting: Bool) -> SongRepresentation? {
         do {
             print("songRepresentation")
             
@@ -350,7 +349,7 @@ final public class Song: Codable {
     static func titleFromDirective(srcText: String) -> String? {
         do {
             let tokens = try ChordProLexer(input: srcText).tokenize()
-            let songRepresentation = try ChordProParser(userSettings: UserSettings(), songTranspose: 0, tokens: tokens, forPrinting: false).parse()
+            let songRepresentation = try ChordProParser(userSettings: UserSettings().makeSendable(), songTranspose: 0, tokens: tokens, forPrinting: false).parse()
             
             if let titleDirective = songRepresentation.directiveManager.getDirective(DirectiveType.title.rawValue) {
                 return titleDirective

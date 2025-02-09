@@ -13,9 +13,73 @@ enum DisplayMode: Int, Codable {
     case automatic
 }
 
+public struct UserSettingsSendable: Sendable {
+#if os(macOS)
+    typealias UIFont = NSFont
+#endif
+    
+    let useStore: Bool
+    let isGermanNotation: Bool
+    let hidechords: Bool
+    let textfollowschords: Bool
+    
+    var headerUIFont: UIFont { return UIFont.systemFont(ofSize: headersize, weight: .bold) }
+    var headerPDFUIFont: UIFont { return UIFont.systemFont(ofSize: headersizepdf, weight: .bold) }
+    var txtUIFont: UIFont { return UIFont.monospacedSystemFont(ofSize: txtsize, weight: .regular) }
+    var txtPDFUIFont: UIFont { return UIFont.monospacedSystemFont(ofSize: txtsizepdf, weight: .regular) }
+    var chordUIFont: UIFont { return UIFont.monospacedSystemFont(ofSize: chordsize, weight: .bold) }
+    var chordPDFUIFont: UIFont { return UIFont.monospacedSystemFont(ofSize: chordsizepdf, weight: .bold) }
+    
+    let headersize: Double
+    let headersizepdf: Double
+    let txtsize: Double
+    let txtsizepdf: Double
+    let chordsize: Double
+    let chordsizepdf: Double
+    let linespacing: Double
+    let linespacingpdf: Double
+    let displayMode: DisplayMode
+    let mediabox: String
+    let printingscale: Double
+    let marginleft: Double
+    let margintop: Double
+    let marginright: Double
+    let marginbottom: Double
+    
+    fileprivate let getVersion_: String
+    public func getVersion() -> String {
+        return getVersion_
+    }
+}
+
 @Observable
-public final class UserSettings: @unchecked Sendable {
+public final class UserSettings {
     public init() {}
+    
+    public func makeSendable() -> UserSettingsSendable {
+        return .init(
+            useStore: useStore,
+            isGermanNotation: isGermanNotation,
+            hidechords: hidechords,
+            textfollowschords: textfollowschords,
+            headersize: headersize,
+            headersizepdf: headersizepdf,
+            txtsize: txtsize,
+            txtsizepdf: txtsizepdf,
+            chordsize: chordsize,
+            chordsizepdf: chordsizepdf,
+            linespacing: linespacing,
+            linespacingpdf: linespacingpdf,
+            displayMode: displayMode,
+            mediabox: mediabox,
+            printingscale: printingscale,
+            marginleft: marginleft,
+            margintop: margintop,
+            marginright: marginright,
+            marginbottom: marginbottom,
+            getVersion_: getVersion()
+        )
+    }
     
 #if os(macOS)
     typealias UIFont = NSFont

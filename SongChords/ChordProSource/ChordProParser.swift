@@ -205,11 +205,11 @@ enum ElementType: Sendable {
 public class ChordProParser {
     private let songTranspose: Int
     private let tokens: [Token]
-    private let userSettings: UserSettings
+    private let userSettings: UserSettingsSendable
     private let forPrinting: Bool
     private let directiveManager = DirectiveManager()
     
-    public init(userSettings: UserSettings, songTranspose: Int, tokens: [Token], forPrinting: Bool) {
+    public init(userSettings: UserSettingsSendable, songTranspose: Int, tokens: [Token], forPrinting: Bool) {
         self.songTranspose = songTranspose
         self.tokens = tokens
         self.userSettings = userSettings
@@ -553,7 +553,7 @@ public class ChordProParser {
     }
     
     // Ersetzt Variablen durch ihren Wert: %{ variable }
-    private func processReplace(userSettings: UserSettings, srcline: String, root: inout ChordRoot) -> String {
+    private func processReplace(userSettings: UserSettingsSendable, srcline: String, root: inout ChordRoot) -> String {
         if srcline.isEmpty { return srcline }
         
         var src: String = srcline

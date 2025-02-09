@@ -70,7 +70,7 @@ class PrintSongDelegate: NSObject, PrintDelegateBase, UIPrintInteractionControll
         #else
         
         do {
-            let songRepresentation = song.createSongRepresentation(userSettings: userSettings, forPrinting: true)!
+            let songRepresentation = song.createSongRepresentation(userSettings: userSettings.makeSendable(), forPrinting: true)!
             let mgr = songRepresentation.directiveManager
             let cols = mgr.columns
 

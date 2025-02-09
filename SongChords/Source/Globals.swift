@@ -17,6 +17,7 @@ struct EquatableError: Equatable {
 }
 
 @Observable
+@MainActor
 public final class Globals {
     private(set) var songChordsError: EquatableError?
     

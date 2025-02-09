@@ -13,7 +13,7 @@ struct SongChordsTests {
     @Test func testParser() async throws {
         // Write your test here and use APIs like `#expect(...)` to check expected conditions.
 
-        let userSettings = UserSettings()
+        let userSettings = UserSettings().makeSendable()
 
         var inputText: String = """
         { title: Simple Song}
