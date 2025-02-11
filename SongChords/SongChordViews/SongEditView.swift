@@ -100,7 +100,11 @@ struct SongEditView: View {
                                 processSong = true
                             }
                             
-                            if processSong { song.processSongInBackground(userSettings: userSettings, forPrinting: false) }
+                            if processSong {
+                                Task {
+                                    await SongTaskManager.shared.processSongInBackground(representationHolder: song.representationHolder, srcText: song.srcText, transpose: song.transpose, userSettings: userSettings.makeSendable(), forPrinting: false)
+                                }
+                            }
                             if modelContext.hasChanges { try modelContext.save() }
                         } else {
                             let song = try Song(title: title, modelContext: modelContext, store: store)
@@ -110,7 +114,9 @@ struct SongEditView: View {
                             song.transpose = Int(transpose)
                             song.toPlaylist(playlist: playlist)
                             
-                            song.processSongInBackground(userSettings: userSettings, forPrinting: false)
+                            Task {
+                                await SongTaskManager.shared.processSongInBackground(representationHolder: song.representationHolder, srcText: song.srcText, transpose: song.transpose, userSettings: userSettings.makeSendable(), forPrinting: false)
+                            }
                             try modelContext.save()
                         }
                     } catch (let error) {

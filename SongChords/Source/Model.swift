@@ -204,7 +204,7 @@ extension UTType {
 @MainActor
 final class RepresentationHolder {
     private(set) var songRepresentation: SongRepresentation = SongRepresentation(sections: [], directiveManager: DirectiveManagerSendable(directiveManager: DirectiveManager()))
-
+    
     func updateSongRepresentation(_ newRepresentation: SongRepresentation) {
         songRepresentation = newRepresentation
     }
@@ -229,18 +229,8 @@ final public class Song: Codable {
     var playlist: PlayList?
     
     @Transient let representationHolder = RepresentationHolder()
-    @Transient private static let taskManager = TaskManager()
     @Transient static let invalidTitleCharacters = CharacterSet(charactersIn: "\t\\\0").union(.illegalCharacters).union(.controlCharacters).union(.newlines)
     @Transient static let invalidFilenameCharacters = CharacterSet(charactersIn: "\t\\\0/").union(.illegalCharacters).union(.symbols).union(.controlCharacters).union(.newlines)
-
-    private actor TaskManager {
-        private var processingTask: Task<Void, Never>?
-        
-        func run(_ task: Task<Void, Never>) {
-            processingTask?.cancel()
-            processingTask = task
-        }
-    }
     
     @MainActor
     init(title: String, modelContext: ModelContext, store: SongChordsStore) throws {
@@ -253,47 +243,6 @@ final public class Song: Codable {
         }
         
         self.title = title.trimmingCharacters(in: .whitespaces)
-    }
-
-    func processSongInBackground(userSettings: UserSettings, forPrinting: Bool) {
-        let representationHolder = self.representationHolder
-        let srcText = self.srcText
-        let transpose = self.transpose
-        let userSettingsSendable = userSettings.makeSendable()
-        // kein self im closure
-        Task {
-            await Song.taskManager.run(Task.detached {
-                // Aufgabe im Hintergrund ausführen
-                let result = Song.createSongRepresentation(userSettings: userSettingsSendable, srcText: srcText, transpose: transpose, forPrinting: forPrinting)
-                
-                // Ergebnis auf dem Main-Thread aktualisieren
-                if let result = result {
-                    await representationHolder.updateSongRepresentation(result)
-                }
-            })
-        }
-    }
-
-    func createSongRepresentation(userSettings: UserSettingsSendable, forPrinting: Bool) -> SongRepresentation? {
-        return Song.createSongRepresentation(userSettings: userSettings, srcText: self.srcText, transpose: self.transpose, forPrinting: forPrinting)
-    }
-    
-    // Ist static, um "self" im Closure bei processSongInBackground() weg zu bekommen. Self == Song ist nicht Sendable
-    static private func createSongRepresentation(userSettings: UserSettingsSendable, srcText: String, transpose: Int, forPrinting: Bool) -> SongRepresentation? {
-        do {
-            print("songRepresentation")
-            
-            let tokens = try ChordProLexer(input: srcText).tokenize()
-            if Task.isCancelled { print("lexer cancelled"); return nil }
-            
-            let songRepresentation = try ChordProParser(userSettings: userSettings, songTranspose: transpose, tokens: tokens, forPrinting: forPrinting).parse()
-            if Task.isCancelled { print("parser cancelled"); return nil }
-            
-            return songRepresentation
-        } catch {
-            print("\(error)")
-            return nil
-        }
     }
 
     func updateFromSong(other: Song) {
@@ -382,11 +331,11 @@ final public class Song: Codable {
         return fileURL
     }
     
-    static func fetchSongs(with ids: Set<PersistentIdentifier>, in context: ModelContext) -> [Song] {
+    static func fetchSongs(with ids: Set<PersistentIdentifier>, in context: ModelContext, userSettings: UserSettingsSendable? = nil, forPrinting: Bool? = nil) -> [Song] {
         var res: [Song] = []
         
         for id in ids {
-            if let song = fetchSong(with: id, in: context) {
+            if let song = fetchSong(with: id, in: context, userSettings: userSettings, forPrinting: forPrinting) {
                 res.append(song)
             }
         }
@@ -394,8 +343,20 @@ final public class Song: Codable {
         return res
     }
     
-    static func fetchSong(with id: PersistentIdentifier, in context: ModelContext) -> Song? {
-        return id.SCpersistentModel(from: context)
+    static func fetchSong(with id: PersistentIdentifier, in context: ModelContext, userSettings: UserSettingsSendable? = nil, forPrinting: Bool? = nil) -> Song? {
+        let song: Song? = id.SCpersistentModel(from: context)
+
+        if let song, let userSettings, let forPrinting {
+            let representationHolder = song.representationHolder
+            let srcText = song.srcText
+            let transpose = song.transpose
+            
+            Task {
+                await SongTaskManager.shared.processSongInBackground(representationHolder: representationHolder, srcText: srcText, transpose: transpose, userSettings: userSettings, forPrinting: forPrinting)
+            }
+        }
+        
+        return song
     }
 
     static func isValidTitle(_ title: String) -> Bool {

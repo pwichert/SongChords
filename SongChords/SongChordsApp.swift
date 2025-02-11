@@ -30,6 +30,7 @@ struct SongChordsApp: App {
     @State private var store: SongChordsStore = SongChordsStore()
     @State private var audioPlayer = AudioPlayer()
     @State private var timerManager = TimerManager()
+    let songTaskManager = SongTaskManager.shared
     
     var body: some Scene {
         #if os(macOS)

@@ -33,9 +33,9 @@ struct SongView: View {
     @State private var songSpeed: Double = 1.0
     @State private var songPosition: TimeInterval = 0.0
 
-    var body: some View {
-//        let _ = Self._printChanges()
+    @State private var lastID: PersistentIdentifier?
 
+    var body: some View {
         GeometryReader { viewSize in    // Größe des umgebenden Containers
             ScrollView(userSettings.hidechords ? .vertical : [.horizontal, .vertical], showsIndicators: false) {
                 ZStack(alignment: .topLeading) {
@@ -81,7 +81,7 @@ struct SongView: View {
                 Button("Edit Song", systemImage: "pencil", action: { pdfUrl = nil; showSongEditView.toggle() }).help("Edit Song")
             }
             ToolbarItem {
-                Button("Toggle PDF", systemImage: pdfUrl == nil ? "text.rectangle.page" : "text.page", action: { if pdfUrl == nil { showPdf() } else { pdfUrl = nil } }).help("Toggle PDF")
+                Button("Toggle PDF", systemImage: pdfUrl == nil ? "text.rectangle.page" : "text.page", action: { if pdfUrl == nil { Task { await showPdf() }} else { pdfUrl = nil } }).help("Toggle PDF")
             }
             #if os(macOS) // in iOS durch ShareLink ersetzt
             ToolbarItem {
@@ -129,28 +129,11 @@ struct SongView: View {
                 globals.setSongChordsError(error: error)
             }
         }
-        // TODO: in iOS wird .task und .onChange 2x aufgerufen. Daher Schutz davor, solange das nicht geklärt ist.
-        .task(id: song.persistentModelID) {
-            // wird evtl. gecancelled
-            #if os(macOS)
-            updateSongRepresentation()
-            #else
-            if lastID1 != song.persistentModelID {
-                updateSongRepresentation()
-                lastID1 = song.persistentModelID
-            }
-            #endif
-        }
         .onChange(of: song.persistentModelID, initial: true) {
-            // bei Songwechsel auf Livedarstellung schalten
-            #if os(macOS)
-            songChangedAction()
-            #else
-            if lastID2 != song.persistentModelID {
+            if lastID != song.persistentModelID {
                 songChangedAction()
-                lastID2 = song.persistentModelID
+                lastID = song.persistentModelID
             }
-            #endif
         }
         .onChange(of: userSettings.chordsize, initial: false) { print("chordsize changed"); updateSongRepresentation() }
         .onChange(of: userSettings.txtsize, initial: false) { print("txtsize changed"); updateSongRepresentation() }
@@ -158,14 +141,15 @@ struct SongView: View {
         .onChange(of: userSettings.isGermanNotation, initial: false) { print("isGermanNotation changed"); updateSongRepresentation() }
         .onChange(of: userSettings.textfollowschords, initial: false) { print("textfollowschords changed"); updateSongRepresentation() }
     }
-    @State private var lastID1: PersistentIdentifier?
-    @State private var lastID2: PersistentIdentifier?
 
     private func updateSongRepresentation() {
-        song.processSongInBackground(userSettings: userSettings, forPrinting: false)
+        Task {
+            await SongTaskManager.shared.processSongInBackground(representationHolder: song.representationHolder, srcText: song.srcText, transpose: song.transpose, userSettings: userSettings.makeSendable(), forPrinting: false)
+        }
     }
     
     private func songChangedAction() {
+        // bei Songwechsel auf Livedarstellung schalten
         if pdfUrl != nil {
             print("pdfUrl changed")
             pdfUrl = nil
@@ -184,8 +168,8 @@ struct SongView: View {
     }
     
     @MainActor
-    private func showPdf() {
-        let delegate = PrintSongDelegate(songID: song.persistentModelID, modelContainer: modelContext.container)
+    private func showPdf() async {
+        let delegate = await PrintSongDelegate(songID: song.persistentModelID, modelContainer: modelContext.container)
         if let delegate = delegate {
             let defaultPaper = MediaBoxes.getBox(name: userSettings.mediabox)
             pdfUrl = delegate.createPDF(paperSize: defaultPaper)
@@ -193,8 +177,8 @@ struct SongView: View {
     }
     
     @MainActor
-    private func onPrint() {
-        let delegate = PrintSongDelegate(songID: song.persistentModelID, modelContainer: modelContext.container)
+    private func onPrint() async {
+        let delegate = await PrintSongDelegate(songID: song.persistentModelID, modelContainer: modelContext.container)
         if let delegate = delegate {
             PrintController.onPrint(title: song.title, delegate: delegate)
         }

@@ -48,7 +48,7 @@ struct ContentView: View {
             
         } detail: {
             
-            if selectedSongIDs.count == 1, let selectedSongID = selectedSongIDs.first, let song = Song.fetchSong(with: selectedSongID, in: modelContext) {
+            if selectedSongIDs.count == 1, let selectedSongID = selectedSongIDs.first, let song = Song.fetchSong(with: selectedSongID, in: modelContext, userSettings: userSettings.makeSendable(), forPrinting: false) {
                 SongView(song: song, visibility: $visibility)
                     .environment(userSettings)
                     .environment(globals)
@@ -86,3 +86,63 @@ struct ContentView: View {
         }
     }
 }
+
+
+//import SwiftUI
+//
+//struct ContentView: View {
+//    let store: SongChordsStore
+//
+//    @State private var selectedCategory: String?
+//    @State private var selectedItem: String?
+//    
+//    let categories = ["Fruits", "Vegetables"]
+//    let items = [
+//        "Fruits": ["Apple", "Banana", "Cherry"],
+//        "Vegetables": ["Carrot", "Broccoli", "Peas"]
+//    ]
+//    
+//    var body: some View {
+//        NavigationSplitView {
+//            // Erste Liste: Kategorien
+//            List(categories, id: \.self, selection: $selectedCategory) { category in
+//                Text(category)
+//            }
+//            .navigationTitle("Categories")
+//        } content: {
+//            // Zweite Liste: Items basierend auf der ausgewählten Kategorie
+//            if let selectedCategory = selectedCategory {
+//                List(items[selectedCategory] ?? [], id: \.self, selection: $selectedItem) { item in
+//                    Text(item)
+//                }
+//                .navigationTitle(selectedCategory)
+//            } else {
+//                Text("Select a Category")
+//            }
+//        } detail: {
+//            // DetailView: Details für das ausgewählte Item
+//            if let selectedItem = selectedItem {
+//                DetailView(item: selectedItem)
+//            } else {
+//                Text("Select an Item")
+//            }
+//        }
+//    }
+//}
+//
+//struct DetailView: View {
+//    let item: String
+//    
+//    var body: some View {
+//        VStack {
+//            Text("Details for \(item)")
+//                .font(.title)
+//            Spacer()
+//        }
+//        .padding()
+//        .navigationTitle(item)
+//        .onAppear {
+//            print("appear \(item)")
+//        }
+//    }
+//}

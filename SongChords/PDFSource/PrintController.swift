@@ -22,20 +22,24 @@ protocol PrintDelegateBase {
 class PrintSongDelegate: NSObject, PrintDelegateBase, UIPrintInteractionControllerDelegate {
     let userSettings = UserSettings()
     let song: Song
+    let songRepresentation: SongRepresentation
     
-    init?(songID: PersistentIdentifier, modelContainer: ModelContainer) {
+    init?(songID: PersistentIdentifier, modelContainer: ModelContainer) async {
         let modelContext = ModelContext(modelContainer)
+        
+        // bei fetchSong() nicht die Task-Variante, weil asynchron evtl. zu spät fertig ist und songRepresentation überschreibt
         guard let song = Song.fetchSong(with: songID, in: modelContext) else { return nil }
         self.song = song
+        songRepresentation = await SongTaskManager.shared.createSongRepresentation(userSettings: userSettings.makeSendable(), srcText: song.srcText, transpose: song.transpose, forPrinting: true) ?? SongRepresentation(sections: [], directiveManager: DirectiveManagerSendable(directiveManager: DirectiveManager()))
     }
     
     // nur, um eine andere URL als beim Drucken zu haben. Sicher ist sicher.
     func createViewPDF(paperSize: CGRect) -> URL? {
-        return songToPdf(userSettings: userSettings, song: song, paperSize: paperSize, viewURL: true)
+        return songToPdf(userSettings: userSettings, paperSize: paperSize, viewURL: true)
     }
         
     func createPDF(paperSize: CGRect) -> URL? {
-        return songToPdf(userSettings: userSettings, song: song, paperSize: paperSize)
+        return songToPdf(userSettings: userSettings, paperSize: paperSize)
     }
     
 #if os(iOS)
@@ -49,14 +53,14 @@ class PrintSongDelegate: NSObject, PrintDelegateBase, UIPrintInteractionControll
         print(paperSize ?? "nix")
         
         if let paperSize = paperSize {
-            let url = songToPdf(userSettings: userSettings, song: song, paperSize: CGRect(origin: .zero, size: paperSize))
+            let url = songToPdf(userSettings: userSettings, paperSize: CGRect(origin: .zero, size: paperSize))
             printInteractionController.printingItem = url
         }
     }
     #endif
 #endif
     
-    func songToPdf(userSettings: UserSettings, song: Song, paperSize: CGRect, viewURL: Bool = false) -> URL? {
+    func songToPdf(userSettings: UserSettings, paperSize: CGRect, viewURL: Bool = false) -> URL? {
         
         #if false
         // zum Testen
@@ -70,7 +74,6 @@ class PrintSongDelegate: NSObject, PrintDelegateBase, UIPrintInteractionControll
         #else
         
         do {
-            let songRepresentation = song.createSongRepresentation(userSettings: userSettings.makeSendable(), forPrinting: true)!
             let mgr = songRepresentation.directiveManager
             let cols = mgr.columns
 
