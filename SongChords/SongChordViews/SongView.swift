@@ -144,7 +144,7 @@ struct SongView: View {
 
     private func updateSongRepresentation() {
         Task {
-            await SongTaskManager.shared.processSongInBackground(representationHolder: song.representationHolder, srcText: song.srcText, transpose: song.transpose, userSettings: userSettings.makeSendable(), forPrinting: false)
+            await SongTaskManager.shared.processSongInBackground(representationHolder: song.representationHolder, srcText: song.srcText, transpose: song.transpose, userSettings: userSettings.makeSendable())
         }
     }
     
@@ -167,7 +167,6 @@ struct SongView: View {
         selectedLoop = nil
     }
     
-    @MainActor
     private func showPdf() async {
         let delegate = await PrintSongDelegate(songID: song.persistentModelID, modelContainer: modelContext.container)
         if let delegate = delegate {
@@ -176,7 +175,6 @@ struct SongView: View {
         }
     }
     
-    @MainActor
     private func onPrint() async {
         let delegate = await PrintSongDelegate(songID: song.persistentModelID, modelContainer: modelContext.container)
         if let delegate = delegate {

@@ -48,7 +48,7 @@ struct ContentView: View {
             
         } detail: {
             
-            if selectedSongIDs.count == 1, let selectedSongID = selectedSongIDs.first, let song = Song.fetchSong(with: selectedSongID, in: modelContext, userSettings: userSettings.makeSendable(), forPrinting: false) {
+            if selectedSongIDs.count == 1, let selectedSongID = selectedSongIDs.first, let song = Song.fetchSongProcessing(with: selectedSongID, in: modelContext, userSettings: userSettings.makeSendable(), forPrinting: false) {
                 SongView(song: song, visibility: $visibility)
                     .environment(userSettings)
                     .environment(globals)

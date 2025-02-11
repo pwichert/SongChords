@@ -202,7 +202,7 @@ extension UTType {
 
 @Observable
 @MainActor
-final class RepresentationHolder {
+final class RepresentationHolder: Sendable {
     private(set) var songRepresentation: SongRepresentation = SongRepresentation(sections: [], directiveManager: DirectiveManagerSendable(directiveManager: DirectiveManager()))
     
     func updateSongRepresentation(_ newRepresentation: SongRepresentation) {
@@ -331,11 +331,11 @@ final public class Song: Codable {
         return fileURL
     }
     
-    static func fetchSongs(with ids: Set<PersistentIdentifier>, in context: ModelContext, userSettings: UserSettingsSendable? = nil, forPrinting: Bool? = nil) -> [Song] {
+    static func fetchSongs(with ids: Set<PersistentIdentifier>, in context: ModelContext) -> [Song] {
         var res: [Song] = []
         
         for id in ids {
-            if let song = fetchSong(with: id, in: context, userSettings: userSettings, forPrinting: forPrinting) {
+            if let song = fetchSong(with: id, in: context) {
                 res.append(song)
             }
         }
@@ -343,16 +343,20 @@ final public class Song: Codable {
         return res
     }
     
-    static func fetchSong(with id: PersistentIdentifier, in context: ModelContext, userSettings: UserSettingsSendable? = nil, forPrinting: Bool? = nil) -> Song? {
-        let song: Song? = id.SCpersistentModel(from: context)
+    static func fetchSong(with id: PersistentIdentifier, in context: ModelContext) -> Song? {
+        return id.SCpersistentModel(from: context)
+    }
 
-        if let song, let userSettings, let forPrinting {
+    static func fetchSongProcessing(with id: PersistentIdentifier, in context: ModelContext, userSettings: UserSettingsSendable, forPrinting: Bool) -> Song? {
+        let song = Song.fetchSong(with: id, in: context)
+
+        if let song {
             let representationHolder = song.representationHolder
             let srcText = song.srcText
             let transpose = song.transpose
             
             Task {
-                await SongTaskManager.shared.processSongInBackground(representationHolder: representationHolder, srcText: srcText, transpose: transpose, userSettings: userSettings, forPrinting: forPrinting)
+                await SongTaskManager.shared.processSongInBackground(representationHolder: representationHolder, srcText: srcText, transpose: transpose, userSettings: userSettings)
             }
         }
         

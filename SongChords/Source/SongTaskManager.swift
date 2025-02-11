@@ -17,10 +17,10 @@ actor SongTaskManager {
         processingTask = task
     }
     
-    func processSongInBackground(representationHolder: RepresentationHolder, srcText: String, transpose: Int, userSettings: UserSettingsSendable, forPrinting: Bool) {
+    func processSongInBackground(representationHolder: RepresentationHolder, srcText: String, transpose: Int, userSettings: UserSettingsSendable) {
         self.run(Task.detached {
             // Aufgabe im Hintergrund ausführen
-            let result = await self.createSongRepresentation(userSettings: userSettings, srcText: srcText, transpose: transpose, forPrinting: forPrinting)
+            let result = await self.createSongRepresentation(userSettings: userSettings, srcText: srcText, transpose: transpose, forPrinting: false)
             
             // Ergebnis auf dem Main-Thread aktualisieren
             if let result = result {
