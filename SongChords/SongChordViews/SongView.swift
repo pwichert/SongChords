@@ -270,7 +270,7 @@ struct ChordsLineView: View {
     
     @Environment(UserSettings.self) private var userSettings
     @Environment(\.colorScheme) var colorScheme
-
+    
     var body: some View {
         if line.chords.isEmpty {
             EmptyView()
@@ -281,22 +281,60 @@ struct ChordsLineView: View {
                         if line.chords.last == chord {
                             Color.clear.frame(width: chord.fontOffset, height: 0.1, alignment: .leading)
                             
-                            Text(chord.txt)
+                            PopoverButtonView(chord: chord)
                                 .lineLimit(1)
                                 .padding(.horizontal, 0.8)
                                 .background(chord.background ? (colorScheme == .dark ? darkColor : lightColor) : Color.clear)
                                 .clipShape(RoundedRectangle(cornerRadius: 4, style: .circular))
                         } else {
-                            Text(chord.txt)
+                            PopoverButtonView(chord: chord)
                                 .lineLimit(1)
                                 .padding(.horizontal, 0.8)
                                 .background(chord.background ? (colorScheme == .dark ? darkColor : lightColor) : Color.clear)
                                 .clipShape(RoundedRectangle(cornerRadius: 4, style: .circular))
                                 .offset(CGSize(width: chord.fontOffset, height: 0))
                         }
-                    }
+                    }.buttonStyle(PlainButtonStyle())
                 }
             }
+        }
+    }
+}
+
+struct PopoverButtonView: View {
+    let chord: TextElement
+    
+    @Environment(\.dismiss) private var dismiss
+
+    @State private var showChordShape: Bool = false
+
+    var body: some View {
+        Button { showChordShape.toggle() } label: {
+            Text(chord.txt)
+        }
+        .popover(isPresented: $showChordShape) {
+            /// iOS (nicht iPadOS) bekommt einen exit-Button, da ein ganzes sheet aufgemacht wird
+            #if os(macOS)
+            ChordDiagramView(chord: ChordShape(name: chord.txt))
+            #else
+            if UIDevice.current.userInterfaceIdiom == .pad {
+                ChordDiagramView(chord: ChordShape(name: chord.txt))
+            } else {
+                VStack {
+                    HStack {
+                        Spacer()
+                        Button(action: { showChordShape = false }) {
+                            Image(systemName: "xmark.circle.fill")
+                                .foregroundColor(.gray)
+                                .imageScale(.large)
+                        }
+                        .padding()
+                    }
+                    ChordDiagramView(chord: ChordShape(name: chord.txt))
+                    Spacer()
+                }
+            }
+            #endif
         }
     }
 }
