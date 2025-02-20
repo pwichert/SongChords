@@ -45,7 +45,7 @@ struct ChordFretboardView: View {
     let fretSpacing: CGFloat = 30
     let fretCount: Int = 5
     
-    let spacingLeft: CGFloat = 17   // Platz für baseFret-Zahl
+    let spacingLeft: CGFloat = 19   // Platz für baseFret-Zahl
     let spacingTop: CGFloat = 15    // Platz für x o
     
     var body: some View {
@@ -57,7 +57,7 @@ struct ChordFretboardView: View {
                     path.move(to: CGPoint(x: spacingLeft, y: y))
                     path.addLine(to: CGPoint(x: stringSpacing * 5 + spacingLeft, y: y))
                 }
-                .stroke(Color.primary.opacity(1), lineWidth: fret == 0 ? 6 : 2)
+                .stroke(Color.primary.opacity(1), style: StrokeStyle(lineWidth: fret == 0 ? 6 : 2, lineCap: .round, lineJoin: .round))
             }
 
             // Gitarrensaiten
@@ -67,7 +67,7 @@ struct ChordFretboardView: View {
                     path.move(to: CGPoint(x: x, y: spacingTop))
                     path.addLine(to: CGPoint(x: x, y: fretSpacing * CGFloat(fretCount) + spacingTop))
                 }
-                .stroke(Color.primary.opacity(1), lineWidth: 2)
+                .stroke(Color.primary.opacity(1), style: StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round))
             }
             
             // Notenpunkte setzen
@@ -103,7 +103,7 @@ struct ChordFretboardView: View {
             
             // Basis-Fretnummer
             if variant.base > 1 {
-                Text(String(format: "%2i", variant.base)).position(x: 0, y: fretSpacing / 2 + spacingTop).font(.system(size: 16, weight: .bold, design: .default))
+                Text(String(format: "%2i", variant.base)).position(x: 0, y: fretSpacing / 2 + spacingTop).font(.system(size: 14, weight: .bold, design: .default))
             }
         }
         .padding()
