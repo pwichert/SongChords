@@ -72,10 +72,18 @@ struct ChordFretboardView: View {
             
             // Notenpunkte setzen
             ForEach(0..<6, id: \.self) { string in
-                let fret = variant.frets[string]
+                let fret = variant.frets.count > string ? variant.frets[string] : 0
+                let finger = variant.fingers.count > string ? variant.fingers[string] : nil
                 if fret > 0 {
                     Circle()
                         .fill(Color.primary.opacity(1))
+                        .overlay {
+                            if let finger {
+                                Text(String(finger))
+                                    .font(.system(size: 12, weight: .bold, design: .default))
+                                    .foregroundStyle(Color.gray)
+                            } else { EmptyView() }
+                        }
                         .frame(width: 17, height: 17)
                         .position(x: CGFloat(string) * stringSpacing + spacingLeft,
                                   y: CGFloat(fret-variant.base) * fretSpacing + fretSpacing / 2 + spacingTop)
