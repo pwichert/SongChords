@@ -168,6 +168,8 @@ struct TextElement: Identifiable, Equatable, Sendable {
     let fontOffset: Double
     let background: Bool
     
+    let chord: ParsedChord?     // falls dieser Text ein Chord ist, für diagrammerzeugung merken
+    
     func toString() -> String {
         return ("[\(Int(fontOffset))]\(txt)")
     }
@@ -290,9 +292,9 @@ public class ChordProParser {
                     getLine().elements.append(Element(type: .chordcomment(str, strLen, true)))  // "*" merken
                 } else {
                     if let pchord = ParsedChord.parse(chord, rootSystem: &rootSystem, strict: true) {
-                        let str = pchord.toString(transpose: songTranspose + directiveManager.transpose, rootSystem: &rootSystem)
+                        let (str, tchord) = pchord.toString(transpose: songTranspose + directiveManager.transpose, rootSystem: &rootSystem)
                         let strLen = sizeOfString(string: str, font: chordf)
-                        getLine().elements.append(Element(type: .chord(str, pchord, strLen)))
+                        getLine().elements.append(Element(type: .chord(str, tchord ?? pchord, strLen)))
                     } else {
                         let str = processReplace(userSettings: userSettings, srcline: chord, root: &rootSystem)
                         let strLen = sizeOfString(string: str, font: chordf)
@@ -442,9 +444,9 @@ public class ChordProParser {
                     
                     for elem in line.elements {
                         switch elem.type {
-                        case .chord(let chordtxt, _, let len):
+                        case .chord(let chordtxt, let tchord, let len):
                             let position = max(nextChordPosition, minNextChordPosition)
-                            let tElem = TextElement(txt: chordtxt, fontOffset: position, background: true)
+                            let tElem = TextElement(txt: chordtxt, fontOffset: position, background: true, chord: tchord)
                             spl.chords.append(tElem)
                             
                             // wenn Chords angezeigt werden, soll sich der Text danach richten
@@ -461,7 +463,7 @@ public class ChordProParser {
                             
                         case .chordcomment(let comment, let len, _):
                             let position = nextChordPosition
-                            let tElem = TextElement(txt: comment, fontOffset: position, background: false)
+                            let tElem = TextElement(txt: comment, fontOffset: position, background: false, chord: nil)
                             spl.chords.append(tElem)
                             
                             if showChords {
@@ -475,7 +477,7 @@ public class ChordProParser {
                             minNextChordPosition = nextChordPosition
                             
                         case .text(let txt, let len), .comment(let txt, let len):
-                            let tElem = TextElement(txt: txt, fontOffset: nextTextPosition, background: false)
+                            let tElem = TextElement(txt: txt, fontOffset: nextTextPosition, background: false, chord: nil)
                             spl.texts.append(tElem)
                             spl.plainText.append(txt)
                             
@@ -581,7 +583,7 @@ public class ChordProParser {
                             if let key = key {
                                 let chord = ParsedChord.parse(key, rootSystem: &root, strict: true)
                                 if let chord = chord {
-                                    repl = chord.toString(transpose: directiveManager.transpose, rootSystem: &root)
+                                    (repl, _) = chord.toString(transpose: directiveManager.transpose, rootSystem: &root)
                                 }
                             }
                             break

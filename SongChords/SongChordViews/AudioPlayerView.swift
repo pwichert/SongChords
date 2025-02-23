@@ -31,6 +31,7 @@ struct AudioPlayerView: View {
     @State private var showSongSearch: Bool = false
     @State private var inPositionEditing: Bool = false
     @State private var buttonBusy: Bool = false
+    @State private var showSmallView: Bool = false
     
     // aktualisiert den Status des AudioPlayers, insb. die Position
     let statusTimer = Timer.publish(every: 1, tolerance: 0.3, on: .main, in: .common).autoconnect()
@@ -41,99 +42,93 @@ struct AudioPlayerView: View {
                 AudioPlayerNotAllowedView().padding()
             } else {
                 VStack {
-                    PlayerLoopEditView(song: song, currentLoop: $currentLoop, active: $loopActive)
-                        .lineLimit(1)
-                    
-                    List(selection: $selectedLoop) {
-                        ForEach(song.playerLoops.sorted(by: { $0.start == $1.start ? $0.stop < $1.stop : $0.start < $1.start }), id: \.self) { playerLoop in
-                            HStack {
-                                Text(playerLoop.title.isEmpty ? "-" : playerLoop.title)
-                                Spacer()
-                                Text(GlobalFunctions.formatTimeInterval(playerLoop.stop - playerLoop.start))
+                    if !showSmallView {
+                        PlayerLoopEditView(song: song, currentLoop: $currentLoop, active: $loopActive)
+                            .lineLimit(1)
+                        
+                        List(selection: $selectedLoop) {
+                            ForEach(song.playerLoops.sorted(by: { $0.start == $1.start ? $0.stop < $1.stop : $0.start < $1.start }), id: \.self) { playerLoop in
+                                HStack {
+                                    Text(playerLoop.title.isEmpty ? "-" : playerLoop.title)
+                                    Spacer()
+                                    Text(GlobalFunctions.formatTimeInterval(playerLoop.stop - playerLoop.start))
+                                }
+                                #if os(iOS)
+                                .font(.footnote).listRowInsets(.init(top: 8, leading: 8, bottom: 8, trailing: 8))
+                                #else
+                                .font(.subheadline)
+                                #endif
+                                .foregroundStyle(validLoop(loop: playerLoop) ? Color.primary : Color.red)
                             }
-                            #if os(iOS)
-                            .font(.footnote).listRowInsets(.init(top: 8, leading: 8, bottom: 8, trailing: 8))
-                            #else
-                            .font(.subheadline)
-                            #endif
-                            .foregroundStyle(validLoop(loop: playerLoop) ? Color.primary : Color.red)
+                            .onDelete(perform: { indices in
+                                var idxSet = Set<UUID>()
+                                for index in indices { idxSet.insert(song.playerLoops.sorted(by: { $0.start == $1.start ? $0.stop < $1.stop : $0.start < $1.start })[index].id )}
+                                for index in idxSet { song.playerLoops.removeAll(where: { $0.id == index })}
+                                
+                                do {
+                                    try modelContext.save()
+                                } catch (let error) {
+                                    globals.setSongChordsError(error: error)
+                                }
+                            } )
                         }
-                        .onDelete(perform: { indices in
-                            var idxSet = Set<UUID>()
-                            for index in indices { idxSet.insert(song.playerLoops.sorted(by: { $0.start == $1.start ? $0.stop < $1.stop : $0.start < $1.start })[index].id )}
-                            for index in idxSet { song.playerLoops.removeAll(where: { $0.id == index })}
-
-                            do {
-                                try modelContext.save()
-                            } catch (let error) {
-                                globals.setSongChordsError(error: error)
-                            }
-                        } )
+                        #if os(iOS)
+                        .environment(\.defaultMinListRowHeight, 10)
+                        #endif
+                        .frame(maxHeight: 150).cornerRadius(10)
+                        .overlay( /// apply a rounded border
+                            RoundedRectangle(cornerRadius: 10)
+                                .stroke(.secondary, lineWidth: 1)
+                        )
                     }
-                    #if os(iOS)
-                    .environment(\.defaultMinListRowHeight, 10)
-                    #endif
-                    .frame(maxHeight: 150).cornerRadius(10)
-                    .overlay( /// apply a rounded border
-                        RoundedRectangle(cornerRadius: 10)
-                        .stroke(.secondary, lineWidth: 1)
-                    )
                 }
 
-                HStack {
-                    Button(action: { rewindPlayback() }) {
-                        HStack(alignment: .center, spacing: 1) {
-                            Label("rewind", systemImage: "play.fill").rotationEffect(.degrees(180)).labelStyle(.iconOnly)
-                            Label("rewind", systemImage: "play.fill").rotationEffect(.degrees(180)).labelStyle(.iconOnly)
-                        }.padding(.horizontal)
-                    }.disabled(song.musicItemId.isEmpty)
+                ZStack {
+                    playbackButtonsView
                     
-                    Button(action: { Task { await startPlayback() }}) {
-                        HStack(alignment: .center, spacing: nil) {
-                            if buttonBusy {
-                                ProgressView().progressViewStyle(.circular).controlSize(.mini)
-                            } else {
-                                audioPlayer.playerState == .playing ? Image(systemName: "pause.fill") : Image(systemName: "play.fill")
-                            }
-                            Text(audioPlayer.playerState == .playing ? "Pause" : "Play")
-                        }.frame(minWidth: 70) // hält die Buttonbreite konstant, wenn sich Texte Pause/Play ändern
-                    }.disabled(song.musicItemId.isEmpty || shouldOfferSubscription)
-                    
-                    Button(action: { stopPlayback() }) {
-                        Label("Stop", systemImage: "stop.fill")
-                    }.disabled(song.musicItemId.isEmpty)
-                }.buttonStyle(BorderedButtonStyle()).font(.footnote)
+                    if showSmallView {
+                        smallLargeToggleView
+                    }
+                }
                 
-                Grid(alignment: .trailing) {
-                    GridRow {
-                        Text("Pos")
-                        Slider(value: $songPosition, in: 0...1.0, onEditingChanged: { editing in
-                            if editing {
-                                inPositionEditing = true
-                            } else {
-                                audioPlayer.songPosition = songPosition * audioPlayer.songDuration
-                                inPositionEditing = false
-                            }
-                        }).disabled(song.musicItemId.isEmpty)
-                        Text(GlobalFunctions.formatTimeInterval(songPosition * audioPlayer.songDuration)).font(.footnote).frame(width: 50).lineLimit(1)
+                if !showSmallView {
+                    Grid(alignment: .trailing) {
+                        GridRow {
+                            Text("Pos")
+                            Slider(value: $songPosition, in: 0...1.0, onEditingChanged: { editing in
+                                if editing {
+                                    inPositionEditing = true
+                                } else {
+                                    audioPlayer.songPosition = songPosition * audioPlayer.songDuration
+                                    inPositionEditing = false
+                                }
+                            }).disabled(song.musicItemId.isEmpty)
+                            Text(GlobalFunctions.formatTimeInterval(songPosition * audioPlayer.songDuration)).font(.footnote).frame(width: 50).lineLimit(1)
+                        }
+                        GridRow {
+                            Text("Speed")
+                            Slider(value: $songSpeed, in: 0.3...1.0, onEditingChanged: { editing in
+                                if !editing { audioPlayer.songSpeed = Float(songSpeed); setCurrentLoopTimer() }
+                            }).disabled(song.musicItemId.isEmpty)
+                            Text("\(Int(round(songSpeed * 100.0)))%").font(.footnote).frame(width: 50).lineLimit(1)
+                        }
                     }
-                    GridRow {
-                        Text("Speed")
-                        Slider(value: $songSpeed, in: 0.3...1.0, onEditingChanged: { editing in
-                            if !editing { audioPlayer.songSpeed = Float(songSpeed); setCurrentLoopTimer() }
-                        }).disabled(song.musicItemId.isEmpty)
-                        Text("\(Int(round(songSpeed * 100.0)))%").font(.footnote).frame(width: 50).lineLimit(1)
-                    }
+                    .padding(.horizontal)
+                    .font(.footnote)
                 }
-                .padding(.horizontal)
-                .font(.footnote)
-
+                
                 if shouldOfferSubscription {
                     subscriptionOfferButton
                 } else {
-                    Button(action: { showSongSearch.toggle() } ) {
-                        Label("Select Song", systemImage: "music.note.list").padding(.horizontal)
-                    }.buttonStyle(BorderedButtonStyle()).font(.footnote)
+                    ZStack {
+                        if !showSmallView {
+                            Button(action: { showSongSearch.toggle() } ) {
+                                Label("Select Song", systemImage: "music.note.list").padding(.horizontal)
+                            }.buttonStyle(BorderedButtonStyle()).font(.footnote)
+                            
+                            smallLargeToggleView
+                        }
+                    }
                 }
             }
         }
@@ -181,6 +176,40 @@ struct AudioPlayerView: View {
         }
     }
 
+    var playbackButtonsView: some View {
+        HStack {
+            Button(action: { rewindPlayback() }) {
+                HStack(alignment: .center, spacing: 1) {
+                    Label("rewind", systemImage: "play.fill").rotationEffect(.degrees(180)).labelStyle(.iconOnly)
+                    Label("rewind", systemImage: "play.fill").rotationEffect(.degrees(180)).labelStyle(.iconOnly)
+                }.padding(.horizontal)
+            }.disabled(song.musicItemId.isEmpty)
+            
+            Button(action: { Task { await startPlayback() }}) {
+                HStack(alignment: .center, spacing: nil) {
+                    if buttonBusy {
+                        ProgressView().progressViewStyle(.circular).controlSize(.mini)
+                    } else {
+                        audioPlayer.playerState == .playing ? Image(systemName: "pause.fill") : Image(systemName: "play.fill")
+                    }
+                    Text(audioPlayer.playerState == .playing ? "Pause" : "Play")
+                }.frame(minWidth: 70) // hält die Buttonbreite konstant, wenn sich Texte Pause/Play ändern
+            }.disabled(song.musicItemId.isEmpty || shouldOfferSubscription)
+            
+            Button(action: { stopPlayback() }) {
+                Label("Stop", systemImage: "stop.fill")
+            }.disabled(song.musicItemId.isEmpty)
+        }.buttonStyle(BorderedButtonStyle()).font(.footnote)
+    }
+    
+    var smallLargeToggleView: some View {
+        HStack {
+            Spacer()
+            Button(action: { showSmallView.toggle() }) { Label("", systemImage: showSmallView ? "chevron.up.circle" : "chevron.down.circle").font(.body).bold().labelStyle(.iconOnly) }
+                .buttonStyle(BorderedButtonStyle())
+        }
+    }
+    
     private func startLoopTimer(interval: TimeInterval) {
         Task {
             await loopTimerManager.startTimer(interval: interval / Double(audioPlayer.songSpeed), task: {

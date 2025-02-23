@@ -101,15 +101,15 @@ public class ChordProReverseParser {
         for word in spl {
             // falls es Chords sind
             if let chord = ParsedChord.parse(word.txt, rootSystem: &rootSystem, strict: true) {
-                chords.append(TextElement(txt: "[" + chord.name + "]", fontOffset: Double(word.pos), background: false))
+                chords.append(TextElement(txt: "[" + chord.name + "]", fontOffset: Double(word.pos), background: false, chord: chord))
                 numChords += 1
             } else {
-                chords.append(TextElement(txt: word.txt, fontOffset: Double(word.pos), background: false))
+                chords.append(TextElement(txt: word.txt, fontOffset: Double(word.pos), background: false, chord: nil))
                 numTexts += 1
             }
             
             // falls es keine Chords sind
-            txts.append(TextElement(txt: word.txt, fontOffset: Double(word.pos), background: false))
+            txts.append(TextElement(txt: word.txt, fontOffset: Double(word.pos), background: false, chord: nil))
         }
         
         if numChords > 0 && numChords > spl.count / 2 { return (chords, true) }

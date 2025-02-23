@@ -143,7 +143,13 @@ public struct EnglishGermanRoot: ChordRoot {
 /// EnglichGermanRoot: steht für das deutsche System (His, B, H ...) mit english Erweiterung (A, A#, B, Bb ...).
 ///
 
-public struct ParsedChord: Identifiable, Sendable {
+public struct ChordFretVariant: Hashable, Equatable, Sendable {
+    let base: Int       // fretoffset
+    let frets: [Int]  // -1 = nicht spielen, 0 = offene Saite, 1-22 = Bund
+    let fingers: [Int?]  // Finger, die die Saiten greifen (optional)
+}
+
+public struct ParsedChord: Identifiable, Equatable, Sendable {
     public let id = UUID()
     
     // ursprünglicher Akkordtext
@@ -152,7 +158,7 @@ public struct ParsedChord: Identifiable, Sendable {
     // Akkordgrundtonwert: Tonstufe und sharps/flats-Array
     private let grundton: Int?
     private let isFlat: Bool
-    
+        
     private let quality: ChordQuality?
     private let ext: ChordExt?
     
@@ -160,6 +166,45 @@ public struct ParsedChord: Identifiable, Sendable {
     private let basston: Int?
     private let isBassFlat: Bool
     
+    func getFrets() -> [ChordFretVariant] {
+        guard let grundton else { return [] }
+
+        // geht noch nicht
+        guard basston == nil else { return [] }
+        
+        var res: [ChordFretVariant] = []
+        
+        switch quality {
+        case .min, .m:
+            res.append(contentsOf: ChordGenerator.barre6Minor(grundton: grundton, ext: ext))
+            res.append(contentsOf: ChordGenerator.barre5Minor(grundton: grundton, ext: ext))
+        case .aug:
+            return ChordGenerator.augChord(grundton: grundton, ext: ext)
+        case .dim:
+            return ChordGenerator.dimChord(grundton: grundton, ext: ext)
+        case nil:
+            res.append(contentsOf: ChordGenerator.barre6(grundton: grundton, ext: ext))
+            res.append(contentsOf: ChordGenerator.barre5(grundton: grundton, ext: ext))
+        }
+              
+        let minor = quality == ChordQuality.min || quality == ChordQuality.m
+
+        switch grundton {
+        case 0:
+            // C
+            if quality == nil && ext == nil && basston == nil { res.append(
+                ChordFretVariant(base: 1, frets: [-1,3,2,0,1,0], fingers: [nil,3,2,nil,1,nil])
+            )}
+            // Cm
+            if minor && ext == nil && basston == nil { res.append(
+                ChordFretVariant(base: 1, frets: [-1,3,5,5,4,3], fingers: [nil,1,4,3,2,1])
+            )}
+        default: break
+        }
+        
+        return res.sorted { $0.base < $1.base }
+    }
+        
     public static func parse(_ chordString: String, rootSystem: inout ChordRoot, strict: Bool) -> ParsedChord? {
         if chordString.isEmpty { return nil }
         
@@ -245,18 +290,18 @@ public struct ParsedChord: Identifiable, Sendable {
         return flatLen > sharpLen ? (flatIdx, flatLen, true) : (sharpIdx, sharpLen, false)
     }
     
-    public func toString(transpose: Int, rootSystem: inout ChordRoot) -> String {
+    public func toString(transpose: Int, rootSystem: inout ChordRoot) -> (String, ParsedChord?) {
         if transpose != 0 {
             let tChord = transposeChord(by: transpose, rootSystem: &rootSystem)
             
             if let tChord = tChord {
-                return tChord.toString_(transpose: transpose, rootSystem: &rootSystem)
+                return (tChord.toString_(transpose: transpose, rootSystem: &rootSystem), tChord)
             }
             
-            return "?"
+            return ("?", nil)
         }
         
-        return toString_(transpose: transpose, rootSystem: &rootSystem)
+        return (toString_(transpose: transpose, rootSystem: &rootSystem), nil)
     }
     
     private func toString_(transpose: Int, rootSystem: inout ChordRoot) -> String {

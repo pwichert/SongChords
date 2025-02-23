@@ -564,6 +564,16 @@
         }
       }
     },
+    "No diagram available" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kein Diagramm verfügbar"
+          }
+        }
+      }
+    },
     "No song assigned" : {
       "localizations" : {
         "de" : {

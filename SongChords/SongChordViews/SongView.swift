@@ -276,23 +276,23 @@ struct ChordsLineView: View {
             EmptyView()
         } else {
             ZStack(alignment: .topLeading) {
-                ForEach(line.chords) { chord in
+                ForEach(line.chords) { chordTxt in
                     HStack(alignment: .center, spacing: 0) {
-                        if line.chords.last == chord {
-                            Color.clear.frame(width: chord.fontOffset, height: 0.1, alignment: .leading)
+                        if line.chords.last == chordTxt {
+                            Color.clear.frame(width: chordTxt.fontOffset, height: 0.1, alignment: .leading)
                             
-                            PopoverButtonView(chord: chord)
+                            PopoverButtonView(chordTxt: chordTxt)
                                 .lineLimit(1)
                                 .padding(.horizontal, 0.8)
-                                .background(chord.background ? (colorScheme == .dark ? darkColor : lightColor) : Color.clear)
+                                .background(chordTxt.background ? (colorScheme == .dark ? darkColor : lightColor) : Color.clear)
                                 .clipShape(RoundedRectangle(cornerRadius: 4, style: .circular))
                         } else {
-                            PopoverButtonView(chord: chord)
+                            PopoverButtonView(chordTxt: chordTxt)
                                 .lineLimit(1)
                                 .padding(.horizontal, 0.8)
-                                .background(chord.background ? (colorScheme == .dark ? darkColor : lightColor) : Color.clear)
+                                .background(chordTxt.background ? (colorScheme == .dark ? darkColor : lightColor) : Color.clear)
                                 .clipShape(RoundedRectangle(cornerRadius: 4, style: .circular))
-                                .offset(CGSize(width: chord.fontOffset, height: 0))
+                                .offset(CGSize(width: chordTxt.fontOffset, height: 0))
                         }
                     }.buttonStyle(PlainButtonStyle())
                 }
@@ -302,23 +302,23 @@ struct ChordsLineView: View {
 }
 
 struct PopoverButtonView: View {
-    let chord: TextElement
+    let chordTxt: TextElement
     
     @Environment(\.dismiss) private var dismiss
 
     @State private var showChordShape: Bool = false
 
     var body: some View {
-        Button { showChordShape.toggle() } label: {
-            Text(chord.txt)
+        Button { if chordTxt.chord != nil { showChordShape.toggle()} } label: {
+            Text(chordTxt.txt)
         }
         .popover(isPresented: $showChordShape) {
             /// iOS (nicht iPadOS) bekommt einen exit-Button, da ein ganzes sheet aufgemacht wird
             #if os(macOS)
-            ChordDiagramView(chord: ChordShape(name: chord.txt))
+            ChordDiagramView(chordTxt: chordTxt)
             #else
             if UIDevice.current.userInterfaceIdiom == .pad {
-                ChordDiagramView(chord: ChordShape(name: chord.txt))
+                ChordDiagramView(chordTxt: chordTxt)
             } else {
                 VStack {
                     HStack {
@@ -330,7 +330,7 @@ struct PopoverButtonView: View {
                         }
                         .padding()
                     }
-                    ChordDiagramView(chord: ChordShape(name: chord.txt))
+                    ChordDiagramView(chordTxt: chordTxt)
                     Spacer()
                 }
             }
