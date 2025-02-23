@@ -32,9 +32,10 @@ struct ChordDiagramView: View {
                     }
                 }
             } else {
-                Text("No diagram available").font(.body).bold().padding()
+                Text("No diagram available")
+                    .font(.body).bold().padding()
             }
-        }
+        }.lineLimit(nil)
         .frame(width: 200, height: 300)
         #if os(iOS)
         .tabViewStyle(PageTabViewStyle(indexDisplayMode: .always))

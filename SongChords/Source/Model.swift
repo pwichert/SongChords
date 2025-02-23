@@ -504,7 +504,13 @@ extension Song: Transferable {
                 guard let delegate = delegate, let pdfUrl = await delegate.createPDF(paperSize: defaultPaper) else {
                     throw NSError(domain: "PDFCreationError", code: 4, userInfo: ["reason": "Failed to create PDF"])
                 }
-                return SentTransferredFile(pdfUrl, allowAccessingOriginalFile: true)
+                let url1 = pdfUrl.deletingLastPathComponent()
+                let url2 = url1.appendingPathComponent(Song.makeValidFilename(song.title) + ".pdf")
+                if FileManager.default.fileExists(atPath: url2.path) {
+                    try FileManager.default.removeItem(at: url2)
+                }
+                try FileManager.default.copyItem(at: pdfUrl, to: url2)
+                return SentTransferredFile(url2, allowAccessingOriginalFile: true)
             } catch {
                 print("Fehler beim Exportieren von PDF: \(error.localizedDescription)")
                 throw error

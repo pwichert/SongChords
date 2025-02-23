@@ -174,6 +174,7 @@ public struct ParsedChord: Identifiable, Equatable, Sendable {
         
         var res: [ChordFretVariant] = []
         
+        // Barre-Schema
         switch quality {
         case .min, .m:
             res.append(contentsOf: ChordGenerator.barre6Minor(grundton: grundton, ext: ext))
@@ -189,15 +190,44 @@ public struct ParsedChord: Identifiable, Equatable, Sendable {
               
         let minor = quality == ChordQuality.min || quality == ChordQuality.m
 
+        // nicht durch Barre erzeugte
         switch grundton {
         case 0:
             // C
             if quality == nil && ext == nil && basston == nil { res.append(
                 ChordFretVariant(base: 1, frets: [-1,3,2,0,1,0], fingers: [nil,3,2,nil,1,nil])
             )}
-            // Cm
+        case 2:
+            // D
+            if quality == nil && ext == nil && basston == nil { res.append(
+                ChordFretVariant(base: 1, frets: [-1,-1,0,2,3,2], fingers: [nil,nil,nil,1,2,3])
+            )}
+            // Dm
             if minor && ext == nil && basston == nil { res.append(
-                ChordFretVariant(base: 1, frets: [-1,3,5,5,4,3], fingers: [nil,1,4,3,2,1])
+                ChordFretVariant(base: 1, frets: [-1,-1,0,2,3,1], fingers: [nil,nil,nil,2,3,1])
+            )}
+        case 4:
+            // E
+            if quality == nil && ext == nil && basston == nil { res.append(
+                ChordFretVariant(base: 1, frets: [0,2,2,1,0,0], fingers: [nil,2,3,1,nil,nil])
+            )}
+            // Em
+            if minor && ext == nil && basston == nil { res.append(
+                ChordFretVariant(base: 1, frets: [0,2,2,0,0,0], fingers: [nil,2,3,nil,nil,nil])
+            )}
+        case 7:
+            // G
+            if quality == nil && ext == nil && basston == nil { res.append(
+                ChordFretVariant(base: 1, frets: [3,2,0,0,3,3], fingers: [2,1,nil,nil,3,4])
+            )}
+        case 9:
+            // A
+            if quality == nil && ext == nil && basston == nil { res.append(
+                ChordFretVariant(base: 1, frets: [0,0,2,2,2,0], fingers: [nil,nil,1,2,3,nil])
+            )}
+            // Am
+            if minor && ext == nil && basston == nil { res.append(
+                ChordFretVariant(base: 1, frets: [0,0,2,2,1,0], fingers: [nil,nil,2,3,1,nil])
             )}
         default: break
         }
