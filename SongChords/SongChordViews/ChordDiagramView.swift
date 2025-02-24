@@ -32,7 +32,8 @@ struct ChordDiagramView: View {
                     }
                 }
             } else {
-                Text("No diagram available")
+                Text("Sorry, no diagram available. Be patient, database is still under construction.")
+                    .multilineTextAlignment(.center)
                     .font(.body).bold().padding()
             }
         }.lineLimit(nil)
@@ -107,7 +108,8 @@ struct ChordFretboardView: View {
             if case let (start, end) = barrePositions {
                 if let start, let end, start < end {
                     Path { path in
-                        let y = CGFloat((variant.frets.first(where: { $0 > 0 }) ?? 1) - variant.base) * fretSpacing + fretSpacing / 2 + spacingTop
+                        let barreFret = variant.frets.sorted().first(where: { $0 > 0 }) ?? 1
+                        let y = CGFloat(barreFret - variant.base) * fretSpacing + fretSpacing / 2 + spacingTop
                         path.move(to: CGPoint(x: start - 1, y: y))
                         path.addLine(to: CGPoint(x: end + 1, y: y))
                     }

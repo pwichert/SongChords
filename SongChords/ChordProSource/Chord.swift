@@ -168,70 +168,10 @@ public struct ParsedChord: Identifiable, Equatable, Sendable {
     
     func getFrets() -> [ChordFretVariant] {
         guard let grundton else { return [] }
-
-        // geht noch nicht
-        guard basston == nil else { return [] }
         
         var res: [ChordFretVariant] = []
-        
-        // Barre-Schema
-        switch quality {
-        case .min, .m:
-            res.append(contentsOf: ChordGenerator.barre6Minor(grundton: grundton, ext: ext))
-            res.append(contentsOf: ChordGenerator.barre5Minor(grundton: grundton, ext: ext))
-        case .aug:
-            return ChordGenerator.augChord(grundton: grundton, ext: ext)
-        case .dim:
-            return ChordGenerator.dimChord(grundton: grundton, ext: ext)
-        case nil:
-            res.append(contentsOf: ChordGenerator.barre6(grundton: grundton, ext: ext))
-            res.append(contentsOf: ChordGenerator.barre5(grundton: grundton, ext: ext))
-        }
-              
-        let minor = quality == ChordQuality.min || quality == ChordQuality.m
-
-        // nicht durch Barre erzeugte
-        switch grundton {
-        case 0:
-            // C
-            if quality == nil && ext == nil && basston == nil { res.append(
-                ChordFretVariant(base: 1, frets: [-1,3,2,0,1,0], fingers: [nil,3,2,nil,1,nil])
-            )}
-        case 2:
-            // D
-            if quality == nil && ext == nil && basston == nil { res.append(
-                ChordFretVariant(base: 1, frets: [-1,-1,0,2,3,2], fingers: [nil,nil,nil,1,2,3])
-            )}
-            // Dm
-            if minor && ext == nil && basston == nil { res.append(
-                ChordFretVariant(base: 1, frets: [-1,-1,0,2,3,1], fingers: [nil,nil,nil,2,3,1])
-            )}
-        case 4:
-            // E
-            if quality == nil && ext == nil && basston == nil { res.append(
-                ChordFretVariant(base: 1, frets: [0,2,2,1,0,0], fingers: [nil,2,3,1,nil,nil])
-            )}
-            // Em
-            if minor && ext == nil && basston == nil { res.append(
-                ChordFretVariant(base: 1, frets: [0,2,2,0,0,0], fingers: [nil,2,3,nil,nil,nil])
-            )}
-        case 7:
-            // G
-            if quality == nil && ext == nil && basston == nil { res.append(
-                ChordFretVariant(base: 1, frets: [3,2,0,0,3,3], fingers: [2,1,nil,nil,3,4])
-            )}
-        case 9:
-            // A
-            if quality == nil && ext == nil && basston == nil { res.append(
-                ChordFretVariant(base: 1, frets: [0,0,2,2,2,0], fingers: [nil,nil,1,2,3,nil])
-            )}
-            // Am
-            if minor && ext == nil && basston == nil { res.append(
-                ChordFretVariant(base: 1, frets: [0,0,2,2,1,0], fingers: [nil,nil,2,3,1,nil])
-            )}
-        default: break
-        }
-        
+        res.append(contentsOf: ChordGenerator.nonBarre(grundton: grundton, quality: quality, ext: ext, basston: basston))
+        res.append(contentsOf: ChordGenerator.barre(grundton: grundton, quality: quality, ext: ext, basston: basston))
         return res.sorted { $0.base < $1.base }
     }
         

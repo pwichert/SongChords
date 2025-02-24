@@ -564,16 +564,6 @@
         }
       }
     },
-    "No diagram available" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Kein Diagramm verfügbar"
-          }
-        }
-      }
-    },
     "No song assigned" : {
       "localizations" : {
         "de" : {
@@ -760,6 +750,16 @@
     },
     "SongChords Unlock" : {
       "shouldTranslate" : false
+    },
+    "Sorry, no diagram available. Be patient, database is still under construction." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Leider ist kein Diagramm verfügbar. Bleibe geduldig, die Datenbank ist noch im Aufbau."
+          }
+        }
+      }
     },
     "Speed" : {
       "shouldTranslate" : false
