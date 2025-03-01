@@ -55,14 +55,6 @@ struct ChordGenerator {
                 ChordFretVariant(base: 1, frets: [-1,3,2,0,0,0], fingers: [nil,3,4,nil,nil,nil])
             )}
         case 2:
-            // D
-            if quality == nil && ext == nil && basston == nil { res.append(
-                ChordFretVariant(base: 1, frets: [-1,-1,0,2,3,2], fingers: [nil,nil,nil,1,3,2])
-            )}
-            // Dm
-            if minor && ext == nil && basston == nil { res.append(
-                ChordFretVariant(base: 1, frets: [-1,-1,0,2,3,1], fingers: [nil,nil,nil,2,3,1])
-            )}
             // D7
             if quality == nil && ext == ChordExt.e7 && basston == nil { res.append(
                 ChordFretVariant(base: 1, frets: [-1,-1,0,2,1,2], fingers: [nil,nil,nil,2,1,3])
@@ -227,6 +219,26 @@ struct ChordGenerator {
 
         let minor = quality == ChordQuality.min || quality == ChordQuality.m
 
+        // D-Shape Dreiklang
+        if quality == nil && ext == nil && basston == nil {
+            let baseFret = (grundton - 1) % 12
+            let gtFret = grundton == 2 ? 0 : -1
+            res.append(ChordFretVariant(base: max(1,baseFret), frets: [-1, -1, gtFret, baseFret + 1,baseFret + 2,baseFret + 1], fingers: [nil,nil,nil,1,3,2])
+        )}
+
+        // Dm-Shape Dreiklang
+        if minor && ext == nil && basston == nil {
+            let baseFret = (grundton - 1) % 12
+            let gtFret = grundton == 2 ? 0 : -1
+            res.append(ChordFretVariant(base: max(1,baseFret), frets: [-1, -1, gtFret, baseFret + 1,baseFret + 2,baseFret], fingers: [nil,nil,nil,2,3,1])
+        )}
+
+        // maj7
+        if quality == nil && ext == ChordExt.emaj7 && basston == nil {
+            let baseFret = (grundton + 3) % 12
+            res.append(ChordFretVariant(base: max(1,baseFret), frets: [-1, baseFret, baseFret + 2, baseFret + 1, baseFret + 2, baseFret], fingers: [nil,1,3,2,4,1]))
+        }
+
         // 6
         if quality == nil && ext == ChordExt.e6 && basston == nil {
             let baseFret = (grundton + 1) % 12
@@ -248,7 +260,7 @@ struct ChordGenerator {
         // Dim
         if quality == ChordQuality.dim && ext == nil && basston == nil {
             let baseFret = (grundton + 3) % 12
-            res.append(ChordFretVariant(base: max(1,baseFret), frets: [-1, baseFret, baseFret + 1, baseFret + 2, baseFret + 1, -1], fingers: [nil,1,2,3,4,nil]))
+            res.append(ChordFretVariant(base: max(1,baseFret), frets: [-1, baseFret, baseFret + 1, baseFret + 2, baseFret + 1, -1], fingers: [nil,1,2,4,3,nil]))
         }
 
         // Aug
