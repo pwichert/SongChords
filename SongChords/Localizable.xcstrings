@@ -751,12 +751,12 @@
     "SongChords Unlock" : {
       "shouldTranslate" : false
     },
-    "Sorry, no diagram available at the moment. Be patient — the database is constantly growing!" : {
+    "Sorry, no diagram available at the moment." : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Leider ist zur Zeit kein Diagramm verfügbar. Bleibe geduldig, die Datenbasis wächst ständig."
+            "value" : "Leider im moment kein Diagramm verfügbar."
           }
         }
       }

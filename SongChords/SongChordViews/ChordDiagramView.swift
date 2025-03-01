@@ -32,7 +32,7 @@ struct ChordDiagramView: View {
                     }
                 }
             } else {
-                Text("Sorry, no diagram available at the moment. Be patient — the database is constantly growing!")
+                Text("Sorry, no diagram available at the moment.")
                     .multilineTextAlignment(.center)
                     .font(.body).bold().padding()
             }

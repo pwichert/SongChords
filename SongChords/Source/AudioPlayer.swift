@@ -7,13 +7,15 @@
 
 import SwiftUI
 import MusicKit
+//import AVFoundation
 
 @Observable
 @MainActor
 class AudioPlayer {
     /// The MusicKit player to use for Apple Music playback.
     private var player: ApplicationMusicPlayer { get { ApplicationMusicPlayer.shared }}
-
+//    private var localPlayer: AVAudioPlayer?
+    
     private(set) var songDuration: TimeInterval = 0.0
     var songPosition: TimeInterval { get { return player.playbackTime } set { player.playbackTime = newValue }}
     
@@ -28,7 +30,7 @@ class AudioPlayer {
         restoreState(state: state)
     }}
     
-    var playerState: MusicPlayer.PlaybackStatus { return player.state.playbackStatus }
+    var playerState: MusicKit.MusicPlayer.PlaybackStatus { return player.state.playbackStatus }
     var isAllowed: Bool { return musicAuthorizationStatus == .authorized }
 
     private var loadedId: String?
@@ -46,6 +48,18 @@ class AudioPlayer {
     
     func play() async -> Bool {
         print("Audioplayer play")
+        
+////        var url = try! FileManager.default.url(for: .documentDirectory, in: .userDomainMask, appropriateFor: nil, create: false)
+//        var url = URL(string: "/Users/peterwichert/Desktop")!
+//        url = url.appendingPathComponent("Meine Sache - Intro").appendingPathExtension(for: .mp3)
+//        print("\(url)")
+//        let x = url.startAccessingSecurityScopedResource()
+//        let lplayer = try! AVAudioPlayer(contentsOf: url)
+//        url.stopAccessingSecurityScopedResource( )
+//        lplayer.prepareToPlay()
+//        lplayer.play()
+//        return true
+        
         
         playerTask?.cancel()
         
@@ -92,7 +106,8 @@ class AudioPlayer {
         print("Audioplayer loadAndPlay")
         
         if id == loadedId { return await play() }
-
+//return await play()
+        
         playerTask?.cancel()
         
         if id.isEmpty { return true }
@@ -191,7 +206,7 @@ class AudioPlayer {
         return ret ?? true
     }
     
-    private func restoreState(state: MusicPlayer.PlaybackStatus) {
+    private func restoreState(state: MusicKit.MusicPlayer.PlaybackStatus) {
         print("Audioplayer restoring \(state)")
         switch state {
         case .playing:

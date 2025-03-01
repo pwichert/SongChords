@@ -70,6 +70,7 @@ public enum ChordExt: String, CaseIterable, Sendable {
     case e13Sus4 = "13sus4"
     case emajx13 = "^13"
     case e13 = "13"
+    case e6Add9 = "6add9"
     case e6Sus2 = "6sus2"
     case e6Sus4 = "6sus4"
     case eAdd2 = "add2"
@@ -172,6 +173,7 @@ public struct ParsedChord: Identifiable, Equatable, Sendable {
         var res: [ChordFretVariant] = []
         res.append(contentsOf: ChordGenerator.nonBarre(grundton: grundton, quality: quality, ext: ext, basston: basston))
         res.append(contentsOf: ChordGenerator.barre(grundton: grundton, quality: quality, ext: ext, basston: basston))
+        res.append(contentsOf: ChordGenerator.movableChord(grundton: grundton, quality: quality, ext: ext, basston: basston))
         return res.sorted { $0.base < $1.base }
     }
         
@@ -234,9 +236,13 @@ public struct ParsedChord: Identifiable, Equatable, Sendable {
         var idx = 0
         var sharpIdx: Int?
         var sharpLen = 0
+        var shortTone = tone.replacingOccurrences(of: "sus", with: "X")
+        shortTone = shortTone.replacingOccurrences(of: "add", with: "X")
+        shortTone = shortTone.replacingOccurrences(of: "maj", with: "X")
+        
         for rootElem in rootSystem.sharps {
             for enharmonic in rootElem {
-                if tone.starts(with: enharmonic) && enharmonic.count > sharpLen {
+                if shortTone.starts(with: enharmonic) && enharmonic.count > sharpLen {
                     sharpLen = enharmonic.count
                     sharpIdx = idx
                 }
@@ -249,7 +255,7 @@ public struct ParsedChord: Identifiable, Equatable, Sendable {
         idx = 0
         for rootElem in rootSystem.flats {
             for enharmonic in rootElem {
-                if tone.starts(with: enharmonic) && enharmonic.count > flatLen {
+                if shortTone.starts(with: enharmonic) && enharmonic.count > flatLen {
                     flatLen = enharmonic.count
                     flatIdx = idx
                 }
