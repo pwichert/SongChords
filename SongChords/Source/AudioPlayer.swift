@@ -7,14 +7,14 @@
 
 import SwiftUI
 import MusicKit
-//import AVFoundation
+import AVFoundation
 
 @Observable
 @MainActor
 class AudioPlayer {
     /// The MusicKit player to use for Apple Music playback.
     private var player: ApplicationMusicPlayer { get { ApplicationMusicPlayer.shared }}
-//    private var localPlayer: AVAudioPlayer?
+    private var localPlayer: AVAudioPlayer?
     
     private(set) var songDuration: TimeInterval = 0.0
     var songPosition: TimeInterval { get { return player.playbackTime } set { player.playbackTime = newValue }}
