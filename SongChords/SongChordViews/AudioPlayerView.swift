@@ -106,21 +106,21 @@ struct AudioPlayerView: View {
                                     audioPlayer.songPosition = songPosition * audioPlayer.songDuration
                                     inPositionEditing = false
                                 }
-                            }).disabled(song.musicItemId.isEmpty)
+                            }).disabled(GlobalFunctions.isDisabled(song: song))
                             Text(GlobalFunctions.formatTimeInterval(songPosition * audioPlayer.songDuration)).font(.footnote).frame(width: 50).lineLimit(1)
                         }
                         GridRow {
                             Text("Speed")
                             Slider(value: $songSpeed, in: 0.3...1.0, onEditingChanged: { editing in
                                 if !editing { audioPlayer.songSpeed = Float(songSpeed); setCurrentLoopTimer() }
-                            }).disabled(song.musicItemId.isEmpty)
+                            }).disabled(GlobalFunctions.isDisabled(song: song))
                             Text("\(Int(round(songSpeed * 100.0)))%").font(.footnote).frame(width: 50).lineLimit(1)
                         }
                         GridRow {
                             Text("Pitch")
                             Slider(value: $songPitch, in: -110...110, onEditingChanged: { editing in
                                 if !editing { audioPlayer.songPitch = songPitch * 10.0; setSongPitch(songPitch * 10.0) }
-                            }).disabled(song.musicItemId.isEmpty || !audioPlayer.isMP3Player)
+                            }).disabled(GlobalFunctions.isDisabled(song: song))
                             TextField("", text: $songPitchText).autocorrectionDisabled(true)
                                 #if os(iOS)
                                 .keyboardType(.numbersAndPunctuation)
@@ -132,12 +132,13 @@ struct AudioPlayerView: View {
                                     if let newValue = Float(songPitchText),
                                        newValue >= -11, newValue <= 11 {
                                         songPitch = newValue * 10.0
-                                        audioPlayer.songPitch = songPitch
-                                        setSongPitch(songPitch)
+                                        audioPlayer.songPitch = songPitch * 10.0
+                                        setSongPitch(songPitch * 10.0)
                                     } else {
-                                        songPitchText = String(format: "%.2f", songPitch) // Falls ungültige Eingabe
+                                        songPitchText = String(format: "%.2f", songPitch / 10.0) // Falls ungültige Eingabe
                                     }
                                 }
+                                .disabled(GlobalFunctions.isDisabled(song: song))
                         }
                     }
                     .padding(.horizontal)
@@ -232,7 +233,7 @@ struct AudioPlayerView: View {
                     Label("rewind", systemImage: "play.fill").rotationEffect(.degrees(180)).labelStyle(.iconOnly)
                     Label("rewind", systemImage: "play.fill").rotationEffect(.degrees(180)).labelStyle(.iconOnly)
                 }.padding(.horizontal)
-            }.disabled(song.musicItemId.isEmpty)
+            }.disabled(GlobalFunctions.isDisabled(song: song))
             
             Button(action: { Task { await startPlayback() }}) {
                 HStack(alignment: .center, spacing: nil) {
@@ -243,11 +244,11 @@ struct AudioPlayerView: View {
                     }
                     Text(audioPlayer.playerState == .playing ? "Pause" : "Play")
                 }.frame(minWidth: 70) // hält die Buttonbreite konstant, wenn sich Texte Pause/Play ändern
-            }.disabled(song.musicItemId.isEmpty || shouldOfferSubscription)
+            }.disabled(GlobalFunctions.isDisabled(song: song) || shouldOfferSubscription)
             
             Button(action: { stopPlayback() }) {
                 Label("Stop", systemImage: "stop.fill")
-            }.disabled(song.musicItemId.isEmpty)
+            }.disabled(GlobalFunctions.isDisabled(song: song))
         }.buttonStyle(BorderedButtonStyle()).font(.footnote)
     }
     
@@ -365,27 +366,29 @@ struct AudioPlayerView: View {
             for url in urls {
                 print("Lade \(url.absoluteString)")
                 
-                let uuid = UUID().uuidString
-                let pitch: Float = 0.0
+                var uuid = UUID().uuidString
+                var pitch: Float = 0.0
                 
-                let startSecurityScope = url.startAccessingSecurityScopedResource()
-                
+                do {
+                    (uuid, pitch) = try song.getMP3Info()
+                    song.tryRemoveMP3()
+                } catch {}
+
                 let destURL = destDir
                     .appendingPathComponent(uuid + ".mp3")
-                                
+
+                let startSecurityScope = url.startAccessingSecurityScopedResource()                
                 try fileManager.copyItem(at: url, to: destURL)
-                
                 if startSecurityScope { url.stopAccessingSecurityScopedResource() }
 
-                song.tryRemoveMP3()
                 song.setMP3Info(uuid: uuid, pitch: pitch)
-                
                 print("\(song.musicItemId)")
                 
                 break
             }
         } catch(let error) {
             print("Fehler beim mp3-Laden: \(error.localizedDescription)")
+            globals.setSongChordsError(error: error)
         }
     }
     
@@ -661,7 +664,7 @@ struct PlayerLoopEditView: View {
                 } label: {
                     Image(systemName: active ? "checkmark.square" : "square").font(.title)
                 }
-                .disabled(song.musicItemId.isEmpty || currentLoop.stop == 0 || currentLoop.start >= currentLoop.stop)
+                .disabled(GlobalFunctions.isDisabled(song: song) || currentLoop.stop == 0 || currentLoop.start >= currentLoop.stop)
                 Text("").font(.footnote)
             }
             
@@ -680,13 +683,13 @@ struct PlayerLoopEditView: View {
                 } label: {
                     Image(systemName: "square.and.arrow.down").font(.title)
                 }
-                .disabled(song.musicItemId.isEmpty || currentLoop.stop == 0 || currentLoop.start >= currentLoop.stop)
+                .disabled(GlobalFunctions.isDisabled(song: song) || currentLoop.stop == 0 || currentLoop.start >= currentLoop.stop)
                 Text("").font(.footnote)
             }
         }
     }
-    
-    func saveToList() {
+
+    private func saveToList() {
         // currentLoop in song.playerLoops suchen
         // wenn gefunden, dann updaten
         let list = song.playerLoops
@@ -720,7 +723,7 @@ struct SetButtonView: View {
     var body: some View {
         VStack(alignment: .center) {
             Text(txt).font(.footnote)
-            Button { point = audioPlayer.songPosition } label: { Image(systemName: "button.programmable").font(.title) }.disabled(song.musicItemId.isEmpty)
+            Button { point = audioPlayer.songPosition } label: { Image(systemName: "button.programmable").font(.title) }.disabled(GlobalFunctions.isDisabled(song: song))
             Text(GlobalFunctions.formatTimeInterval(point)).font(.footnote)
         }
     }

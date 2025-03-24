@@ -365,6 +365,8 @@ class MP3AudioPlayer: AudioPlayerProtocol {
         
         if song.musicItemId == loadedId { return play() }
         
+        loadedId = nil
+
         let _ = await load(song: song)
         return play()
     }
@@ -381,23 +383,20 @@ class MP3AudioPlayer: AudioPlayerProtocol {
             let destDir = try GlobalFunctions.mp3Path()
             
             let (file, pitch) = try song.getMP3Info()
-            setPitch(pitch)
             let filePath = destDir.appendingPathComponent(file + ".mp3")
-            print("\(filePath)")
-            
+                                                
             audioFile = try AVAudioFile(forReading: filePath)
             
-            sampleRate = audioFile?.processingFormat.sampleRate ?? 44100
-            
             if let audioFile = audioFile {
+                sampleRate = audioFile.processingFormat.sampleRate
+                setPitch(pitch)
                 audioVolume = adjustVolume(for: audioFile)
                 print("volume \(audioVolume)")
                 let frameCount = AVAudioFrameCount(audioFile.length)
                 songDuration = Double(frameCount) / sampleRate
+                loadedId = song.musicItemId
+                return true
             }
-            
-            loadedId = song.musicItemId
-            return true
         } catch {
             print("Fehler beim Laden der Datei: \(error)")
         }

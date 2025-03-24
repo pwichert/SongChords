@@ -417,6 +417,19 @@ final public class Song: Codable {
         self.musicItemId = "local@\(uuid)@" + String(format: "%.2f", pitch)
     }
     
+    func mp3FileExists() -> Bool {
+        do {
+            let destDir = try GlobalFunctions.mp3Path()
+            let (sUuid, _) = try getMP3Info()
+            let destURL = destDir
+                .appendingPathComponent(sUuid + ".mp3")
+        
+            let fileManager = FileManager.default
+            if fileManager.fileExists(atPath: destURL.path) { return true }
+        } catch { }
+        return false
+    }
+    
     func tryRemoveMP3() {
         do {
             let destDir = try GlobalFunctions.mp3Path()

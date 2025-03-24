@@ -19,6 +19,16 @@ public class GlobalFunctions {
     public static func mp3Path() throws -> URL {
         let fileManager = FileManager.default
         let dest = try fileManager.url(for: .documentDirectory, in: .userDomainMask, appropriateFor: nil, create: true)
-        return dest.appendingPathComponent("mp3")
+        let destDir = dest.appendingPathComponent("mp3")
+        
+        if !fileManager.fileExists(atPath: destDir.path) {
+            try fileManager.createDirectory(at: destDir, withIntermediateDirectories: true)
+        }
+        
+        return destDir
+    }
+    
+    public static func isDisabled(song: Song) -> Bool {
+        return song.musicItemId.isEmpty || (song.musicItemId.starts(with: "local@") && !song.mp3FileExists())
     }
 }
