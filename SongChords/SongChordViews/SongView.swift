@@ -31,6 +31,8 @@ struct SongView: View {
     @State private var selectedLoop: PlayerLoop?
     @State private var loopActive: Bool = false
     @State private var songSpeed: Double = 1.0
+    @State private var songPitch: Float = 0.0
+    @State private var songMP3Uuid: String = ""
     @State private var songPosition: TimeInterval = 0.0
 
     @State private var lastID: PersistentIdentifier?
@@ -101,7 +103,7 @@ struct SongView: View {
         .overlay(
             Group {
                 if showAudioPlayer {
-                    AudioPlayerView(song: song, currentLoop: $currentLoop, selectedLoop: $selectedLoop, loopActive: $loopActive, songSpeed: $songSpeed, songPosition: $songPosition)//, playerState: $playerState)
+                    AudioPlayerView(song: song, currentLoop: $currentLoop, selectedLoop: $selectedLoop, loopActive: $loopActive, songSpeed: $songSpeed, songPosition: $songPosition, songPitch: $songPitch, songMP3Uuid: $songMP3Uuid)
                     .padding()
                     .background(.regularMaterial)
                     .cornerRadius(12)
@@ -165,6 +167,19 @@ struct SongView: View {
         loopActive = false
         currentLoop = PlayerLoop(start: 0, stop: 0, title: "")
         selectedLoop = nil
+        
+        if song.musicItemId.starts(with: "local@") {
+            audioPlayer.isMP3Player = true
+            do {
+                let (uuid, pitch) = try song.getMP3Info()
+                songPitch = pitch / 10.0
+                songMP3Uuid = uuid
+            } catch (let error) {
+                print(error.localizedDescription)
+            }
+        } else {
+            audioPlayer.isMP3Player = false
+        }
     }
     
     private func showPdf() async {
@@ -207,9 +222,9 @@ struct DetailContent: View {
                     .padding(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0))
                 
                 ForEach(section.splittedLines) { line in
-                    if (userSettings.hidechords && line.texts.isEmpty && !line.chords.isEmpty) ||
-                        (!song.showText && !line.texts.isEmpty && line.chords.isEmpty) ||
-                        (!song.showText && userSettings.hidechords && !line.texts.isEmpty && !line.chords.isEmpty) {
+                    if (userSettings.hidechords && line.textsIsWhithespaceOrEmpty() && !line.chords.isEmpty) ||
+                        (!song.showText && !line.textsIsWhithespaceOrEmpty() && line.chords.isEmpty) ||
+                        (!song.showText && userSettings.hidechords && !line.textsIsWhithespaceOrEmpty() && !line.chords.isEmpty) {
                         // bei hidechords sollen alle Zeilen verschwinden und auch kein linespacing machen, die nur chords haben
                         // bei hidetext sollen alle Zeilen verschwinden und auch kein linespacing machen, die nur text haben
                         // bei nix ... ebenso
@@ -304,13 +319,17 @@ struct ChordsLineView: View {
 struct PopoverButtonView: View {
     let chordTxt: TextElement
     
-    @Environment(\.dismiss) private var dismiss
-
     @State private var showChordShape: Bool = false
 
     var body: some View {
-        Button { if chordTxt.chord != nil { showChordShape.toggle()} } label: {
-            Text(chordTxt.txt)
+        Group {
+            if chordTxt.chord != nil {
+                Button { showChordShape.toggle() } label: {
+                    Text(chordTxt.txt)
+                }
+            } else {
+                Text(chordTxt.txt)
+            }
         }
         .popover(isPresented: $showChordShape) {
             /// iOS (nicht iPadOS) bekommt einen exit-Button, da ein ganzes sheet aufgemacht wird
@@ -354,12 +373,13 @@ struct ChordsPlainView: View {
             HStack(alignment: .center, spacing: 0) {
                 ForEach(line.chords) { chord in
                     if chord != line.chords.first { Text(" ").lineLimit(1) }
-                    
-                    Text(chord.txt)
+                        
+                    PopoverButtonView(chordTxt: chord)
                         .lineLimit(1)
                         .padding(.horizontal, 0.8)
                         .background(chord.background ? (colorScheme == .dark ? darkColor : lightColor) : Color.clear)
                         .clipShape(RoundedRectangle(cornerRadius: 4, style: .circular))
+                        .buttonStyle(PlainButtonStyle())
                 }
             }
         }

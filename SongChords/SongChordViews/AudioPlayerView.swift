@@ -22,17 +22,21 @@ struct AudioPlayerView: View {
     @Binding var loopActive: Bool
     @Binding var songSpeed: Double
     @Binding var songPosition: TimeInterval
-    
+    @Binding var songPitch: Float
+    @Binding var songMP3Uuid: String
+
     @Environment(AudioPlayer.self) private var audioPlayer
     @Environment(Globals.self) private var globals
     @Environment(\.modelContext) private var modelContext
     @Environment(TimerManager.self) private var loopTimerManager
 
     @State private var showSongSearch: Bool = false
+    @State private var showMP3Import: Bool = false
     @State private var inPositionEditing: Bool = false
     @State private var buttonBusy: Bool = false
     @State private var showSmallView: Bool = false
-    
+    @State private var songPitchText: String = ""
+
     // aktualisiert den Status des AudioPlayers, insb. die Position
     let statusTimer = Timer.publish(every: 1, tolerance: 0.3, on: .main, in: .common).autoconnect()
     
@@ -112,6 +116,29 @@ struct AudioPlayerView: View {
                             }).disabled(song.musicItemId.isEmpty)
                             Text("\(Int(round(songSpeed * 100.0)))%").font(.footnote).frame(width: 50).lineLimit(1)
                         }
+                        GridRow {
+                            Text("Pitch")
+                            Slider(value: $songPitch, in: -110...110, onEditingChanged: { editing in
+                                if !editing { audioPlayer.songPitch = songPitch * 10.0; setSongPitch(songPitch * 10.0) }
+                            }).disabled(song.musicItemId.isEmpty || !audioPlayer.isMP3Player)
+                            TextField("", text: $songPitchText).autocorrectionDisabled(true)
+                                #if os(iOS)
+                                .keyboardType(.numbersAndPunctuation)
+                                #endif
+                                .font(.footnote).frame(width: 50).lineLimit(1)
+                                .textFieldStyle(.roundedBorder)
+                                .multilineTextAlignment(.center)
+                                .onSubmit {
+                                    if let newValue = Float(songPitchText),
+                                       newValue >= -11, newValue <= 11 {
+                                        songPitch = newValue * 10.0
+                                        audioPlayer.songPitch = songPitch
+                                        setSongPitch(songPitch)
+                                    } else {
+                                        songPitchText = String(format: "%.2f", songPitch) // Falls ungültige Eingabe
+                                    }
+                                }
+                        }
                     }
                     .padding(.horizontal)
                     .font(.footnote)
@@ -122,9 +149,15 @@ struct AudioPlayerView: View {
                 } else {
                     ZStack {
                         if !showSmallView {
-                            Button(action: { showSongSearch.toggle() } ) {
-                                Label("Select Song", systemImage: "music.note.list").padding(.horizontal)
-                            }.buttonStyle(BorderedButtonStyle()).font(.footnote)
+                            HStack {
+                                Button(action: { showSongSearch.toggle() } ) {
+                                    Label("Select Apple Music", systemImage: "music.note.list")
+                                }.buttonStyle(BorderedButtonStyle()).font(.footnote)
+                                
+                                Button(action: { showMP3Import.toggle() } ) {
+                                    Label("Select Audiofile", systemImage: "document")
+                                }.buttonStyle(BorderedButtonStyle()).font(.footnote)
+                            }
                             
                             smallLargeToggleView
                         }
@@ -139,6 +172,22 @@ struct AudioPlayerView: View {
             NavigationStack {
                 MusicContentView(song: song)
             }
+        }
+        .fileImporter(isPresented: $showMP3Import, allowedContentTypes: [.audio], allowsMultipleSelection: false) { result in
+            switch result {
+            case .success(let urls):
+                importMP3File(song: song, urls: urls)
+                do {
+                    try modelContext.save()
+                } catch(let error) {
+                    globals.setSongChordsError(error: error)
+                }
+            case .failure(let error):
+                globals.setSongChordsError(error: error)
+            }
+        }
+        .onChange(of: songPitch, initial: true) { old, newValue in
+            songPitchText = String(format: "%.2f", newValue / 10.0)
         }
         .onChange(of: loopActive, initial: false) {
             if audioPlayer.playerState == .playing { setCurrentLoopTimer() }
@@ -245,7 +294,7 @@ struct AudioPlayerView: View {
         Task {
             defer { isLoopTimerRunning = false } // Flag zurücksetzen, wenn die Task endet
 
-            if load { let _ = await audioPlayer.load(id: song.musicItemId) }
+            if load { let _ = await audioPlayer.load(song: song) }
             
             if loopActive && validLoop(loop: currentLoop) {
                 if audioPlayer.songPosition <= currentLoop.start || audioPlayer.songPosition >= currentLoop.stop {
@@ -271,7 +320,7 @@ struct AudioPlayerView: View {
             stopLoopTimer()
         } else {
             // falls Fehler auftritt, Spinner weg
-            if await audioPlayer.loadAndPlay(id: song.musicItemId) == false { buttonBusy = false }
+            if await audioPlayer.loadAndPlay(song: song) == false { buttonBusy = false }
             
             setCurrentLoopTimer(false)
         }
@@ -297,6 +346,47 @@ struct AudioPlayerView: View {
         guard audioPlayer.isLoaded else { return true }
         let songDuration = audioPlayer.songDuration
         return loop.start < songDuration && loop.stop < songDuration + 0.1 && loop.start < loop.stop
+    }
+    
+    private func setSongPitch(_ pitch: Float) {
+        do {
+            song.setMP3Info(uuid: songMP3Uuid, pitch: pitch)
+            try modelContext.save()
+        } catch(let error) {
+            globals.setSongChordsError(error: error)
+        }
+    }
+    
+    private func importMP3File(song: Song, urls: [URL]) {
+        do {
+            let fileManager = FileManager.default
+            let destDir = try GlobalFunctions.mp3Path()
+            
+            for url in urls {
+                print("Lade \(url.absoluteString)")
+                
+                let uuid = UUID().uuidString
+                let pitch: Float = 0.0
+                
+                let startSecurityScope = url.startAccessingSecurityScopedResource()
+                
+                let destURL = destDir
+                    .appendingPathComponent(uuid + ".mp3")
+                                
+                try fileManager.copyItem(at: url, to: destURL)
+                
+                if startSecurityScope { url.stopAccessingSecurityScopedResource() }
+
+                song.tryRemoveMP3()
+                song.setMP3Info(uuid: uuid, pitch: pitch)
+                
+                print("\(song.musicItemId)")
+                
+                break
+            }
+        } catch(let error) {
+            print("Fehler beim mp3-Laden: \(error.localizedDescription)")
+        }
     }
     
     // MARK: - Subscription offer
@@ -402,9 +492,10 @@ struct MusicContentView: View {
                 Button(action: {
                     do {
                         let id = String(selectedSong?.id ?? "")
+                        song.tryRemoveMP3() // falls schon MP3 geladen wurde, erst löschen
                         song.musicItemId = id
                         try modelContext.save()
-                        Task { await audioPlayer.load(id: id) }
+                        Task { await audioPlayer.load(song: song) }
                     } catch (let error) {
                         globals.setSongChordsError(error: error)
                     }

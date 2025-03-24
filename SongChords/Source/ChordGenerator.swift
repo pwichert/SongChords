@@ -229,6 +229,7 @@ struct ChordGenerator {
         // Dm-Shape Dreiklang
         if minor && ext == nil && basston == nil {
             let baseFret = (grundton - 1) % 12
+            if baseFret < 0 { return [] }
             let gtFret = grundton == 2 ? 0 : -1
             res.append(ChordFretVariant(base: max(1,baseFret), frets: [-1, -1, gtFret, baseFret + 1,baseFret + 2,baseFret], fingers: [nil,nil,nil,2,3,1])
         )}

@@ -64,9 +64,9 @@ struct SongListView: View {
             ForEach(songs) { song in
                 HStack {
                     Text(song.title)
-                    if audioPlayer.isAllowed && !song.musicItemId.isEmpty {
+                    if !song.musicItemId.isEmpty {
                         Spacer()
-                        Image(systemName: "music.note")
+                        Image(systemName: song.musicItemId.starts(with: "local@") ? "waveform" : "music.note")
                     }
                 }
                 .contextMenu {
@@ -82,6 +82,13 @@ struct SongListView: View {
                             for song in s {
                                 let sng = try Song(title: song.title, modelContext: modelContext, store: store)
                                 sng.updateFromSong(other: song)
+                                
+                                // MP3 nicht kopieren, da sonst mehrere Songs auf das gleiche MP3 zeigen.
+                                // Wenn dann davon eine inkl. MP3 glöscht würde, wäre das MP3 auch für die anderen weg.
+                                // Also: beim Song-Kopieren wird MP3 nicht mitkopiert, sondern muss neu zugeordnet werden.
+                                // Siehe auch sortAndCopy()
+                                if sng.musicItemId.starts(with: "local@") { sng.musicItemId = "" }
+
                                 sng.toPlaylist(playlist: playlist, after: song)
                             }
                             try modelContext.save()
@@ -192,9 +199,9 @@ struct SongListView: View {
         .sheet(item: $songIDsToCopy) { ids in
             NavigationStack {
             #if os(macOS)
-                MoveToPlaylistView(songIDs: ids.identifiers, fromPlaylist: playlist)
+                CopyToPlaylistView(songIDs: ids.identifiers, fromPlaylist: playlist)
             #else
-                MoveToPlaylistView(songIDs: ids.identifiers, fromPlaylist: playlist, editMode: $editMode)
+                CopyToPlaylistView(songIDs: ids.identifiers, fromPlaylist: playlist, editMode: $editMode)
             #endif
             }
         }
@@ -295,6 +302,11 @@ struct SongListView: View {
         
         for index in offsets {
             let s = songs[index]
+            
+            if s.musicItemId.starts(with: "local@") {
+                s.tryRemoveMP3()
+            }
+            
             modelContext.delete(s)
             playlist.songs?.removeAll(where: { $0.seq == s.seq })
         }
@@ -384,7 +396,7 @@ struct SongListView: View {
     }
 }
 
-struct MoveToPlaylistView: View {
+struct CopyToPlaylistView: View {
     let songIDs: Set<Song.ID>?
     let fromPlaylist: PlayList
     #if os(iOS)

@@ -491,6 +491,9 @@
         }
       }
     },
+    "Invalid file reference" : {
+
+    },
     "Invalid title" : {
       "localizations" : {
         "de" : {
@@ -623,6 +626,9 @@
         }
       }
     },
+    "Pitch" : {
+
+    },
     "Play" : {
       "shouldTranslate" : false
     },
@@ -725,15 +731,11 @@
         }
       }
     },
-    "Select Song" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Wähle Song"
-          }
-        }
-      }
+    "Select Apple Music" : {
+
+    },
+    "Select Audiofile" : {
+
     },
     "Show Text" : {
       "localizations" : {
@@ -756,7 +758,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Leider im moment kein Diagramm verfügbar."
+            "value" : "Leider im Moment kein Diagramm verfügbar."
           }
         }
       }

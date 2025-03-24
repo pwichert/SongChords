@@ -9,16 +9,102 @@ import SwiftUI
 import MusicKit
 import AVFoundation
 
+@MainActor
+protocol AudioPlayerProtocol {
+    var songSpeed: Float { get set }
+    var songPosition: TimeInterval { get set }
+    var songPitch: Float { get set }
+    var songDuration: TimeInterval { get }
+    var playerState: MusicKit.MusicPlayer.PlaybackStatus { get }
+    var isAllowed: Bool { get }
+    var isLoaded: Bool { get }
+    
+    func handleAuthorizationStatus()
+    func load(song: Song) async -> Bool
+    func loadAndPlay(song: Song) async -> Bool
+    func play() async -> Bool
+    func stop()
+    func pause()
+}
+
 @Observable
 @MainActor
 class AudioPlayer {
+    private var localPlayer = MP3AudioPlayer()
+    private var applicationPlayer = ApplicationPlayer()
+    var isMP3Player: Bool = false
+
+    var songSpeed: Float { get { return player.songSpeed } set {
+        var pl = player
+        pl.songSpeed = newValue
+    }}
+    
+    var songPitch: Float { get { return player.songPitch } set {
+        var pl = player
+        pl.songPitch = newValue
+    }}
+
+    var songPosition: Double { get { return player.songPosition } set {
+        var pl = player
+        pl.songPosition = newValue
+    }}
+    
+    var playerState: MusicKit.MusicPlayer.PlaybackStatus { get { return player.playerState }}
+    
+    var isAllowed: Bool { get { return player.isAllowed }}
+    
+    var isLoaded: Bool { get { return player.isLoaded }}
+    
+    var songDuration: TimeInterval { get { return player.songDuration }}
+    
+    func load(song: Song) async -> Bool {
+        if song.musicItemId.starts(with: "local@") { isMP3Player = true }
+        else { isMP3Player = false }
+
+        return await player.load(song: song)
+    }
+
+    func loadAndPlay(song: Song) async -> Bool {
+        print("loadAndPlay id: \(song.musicItemId)")
+        
+        if song.musicItemId.starts(with: "local@") { isMP3Player = true }
+        else { isMP3Player = false }
+        
+        return await player.loadAndPlay(song: song)
+    }
+
+    func play() async -> Bool {
+        return await player.play()
+    }
+    
+    func stop() {
+        player.stop()
+    }
+    
+    func pause() {
+        player.pause()
+    }
+    
+    func handleAuthorizationStatus() {
+        return player.handleAuthorizationStatus()
+    }
+    
+    var player: AudioPlayerProtocol {
+        if isMP3Player { return localPlayer }
+        return applicationPlayer
+    }
+}
+
+@Observable
+@MainActor
+class ApplicationPlayer: AudioPlayerProtocol {
     /// The MusicKit player to use for Apple Music playback.
     private var player: ApplicationMusicPlayer { get { ApplicationMusicPlayer.shared }}
-    private var localPlayer: AVAudioPlayer?
     
-    private(set) var songDuration: TimeInterval = 0.0
+    var songDuration: TimeInterval = 0.0
     var songPosition: TimeInterval { get { return player.playbackTime } set { player.playbackTime = newValue }}
-    
+    var songPitch: Float { get { return 0 } set { }}
+
     // Speed-Änderung started den Player, daher Status merken und restaurieren
     private var songSpeed_: Float = 1.0
     var songSpeed: Float { get {
@@ -48,19 +134,7 @@ class AudioPlayer {
     
     func play() async -> Bool {
         print("Audioplayer play")
-        
-////        var url = try! FileManager.default.url(for: .documentDirectory, in: .userDomainMask, appropriateFor: nil, create: false)
-//        var url = URL(string: "/Users/peterwichert/Desktop")!
-//        url = url.appendingPathComponent("Meine Sache - Intro").appendingPathExtension(for: .mp3)
-//        print("\(url)")
-//        let x = url.startAccessingSecurityScopedResource()
-//        let lplayer = try! AVAudioPlayer(contentsOf: url)
-//        url.stopAccessingSecurityScopedResource( )
-//        lplayer.prepareToPlay()
-//        lplayer.play()
-//        return true
-        
-        
+         
         playerTask?.cancel()
         
         let pl = player
@@ -102,11 +176,11 @@ class AudioPlayer {
         player.pause()
     }
     
-    func loadAndPlay(id: String) async -> Bool {
+    func loadAndPlay(song: Song) async -> Bool {
         print("Audioplayer loadAndPlay")
         
+        let id = song.musicItemId
         if id == loadedId { return await play() }
-//return await play()
         
         playerTask?.cancel()
         
@@ -159,8 +233,10 @@ class AudioPlayer {
         return ret ?? true
     }
     
-    func load(id: String) async -> Bool {
+    func load(song: Song) async -> Bool {
         print("Audioplayer load")
+        
+        let id = song.musicItemId
         
         if id == loadedId { return true }
 
@@ -242,5 +318,216 @@ class AudioPlayer {
     private func update(with musicAuthorizationStatus: MusicAuthorization.Status) {
         self.musicAuthorizationStatus = musicAuthorizationStatus
         print("Audioplayer update musicAuthorizationStatus \(self.musicAuthorizationStatus)")
+    }
+}
+
+@Observable
+@MainActor
+class MP3AudioPlayer: AudioPlayerProtocol {
+    var songSpeed: Float { get { timePitch.rate } set { setSpeed(newValue) }}
+    
+    var songPosition: TimeInterval { get {
+        //print("\(getCurrentTime()) \(lastSeekTime)")
+        return getCurrentTime() + lastSeekTime } set { seek(to: newValue) }}
+    var songDuration: TimeInterval = 0.0
+    var songPitch: Float { get { return timePitch.pitch } set { setPitch(newValue) }}
+    
+    var playerState: MusicKit.MusicPlayer.PlaybackStatus = .stopped
+    
+    var isAllowed: Bool = true
+    
+    private var loadedId: String?
+    var isLoaded: Bool { return loadedId != nil }
+    
+    private var audioEngine = AVAudioEngine()
+    private var audioPlayerNode = AVAudioPlayerNode()
+    private var lastSeekTime: TimeInterval = 0.0
+    private var timePitch = AVAudioUnitTimePitch()
+    private var audioFile: AVAudioFile?
+    private var sampleRate: Double = 44100 // Standard-Sample-Rate
+    private var audioVolume: Float = 1.0
+    
+    init() {
+        setupAudioEngine()
+    }
+    
+    func handleAuthorizationStatus() { }
+    
+    private func setupAudioEngine() {
+        audioEngine.attach(audioPlayerNode)
+        audioEngine.attach(timePitch)
+        audioEngine.connect(audioPlayerNode, to: timePitch, format: nil)
+        audioEngine.connect(timePitch, to: audioEngine.outputNode, format: nil)
+    }
+    
+    func loadAndPlay(song: Song) async -> Bool {
+        print("MP3AudioPlayer loadAndPlay")
+        
+        if song.musicItemId == loadedId { return play() }
+        
+        let _ = await load(song: song)
+        return play()
+    }
+    
+    func load(song: Song) async -> Bool {
+        print("MP3AudioPlayer load")
+        
+        if song.musicItemId == loadedId { return true }
+        
+        do {
+            audioPlayerNode.stop()
+            lastSeekTime = 0
+            
+            let destDir = try GlobalFunctions.mp3Path()
+            
+            let (file, pitch) = try song.getMP3Info()
+            setPitch(pitch)
+            let filePath = destDir.appendingPathComponent(file + ".mp3")
+            print("\(filePath)")
+            
+            audioFile = try AVAudioFile(forReading: filePath)
+            
+            sampleRate = audioFile?.processingFormat.sampleRate ?? 44100
+            
+            if let audioFile = audioFile {
+                audioVolume = adjustVolume(for: audioFile)
+                print("volume \(audioVolume)")
+                let frameCount = AVAudioFrameCount(audioFile.length)
+                songDuration = Double(frameCount) / sampleRate
+            }
+            
+            loadedId = song.musicItemId
+            return true
+        } catch {
+            print("Fehler beim Laden der Datei: \(error)")
+        }
+        
+        return false
+    }
+    
+    func play() -> Bool {
+        print("MP3AudioPlayer play")
+        
+        guard audioFile != nil else { return true }
+        
+        if !audioEngine.isRunning {
+            try? audioEngine.start()
+        }
+        
+        if audioPlayerNode.isPlaying {
+            return true // Läuft bereits
+        }
+        
+        seek(to: lastSeekTime)
+        audioPlayerNode.volume = audioVolume
+        audioPlayerNode.play()
+
+        playerState = .playing
+
+        return true
+    }
+    
+    func stop() {
+        print("MP3AudioPlayer stop")
+        
+        audioPlayerNode.stop()
+        lastSeekTime = 0
+        
+        playerState = .stopped
+    }
+    
+    func pause() {
+        print("MP3AudioPlayer pause")
+        
+        guard audioPlayerNode.isPlaying else { return }
+        
+        lastSeekTime = songPosition
+        audioPlayerNode.pause()
+        playerState = .paused
+    }
+    
+    private func setPitch(_ pitch: Float) {
+        print("MP3AudioPlayer setPitch \(pitch)")
+        
+        // range: -2400..2400
+        // ein halbton = 100 Cents
+        timePitch.pitch = pitch
+    }
+    
+    private func setSpeed(_ speed: Float) {
+        print("MP3AudioPlayer setSpeed")
+        
+        timePitch.rate = speed
+    }
+    
+    private func seek(to seconds: TimeInterval) {
+        guard let audioFile = audioFile else { return }
+        
+        let framePosition = AVAudioFramePosition(seconds * Double(sampleRate))
+        let frameCount = AVAudioFrameCount(audioFile.length - framePosition)
+        
+        if framePosition >= audioFile.length {
+            print("Seek-Zeit liegt außerhalb der Datei.")
+            return
+        }
+        
+        lastSeekTime = seconds
+        
+        audioPlayerNode.stop()
+        audioPlayerNode.scheduleSegment(audioFile, startingFrame: framePosition, frameCount: frameCount, at: nil, completionHandler: nil)
+        
+        if playerState == .playing {
+            audioPlayerNode.play()
+        }
+    }
+    
+    private func getCurrentTime() -> TimeInterval {
+        guard let lastRenderTime = audioPlayerNode.lastRenderTime,
+              let playerTime = audioPlayerNode.playerTime(forNodeTime: lastRenderTime) else {
+            return 0
+        }
+        
+        let res = Double(playerTime.sampleTime) / Double(sampleRate)
+
+        if res + lastSeekTime >= songDuration {
+            print("Playback beendet.")
+            self.stop()
+        }
+        
+        return res
+    }
+    
+    private func adjustVolume(for file: AVAudioFile) -> Float {
+        let sampleRate = file.processingFormat.sampleRate
+        let duration: TimeInterval = 25
+        let frameCount = AVAudioFrameCount(min(Double(file.length), duration * sampleRate)) // Anzahl zu lesender Frames
+        
+        let buffer = AVAudioPCMBuffer(pcmFormat: file.processingFormat, frameCapacity: frameCount)
+        guard let buffer = buffer else { return 1.0 }
+        
+        do {
+            try file.read(into: buffer) // Liest nur den Anfang der Datei
+        } catch {
+            print("Fehler beim Einlesen der Datei: \(error)")
+            return 1.0
+        }
+        
+        let channelData = buffer.floatChannelData?[0]
+        let frameLength = Int(buffer.frameLength)
+        
+        guard let data = channelData, frameLength > 0 else { return 1.0 }
+        
+        // RMS berechnen (Root Mean Square)
+        var sum: Float = 0
+        for i in 0..<frameLength {
+            sum += data[i] * data[i]
+        }
+        let rms = sqrt(sum / Float(frameLength))
+        
+        // Ziel-RMS setzen
+        let targetRMS: Float = 0.1  // experimentell ausprobieren
+        let volumeAdjustment = targetRMS / max(rms, 0.01) // Schutz vor Division durch 0
+        
+        return min(max(volumeAdjustment, 0.1), 2.0) // Lautstärke auf sinnvolle Werte begrenzen
     }
 }

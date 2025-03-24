@@ -14,6 +14,7 @@ enum SongChordsError: Error, Equatable {
     case invalidPlaylisttitle
     case playlistNotEmpty
     case limitReached
+    case invalidMP3reference
 
     var desc: String {
         switch self {
@@ -25,6 +26,8 @@ enum SongChordsError: Error, Equatable {
             return String(localized: "Playlist must be empty")
         case .limitReached:
             return String(localized: "Free songlimit reached.\n\nEnjoying the app? Unlock song limit to manage unlimited songs and make the most out of your experience!")
+        case .invalidMP3reference:
+            return String(localized: "Invalid file reference")
         }
     }
 }
@@ -92,6 +95,12 @@ final class PlayList: Codable {
         for song in (songs ?? []).sorted(by: { $0.seq < $1.seq }) {
             let newSong = try Song(title: song.title, modelContext: modelContext, store: store)
             newSong.updateFromSong(other: song)
+
+            // MP3 nicht kopieren, da sonst mehrere Songs auf das gleiche MP3 zeigen.
+            // Wenn dann davon eine inkl. MP3 glöscht würde, wäre das MP3 auch für die anderen weg.
+            // Also: beim Song-Kopieren wird MP3 nicht mitkopiert, sondern muss neu zugeordnet werden.
+            if newSong.musicItemId.starts(with: "local@") { newSong.musicItemId = "" }
+
             newSong.toPlaylist(playlist: self)
         }
     }
@@ -394,6 +403,34 @@ final public class Song: Codable {
         return try modelContext.fetchCount(desc)
     }
     
+    func getMP3Info() throws -> (url: String, pitch: Float) {        
+        let substr = musicItemId.split(separator: "@", omittingEmptySubsequences: false)
+        if substr.count != 3 || substr[0] != "local" || substr[1].isEmpty || substr[2].isEmpty {
+            throw SongChordsError.invalidMP3reference
+        }
+        
+        let pitch = Float(substr[2]) ?? 0.0
+        return (String(substr[1]), pitch)
+    }
+    
+    func setMP3Info(uuid: String, pitch: Float) {
+        self.musicItemId = "local@\(uuid)@" + String(format: "%.2f", pitch)
+    }
+    
+    func tryRemoveMP3() {
+        do {
+            let destDir = try GlobalFunctions.mp3Path()
+            let (sUuid, _) = try getMP3Info()
+            let destURL = destDir
+                .appendingPathComponent(sUuid + ".mp3")
+        
+            let fileManager = FileManager.default
+            if fileManager.fileExists(atPath: destURL.path) {
+                try fileManager.removeItem(at: destURL)
+            }
+        } catch {}
+    }
+
     enum CodingKeys: CodingKey {
         case seq
         case title
