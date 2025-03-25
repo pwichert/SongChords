@@ -67,7 +67,7 @@ struct SongListView: View {
                     if !song.musicItemId.isEmpty {
                         Spacer()
                         Image(systemName: song.musicItemId.starts(with: "local@") ? "waveform" : "music.note")
-                            .foregroundStyle((song.musicItemId.starts(with: "local@") && !song.mp3FileExists()) ? .secondary : .primary)
+                            .foregroundStyle((song.musicItemId.starts(with: "local@") && !song.mp3FileExists()) ? .tertiary : .primary)
                     }
                 }
                 .contextMenu {

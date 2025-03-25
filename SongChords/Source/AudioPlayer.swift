@@ -58,18 +58,14 @@ class AudioPlayer {
     var songDuration: TimeInterval { get { return player.songDuration }}
     
     func load(song: Song) async -> Bool {
-        if song.musicItemId.starts(with: "local@") { isMP3Player = true }
-        else { isMP3Player = false }
-
+        isMP3Player = song.musicItemId.starts(with: "local@")
         return await player.load(song: song)
     }
 
     func loadAndPlay(song: Song) async -> Bool {
         print("loadAndPlay id: \(song.musicItemId)")
         
-        if song.musicItemId.starts(with: "local@") { isMP3Player = true }
-        else { isMP3Player = false }
-        
+        isMP3Player = song.musicItemId.starts(with: "local@")
         return await player.loadAndPlay(song: song)
     }
 
@@ -90,8 +86,7 @@ class AudioPlayer {
     }
     
     var player: AudioPlayerProtocol {
-        if isMP3Player { return localPlayer }
-        return applicationPlayer
+        return isMP3Player ? localPlayer : applicationPlayer
     }
 }
 
@@ -326,9 +321,7 @@ class ApplicationPlayer: AudioPlayerProtocol {
 class MP3AudioPlayer: AudioPlayerProtocol {
     var songSpeed: Float { get { timePitch.rate } set { setSpeed(newValue) }}
     
-    var songPosition: TimeInterval { get {
-        //print("\(getCurrentTime()) \(lastSeekTime)")
-        return getCurrentTime() + lastSeekTime } set { seek(to: newValue) }}
+    var songPosition: TimeInterval { get { return getCurrentTime() + lastSeekTime } set { seek(to: newValue) }}
     var songDuration: TimeInterval = 0.0
     var songPitch: Float { get { return timePitch.pitch } set { setPitch(newValue) }}
     

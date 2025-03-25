@@ -120,7 +120,7 @@ struct AudioPlayerView: View {
                             Text("Pitch")
                             Slider(value: $songPitch, in: -110...110, onEditingChanged: { editing in
                                 if !editing { audioPlayer.songPitch = songPitch * 10.0; setSongPitch(songPitch * 10.0) }
-                            }).disabled(GlobalFunctions.isDisabled(song: song))
+                            }).disabled(!audioPlayer.isMP3Player || GlobalFunctions.isDisabled(song: song))
                             TextField("", text: $songPitchText).autocorrectionDisabled(true)
                                 #if os(iOS)
                                 .keyboardType(.numbersAndPunctuation)
@@ -156,7 +156,7 @@ struct AudioPlayerView: View {
                                 }.buttonStyle(BorderedButtonStyle()).font(.footnote)
                                 
                                 Button(action: { showMP3Import.toggle() } ) {
-                                    Label("Select Audiofile", systemImage: "document")
+                                    Label("Select MPEG File", systemImage: "document")
                                 }.buttonStyle(BorderedButtonStyle()).font(.footnote)
                             }
                             
@@ -383,6 +383,8 @@ struct AudioPlayerView: View {
 
                 song.setMP3Info(uuid: uuid, pitch: pitch)
                 print("\(song.musicItemId)")
+                songMP3Uuid = uuid
+                songPitch = pitch
                 
                 break
             }

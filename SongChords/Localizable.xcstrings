@@ -492,7 +492,7 @@
       }
     },
     "Invalid file reference" : {
-
+      "shouldTranslate" : false
     },
     "Invalid title" : {
       "localizations" : {
@@ -627,7 +627,7 @@
       }
     },
     "Pitch" : {
-
+      "shouldTranslate" : false
     },
     "Play" : {
       "shouldTranslate" : false
@@ -732,10 +732,24 @@
       }
     },
     "Select Apple Music" : {
-
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wähle Apple Music"
+          }
+        }
+      }
     },
-    "Select Audiofile" : {
-
+    "Select MPEG File" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wähle MPEG-Datei"
+          }
+        }
+      }
     },
     "Show Text" : {
       "localizations" : {
