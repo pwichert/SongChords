@@ -167,6 +167,7 @@ struct SongView: View {
         loopActive = false
         currentLoop = PlayerLoop(start: 0, stop: 0, title: "")
         selectedLoop = nil
+        songPitch = 0
         
         if song.musicItemId.starts(with: "local@") {
             audioPlayer.isMP3Player = true

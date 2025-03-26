@@ -87,13 +87,7 @@ struct AudioPlayerView: View {
                     }
                 }
 
-                ZStack {
-                    playbackButtonsView
-                    
-                    if showSmallView {
-                        smallLargeToggleView
-                    }
-                }
+                playbackButtonsView
                 
                 if !showSmallView {
                     Grid(alignment: .trailing) {
@@ -116,29 +110,32 @@ struct AudioPlayerView: View {
                             }).disabled(GlobalFunctions.isDisabled(song: song))
                             Text("\(Int(round(songSpeed * 100.0)))%").font(.footnote).frame(width: 50).lineLimit(1)
                         }
-                        GridRow {
-                            Text("Pitch")
-                            Slider(value: $songPitch, in: -110...110, onEditingChanged: { editing in
-                                if !editing { audioPlayer.songPitch = songPitch * 10.0; setSongPitch(songPitch * 10.0) }
-                            }).disabled(!audioPlayer.isMP3Player || GlobalFunctions.isDisabled(song: song))
-                            TextField("", text: $songPitchText).autocorrectionDisabled(true)
-                                #if os(iOS)
-                                .keyboardType(.numbersAndPunctuation)
-                                #endif
-                                .font(.footnote).frame(width: 50).lineLimit(1)
-                                .textFieldStyle(.roundedBorder)
-                                .multilineTextAlignment(.center)
-                                .onSubmit {
-                                    if let newValue = Float(songPitchText),
-                                       newValue >= -11, newValue <= 11 {
-                                        songPitch = newValue * 10.0
-                                        audioPlayer.songPitch = songPitch * 10.0
-                                        setSongPitch(songPitch * 10.0)
-                                    } else {
-                                        songPitchText = String(format: "%.2f", songPitch / 10.0) // Falls ungültige Eingabe
+                        
+                        if audioPlayer.isMP3Player {
+                            GridRow {
+                                Text("Pitch")
+                                Slider(value: $songPitch, in: -110...110, onEditingChanged: { editing in
+                                    if !editing { audioPlayer.songPitch = songPitch * 10.0; setSongPitch(songPitch * 10.0) }
+                                }).disabled(!audioPlayer.isMP3Player || GlobalFunctions.isDisabled(song: song))
+                                TextField("", text: $songPitchText).autocorrectionDisabled(true)
+                                    #if os(iOS)
+                                    .keyboardType(.numbersAndPunctuation)
+                                    #endif
+                                    .font(.footnote).frame(width: 50).lineLimit(1)
+                                    .textFieldStyle(.roundedBorder)
+                                    .multilineTextAlignment(.center)
+                                    .onSubmit {
+                                        if let newValue = Float(songPitchText),
+                                           newValue >= -11, newValue <= 11 {
+                                            songPitch = newValue * 10.0
+                                            audioPlayer.songPitch = songPitch * 10.0
+                                            setSongPitch(songPitch * 10.0)
+                                        } else {
+                                            songPitchText = String(format: "%.2f", songPitch / 10.0) // Falls ungültige Eingabe
+                                        }
                                     }
-                                }
-                                .disabled(GlobalFunctions.isDisabled(song: song))
+                                    .disabled(GlobalFunctions.isDisabled(song: song))
+                            }
                         }
                     }
                     .padding(.horizontal)
@@ -151,6 +148,7 @@ struct AudioPlayerView: View {
                     ZStack {
                         if !showSmallView {
                             HStack {
+                                Spacer()
                                 Button(action: { showSongSearch.toggle() } ) {
                                     Label("Select Apple Music", systemImage: "music.note.list")
                                 }.buttonStyle(BorderedButtonStyle()).font(.footnote)
@@ -158,9 +156,12 @@ struct AudioPlayerView: View {
                                 Button(action: { showMP3Import.toggle() } ) {
                                     Label("Select MPEG File", systemImage: "document")
                                 }.buttonStyle(BorderedButtonStyle()).font(.footnote)
+                                
+                                Spacer()
+                                Button(action: { showSmallView.toggle() }) {
+                                    Image(systemName: showSmallView ? "chevron.up.circle" : "chevron.down.circle").font(.body).bold().labelStyle(.iconOnly)
+                                }.buttonStyle(BorderedButtonStyle())
                             }
-                            
-                            smallLargeToggleView
                         }
                     }
                 }
@@ -228,6 +229,7 @@ struct AudioPlayerView: View {
 
     var playbackButtonsView: some View {
         HStack {
+            Spacer()
             Button(action: { rewindPlayback() }) {
                 HStack(alignment: .center, spacing: 1) {
                     Label("rewind", systemImage: "play.fill").rotationEffect(.degrees(180)).labelStyle(.iconOnly)
@@ -249,6 +251,13 @@ struct AudioPlayerView: View {
             Button(action: { stopPlayback() }) {
                 Label("Stop", systemImage: "stop.fill")
             }.disabled(GlobalFunctions.isDisabled(song: song))
+            
+            Spacer()
+            if showSmallView {
+                Button(action: { showSmallView.toggle() }) {
+                    Image(systemName: showSmallView ? "chevron.up.circle" : "chevron.down.circle").font(.body).bold().labelStyle(.iconOnly)
+                }
+            }
         }.buttonStyle(BorderedButtonStyle()).font(.footnote)
     }
     
@@ -384,7 +393,8 @@ struct AudioPlayerView: View {
                 song.setMP3Info(uuid: uuid, pitch: pitch)
                 print("\(song.musicItemId)")
                 songMP3Uuid = uuid
-                songPitch = pitch
+                songPitch = pitch / 10.0
+                audioPlayer.isMP3Player = true
                 
                 break
             }
@@ -499,6 +509,7 @@ struct MusicContentView: View {
                         let id = String(selectedSong?.id ?? "")
                         song.tryRemoveMP3() // falls schon MP3 geladen wurde, erst löschen
                         song.musicItemId = id
+                        audioPlayer.isMP3Player = false
                         try modelContext.save()
                         Task { await audioPlayer.load(song: song) }
                     } catch (let error) {

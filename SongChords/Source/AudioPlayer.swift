@@ -349,8 +349,11 @@ class MP3AudioPlayer: AudioPlayerProtocol {
     private func setupAudioEngine() {
         audioEngine.attach(audioPlayerNode)
         audioEngine.attach(timePitch)
+        
+        let mainMixer = audioEngine.mainMixerNode
         audioEngine.connect(audioPlayerNode, to: timePitch, format: nil)
-        audioEngine.connect(timePitch, to: audioEngine.outputNode, format: nil)
+        audioEngine.connect(timePitch, to: mainMixer, format: nil)
+        audioEngine.connect(mainMixer, to: audioEngine.outputNode, format: nil) // Mixer → Output
     }
     
     func loadAndPlay(song: Song) async -> Bool {
@@ -411,9 +414,9 @@ class MP3AudioPlayer: AudioPlayerProtocol {
         }
         
         seek(to: lastSeekTime)
-        audioPlayerNode.volume = audioVolume
+        audioEngine.mainMixerNode.outputVolume = audioVolume
         audioPlayerNode.play()
-
+        
         playerState = .playing
 
         return true
@@ -491,7 +494,7 @@ class MP3AudioPlayer: AudioPlayerProtocol {
     
     private func adjustVolume(for file: AVAudioFile) -> Float {
         let sampleRate = file.processingFormat.sampleRate
-        let duration: TimeInterval = 25
+        let duration: TimeInterval = 30
         let frameCount = AVAudioFrameCount(min(Double(file.length), duration * sampleRate)) // Anzahl zu lesender Frames
         
         let buffer = AVAudioPCMBuffer(pcmFormat: file.processingFormat, frameCapacity: frameCount)
