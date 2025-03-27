@@ -125,8 +125,7 @@ struct AudioPlayerView: View {
                                     .textFieldStyle(.roundedBorder)
                                     .multilineTextAlignment(.center)
                                     .onSubmit {
-                                        if let newValue = Float(songPitchText),
-                                           newValue >= -11, newValue <= 11 {
+                                        if let newValue = Float(songPitchText), newValue >= -11, newValue <= 11 {
                                             songPitch = newValue * 10.0
                                             audioPlayer.songPitch = songPitch * 10.0
                                             setSongPitch(songPitch * 10.0)

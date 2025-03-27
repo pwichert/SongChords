@@ -63,8 +63,6 @@ class AudioPlayer {
     }
 
     func loadAndPlay(song: Song) async -> Bool {
-        print("loadAndPlay id: \(song.musicItemId)")
-        
         isMP3Player = song.musicItemId.starts(with: "local@")
         return await player.loadAndPlay(song: song)
     }
@@ -232,7 +230,6 @@ class ApplicationPlayer: AudioPlayerProtocol {
         print("Audioplayer load")
         
         let id = song.musicItemId
-        
         if id == loadedId { return true }
 
         playerTask?.cancel()
@@ -319,12 +316,14 @@ class ApplicationPlayer: AudioPlayerProtocol {
 @Observable
 @MainActor
 class MP3AudioPlayer: AudioPlayerProtocol {
-    var songSpeed: Float { get { timePitch.rate } set { setSpeed(newValue) }}
-    
     var songPosition: TimeInterval { get { return getCurrentTime() + lastSeekTime } set { seek(to: newValue) }}
     var songDuration: TimeInterval = 0.0
-    var songPitch: Float { get { return timePitch.pitch } set { setPitch(newValue) }}
     
+    // range: -2400..2400
+    // ein halbton = 100 Cents
+    var songPitch: Float { get { return timePitch.pitch } set { timePitch.pitch = newValue }}
+    var songSpeed: Float { get { return timePitch.rate } set { timePitch.rate = newValue }}
+
     var playerState: MusicKit.MusicPlayer.PlaybackStatus = .stopped
     
     var isAllowed: Bool = true
@@ -359,7 +358,8 @@ class MP3AudioPlayer: AudioPlayerProtocol {
     func loadAndPlay(song: Song) async -> Bool {
         print("MP3AudioPlayer loadAndPlay")
         
-        if song.musicItemId == loadedId { return play() }
+        let uuid = song.getMP3FileInfo() ?? ""
+        if uuid == loadedId { return play() }
         
         loadedId = nil
 
@@ -368,29 +368,29 @@ class MP3AudioPlayer: AudioPlayerProtocol {
     }
     
     func load(song: Song) async -> Bool {
-        print("MP3AudioPlayer load")
-        
-        if song.musicItemId == loadedId { return true }
-        
         do {
+            let (file, pitch) = try song.getMP3Info()
+            
+            print("MP3AudioPlayer load id: \(file) loaded: \(loadedId ?? "")")
+            
+            if file == loadedId { return true }
+            
             audioPlayerNode.stop()
             lastSeekTime = 0
             
             let destDir = try GlobalFunctions.mp3Path()
-            
-            let (file, pitch) = try song.getMP3Info()
             let filePath = destDir.appendingPathComponent(file + ".mp3")
-                                                
+
             audioFile = try AVAudioFile(forReading: filePath)
             
             if let audioFile = audioFile {
                 sampleRate = audioFile.processingFormat.sampleRate
-                setPitch(pitch)
+                songPitch = pitch
                 audioVolume = adjustVolume(for: audioFile)
                 print("volume \(audioVolume)")
                 let frameCount = AVAudioFrameCount(audioFile.length)
                 songDuration = Double(frameCount) / sampleRate
-                loadedId = song.musicItemId
+                loadedId = file
                 return true
             }
         } catch {
@@ -439,20 +439,6 @@ class MP3AudioPlayer: AudioPlayerProtocol {
         lastSeekTime = songPosition
         audioPlayerNode.pause()
         playerState = .paused
-    }
-    
-    private func setPitch(_ pitch: Float) {
-        print("MP3AudioPlayer setPitch \(pitch)")
-        
-        // range: -2400..2400
-        // ein halbton = 100 Cents
-        timePitch.pitch = pitch
-    }
-    
-    private func setSpeed(_ speed: Float) {
-        print("MP3AudioPlayer setSpeed")
-        
-        timePitch.rate = speed
     }
     
     private func seek(to seconds: TimeInterval) {

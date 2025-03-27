@@ -413,8 +413,17 @@ final public class Song: Codable {
         return (String(substr[1]), pitch)
     }
     
+    func getMP3FileInfo() -> String? {
+        do {
+            let (url, _) = try getMP3Info()
+            return url
+        } catch {}
+       
+        return nil
+    }
+    
     func setMP3Info(uuid: String, pitch: Float) {
-        self.musicItemId = "local@\(uuid)@" + String(format: "%.2f", pitch)
+        musicItemId = "local@\(uuid)@" + String(format: "%.2f", pitch)
     }
     
     func mp3FileExists() -> Bool {

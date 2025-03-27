@@ -151,6 +151,8 @@ struct SongView: View {
     }
     
     private func songChangedAction() {
+        print("songChangedAction")
+        
         // bei Songwechsel auf Livedarstellung schalten
         if pdfUrl != nil {
             print("pdfUrl changed")
@@ -162,13 +164,9 @@ struct SongView: View {
     
     private func initAudio() {
         Task { await timerManager.stopTimer() }
-        if audioPlayer.isLoaded { audioPlayer.stop() }
-        songSpeed = Double(audioPlayer.songSpeed)
-        loopActive = false
-        currentLoop = PlayerLoop(start: 0, stop: 0, title: "")
-        selectedLoop = nil
-        songPitch = 0
         
+        songPitch = 0
+
         if song.musicItemId.starts(with: "local@") {
             audioPlayer.isMP3Player = true
             do {
@@ -181,6 +179,13 @@ struct SongView: View {
         } else {
             audioPlayer.isMP3Player = false
         }
+
+        if audioPlayer.isLoaded { audioPlayer.stop() }
+
+        songSpeed = Double(audioPlayer.songSpeed)
+        loopActive = false
+        currentLoop = PlayerLoop(start: 0, stop: 0, title: "")
+        selectedLoop = nil
     }
     
     private func showPdf() async {
