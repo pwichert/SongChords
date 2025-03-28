@@ -165,6 +165,8 @@ struct SongView: View {
     private func initAudio() {
         Task { await timerManager.stopTimer() }
         
+        if audioPlayer.someIsLoaded { audioPlayer.stopAll() }
+
         songPitch = 0
 
         if song.musicItemId.starts(with: "local@") {
@@ -179,8 +181,6 @@ struct SongView: View {
         } else {
             audioPlayer.isMP3Player = false
         }
-
-        if audioPlayer.isLoaded { audioPlayer.stop() }
 
         songSpeed = Double(audioPlayer.songSpeed)
         loopActive = false

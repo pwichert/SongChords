@@ -149,11 +149,11 @@ struct AudioPlayerView: View {
                             HStack {
                                 Spacer()
                                 Button(action: { showSongSearch.toggle() } ) {
-                                    Label("Select Apple Music", systemImage: "music.note.list")
+                                    Label("Search Apple Music", systemImage: "music.note.list")
                                 }.buttonStyle(BorderedButtonStyle()).font(.footnote)
                                 
                                 Button(action: { showMP3Import.toggle() } ) {
-                                    Label("Select MPEG File", systemImage: "document")
+                                    Label("Import MPEG File", systemImage: "document")
                                 }.buttonStyle(BorderedButtonStyle()).font(.footnote)
                                 
                                 Spacer()
@@ -338,7 +338,7 @@ struct AudioPlayerView: View {
     private func stopPlayback() {
         buttonBusy = false
         
-        audioPlayer.stop()
+        audioPlayer.stopAll()
         stopLoopTimer()
     }
 
@@ -352,7 +352,7 @@ struct AudioPlayerView: View {
     }
     
     private func validLoop(loop: PlayerLoop) -> Bool {
-        guard audioPlayer.isLoaded else { return true }
+        guard audioPlayer.someIsLoaded else { return true }
         let songDuration = audioPlayer.songDuration
         return loop.start < songDuration && loop.stop < songDuration + 0.1 && loop.start < loop.stop
     }

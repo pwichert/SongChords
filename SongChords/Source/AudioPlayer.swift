@@ -32,7 +32,12 @@ protocol AudioPlayerProtocol {
 class AudioPlayer {
     private var localPlayer = MP3AudioPlayer()
     private var applicationPlayer = ApplicationPlayer()
+
     var isMP3Player: Bool = false
+    
+    private var player: AudioPlayerProtocol {
+        return isMP3Player ? localPlayer : applicationPlayer
+    }
 
     var songSpeed: Float { get { return player.songSpeed } set {
         var pl = player
@@ -51,12 +56,12 @@ class AudioPlayer {
     
     var playerState: MusicKit.MusicPlayer.PlaybackStatus { get { return player.playerState }}
     
-    var isAllowed: Bool { get { return player.isAllowed }}
+    var isAllowed: Bool { get { return applicationPlayer.isAllowed }}
     
-    var isLoaded: Bool { get { return player.isLoaded }}
+    var someIsLoaded: Bool { get { return localPlayer.isLoaded || applicationPlayer.isLoaded }}
     
     var songDuration: TimeInterval { get { return player.songDuration }}
-    
+        
     func load(song: Song) async -> Bool {
         isMP3Player = song.musicItemId.starts(with: "local@")
         return await player.load(song: song)
@@ -71,8 +76,9 @@ class AudioPlayer {
         return await player.play()
     }
     
-    func stop() {
-        player.stop()
+    func stopAll() {
+        localPlayer.stop()
+        applicationPlayer.stop()
     }
     
     func pause() {
@@ -80,11 +86,7 @@ class AudioPlayer {
     }
     
     func handleAuthorizationStatus() {
-        return player.handleAuthorizationStatus()
-    }
-    
-    var player: AudioPlayerProtocol {
-        return isMP3Player ? localPlayer : applicationPlayer
+        return applicationPlayer.handleAuthorizationStatus()
     }
 }
 
@@ -504,11 +506,20 @@ class MP3AudioPlayer: AudioPlayerProtocol {
             sum += data[i] * data[i]
         }
         let rms = sqrt(sum / Float(frameLength))
+        //print("rms \(rms)")
         
         // Ziel-RMS setzen
         let targetRMS: Float = 0.1  // experimentell ausprobieren
         let volumeAdjustment = targetRMS / max(rms, 0.01) // Schutz vor Division durch 0
         
-        return min(max(volumeAdjustment, 0.1), 2.0) // Lautstärke auf sinnvolle Werte begrenzen
+        // Lautstärkeverhältnis MP3 zu Streaming anpassen.
+        #if os(macOS)
+        let dampingFactor: Float = 1.2
+        #else
+        let dampingFactor: Float = 0.8
+        #endif
+        let totalAdjustment = volumeAdjustment * dampingFactor
+        
+        return min(max(totalAdjustment, 0.1), 2.0) // Lautstärke auf sinnvolle Werte begrenzen
     }
 }

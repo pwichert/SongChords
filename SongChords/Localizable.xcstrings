@@ -448,6 +448,16 @@
         }
       }
     },
+    "Import MPEG File" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "importiere MPEG Datei"
+          }
+        }
+      }
+    },
     "Import Playlist?" : {
       "localizations" : {
         "de" : {
@@ -701,6 +711,16 @@
         }
       }
     },
+    "Search Apple Music" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Suche Apple Music"
+          }
+        }
+      }
+    },
     "Search..." : {
       "localizations" : {
         "de" : {
@@ -727,26 +747,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Song auswählen"
-          }
-        }
-      }
-    },
-    "Select Apple Music" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Wähle Apple Music"
-          }
-        }
-      }
-    },
-    "Select MPEG File" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Wähle MPEG-Datei"
           }
         }
       }
