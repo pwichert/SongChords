@@ -216,6 +216,7 @@ class ApplicationPlayer: AudioPlayerProtocol {
                 }
             } catch (let error) {
                 print(error)
+                loadedId = nil
                 return false
             }
             
@@ -264,6 +265,7 @@ class ApplicationPlayer: AudioPlayerProtocol {
                 }
             } catch (let error) {
                 print(error)
+                loadedId = nil
                 return false
             }
             
@@ -365,7 +367,9 @@ class MP3AudioPlayer: AudioPlayerProtocol {
         
         loadedId = nil
 
-        let _ = await load(song: song)
+        let res = await load(song: song)
+        if !res { return false }
+        
         return play()
     }
     
@@ -399,6 +403,7 @@ class MP3AudioPlayer: AudioPlayerProtocol {
             print("Fehler beim Laden der Datei: \(error)")
         }
         
+        loadedId = nil
         return false
     }
     
