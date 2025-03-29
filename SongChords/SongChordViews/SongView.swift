@@ -182,7 +182,7 @@ struct SongView: View {
             audioPlayer.isMP3Player = false
         }
 
-        songSpeed = Double(audioPlayer.songSpeed)
+        audioPlayer.songSpeed = Float(songSpeed)
         loopActive = false
         currentLoop = PlayerLoop(start: 0, stop: 0, title: "")
         selectedLoop = nil
