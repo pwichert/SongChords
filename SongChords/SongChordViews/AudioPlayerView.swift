@@ -368,9 +368,12 @@ struct AudioPlayerView: View {
     
     private func importMP3File(song: Song, urls: [URL]) {
         do {
+            audioPlayer.stopAll()
+            audioPlayer.unLoadMP3()
+            
             let fileManager = FileManager.default
             let destDir = try GlobalFunctions.mp3Path()
-            
+                        
             for url in urls {
                 print("Lade \(url.absoluteString)")
                 

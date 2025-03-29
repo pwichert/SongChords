@@ -72,6 +72,10 @@ class AudioPlayer {
         return await player.loadAndPlay(song: song)
     }
 
+    func unLoadMP3() {
+        localPlayer.unLoad()
+    }
+    
     func play() async -> Bool {
         return await player.play()
     }
@@ -405,6 +409,10 @@ class MP3AudioPlayer: AudioPlayerProtocol {
         
         loadedId = nil
         return false
+    }
+    
+    func unLoad() {
+        loadedId = nil
     }
     
     func play() -> Bool {
