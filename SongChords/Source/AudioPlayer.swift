@@ -361,6 +361,15 @@ class MP3AudioPlayer: AudioPlayerProtocol {
         audioEngine.connect(audioPlayerNode, to: timePitch, format: nil)
         audioEngine.connect(timePitch, to: mainMixer, format: nil)
         audioEngine.connect(mainMixer, to: audioEngine.outputNode, format: nil) // Mixer → Output
+        
+        #if os(iOS)
+        do {
+            try AVAudioSession.sharedInstance().setCategory(.playback, mode: .default, options: [])
+            try AVAudioSession.sharedInstance().setActive(true)
+        } catch {
+            print("Fehler beim Setzen der Audio-Session: \(error)")
+        }
+        #endif
     }
     
     func loadAndPlay(song: Song) async -> Bool {
@@ -495,7 +504,7 @@ class MP3AudioPlayer: AudioPlayerProtocol {
     
     private func adjustVolume(for file: AVAudioFile) -> Float {
         let sampleRate = file.processingFormat.sampleRate
-        let duration: TimeInterval = 30
+        let duration: TimeInterval = 3*60
         let frameCount = AVAudioFrameCount(min(Double(file.length), duration * sampleRate)) // Anzahl zu lesender Frames
         
         let buffer = AVAudioPCMBuffer(pcmFormat: file.processingFormat, frameCapacity: frameCount)
