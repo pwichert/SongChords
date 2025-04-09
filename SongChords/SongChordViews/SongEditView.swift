@@ -167,7 +167,7 @@ struct ChordProEditorView: View {
             #if os(iOS)
             .textInputAutocapitalization(.never)
             #else
-            .frame(idealHeight: 500)
+            .frame(height: 500)
             #endif
             .onAppear() {
                 t = srcText
@@ -175,6 +175,7 @@ struct ChordProEditorView: View {
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Save") {
+                        t = t.replacingOccurrences(of: "\r", with: "")
                         if srcText != t { srcText = t }
                         dismiss()
                     }

@@ -97,6 +97,8 @@ struct PlayListView: View {
                 if !isEditing {
                     HStack {
                         Spacer()
+                        Text("\(playlists.count) Playlists").font(.footnote)
+                        Spacer()
                         Button(action: { showPlaylistNewView.toggle() }, label: { Image(systemName: "plus.circle") })
                     }
                 }

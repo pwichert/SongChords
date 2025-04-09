@@ -37,8 +37,8 @@ public class ChordProLexer {
             throw LexerError.inputTooLarge
         }
         
-        self.input = input
-        self.position = input.startIndex
+        self.input = input.replacingOccurrences(of: "\r", with: "")
+        self.position = self.input.startIndex
     }
     
     /// Hauptmethode, um den Eingabetext in Tokens zu zerlegen.

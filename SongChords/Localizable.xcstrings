@@ -43,6 +43,46 @@
     "%lld" : {
       "shouldTranslate" : false
     },
+    "%lld Playlists" : {
+      "localizations" : {
+        "de" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld Playlist"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld Playlists"
+                }
+              }
+            }
+          }
+        },
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld Playlist"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "new",
+                  "value" : "%lld Playlists"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "%lld Song" : {
       "localizations" : {
         "de" : {
@@ -99,6 +139,56 @@
     },
     "+" : {
       "shouldTranslate" : false
+    },
+    "⚪ none" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "⚪ ohne"
+          }
+        }
+      }
+    },
+    "🔴 red" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "🔴 rot"
+          }
+        }
+      }
+    },
+    "🔵 blue" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "🔵 blau"
+          }
+        }
+      }
+    },
+    "🟡 yellow" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "🟡 gelb"
+          }
+        }
+      }
+    },
+    "🟢 green" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "🟢 grün"
+          }
+        }
+      }
     },
     "1st Option" : {
       "localizations" : {
@@ -175,6 +265,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Abbrechen"
+          }
+        }
+      }
+    },
+    "Choose background" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wähle Hintergrund"
           }
         }
       }

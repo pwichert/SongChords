@@ -234,13 +234,14 @@ final public class Song: Codable {
     var transpose: Int = 0
     var duration: Double = 200
     var playerLoops: [PlayerLoop] = []
-    
+    var backgroundColor: Int = 0
+
     var playlist: PlayList?
     
     @Transient let representationHolder = RepresentationHolder()
     @Transient static let invalidTitleCharacters = CharacterSet(charactersIn: "\t\\\0").union(.illegalCharacters).union(.controlCharacters).union(.newlines)
     @Transient static let invalidFilenameCharacters = CharacterSet(charactersIn: "\t\\\0/").union(.illegalCharacters).union(.symbols).union(.controlCharacters).union(.newlines)
-    
+        
     @MainActor
     init(title: String, modelContext: ModelContext, store: SongChordsStore) throws {
         if !Song.isValidTitle(title) {
@@ -255,10 +256,10 @@ final public class Song: Codable {
     }
 
     func updateFromSong(other: Song) {
-        updateFrom(title: other.title, srcText: other.srcText, transpose: other.transpose, showChords: other.showChords, showText: other.showText, showHeader: other.showHeader, duration: other.duration, musicItemId: other.musicItemId, playerLoops: other.playerLoops)
+        updateFrom(title: other.title, srcText: other.srcText, transpose: other.transpose, showChords: other.showChords, showText: other.showText, showHeader: other.showHeader, duration: other.duration, musicItemId: other.musicItemId, playerLoops: other.playerLoops, backgroundColor: other.backgroundColor)
     }
     
-    func updateFrom(title: String, srcText: String, transpose: Int, showChords: Bool, showText: Bool, showHeader: Bool, duration: Double, musicItemId: String, playerLoops: [PlayerLoop]) {
+    func updateFrom(title: String, srcText: String, transpose: Int, showChords: Bool, showText: Bool, showHeader: Bool, duration: Double, musicItemId: String, playerLoops: [PlayerLoop], backgroundColor: Int) {
         self.title = title
         self.srcText = srcText
         self.transpose = transpose
@@ -268,6 +269,7 @@ final public class Song: Codable {
         self.duration = duration
         self.musicItemId = musicItemId
         self.playerLoops = playerLoops
+        self.backgroundColor = backgroundColor
     }
     
     func toPlaylist(playlist: PlayList, after: Song? = nil) {
@@ -464,6 +466,7 @@ final public class Song: Codable {
 //        case duration
         case musicitemid
         case playerloops
+        case backgroundcolor
     }
     
     required public init(from decoder: Decoder) throws {
@@ -478,6 +481,7 @@ final public class Song: Codable {
         if container.contains(.musicitemid) { musicItemId = try container.decode(String.self, forKey: .musicitemid) } else { musicItemId = "" }
         if container.contains(.playerloops) { playerLoops = try container.decode([PlayerLoop].self, forKey: .playerloops) } else { playerLoops = [] }
         if container.contains(.showtext) { showText = try container.decode(Bool.self, forKey: .showtext) }
+        if container.contains(.backgroundcolor) { backgroundColor = try container.decode(Int.self, forKey: .backgroundcolor) }
     }
     
     public func encode(to encoder: Encoder) throws {
@@ -492,6 +496,7 @@ final public class Song: Codable {
 //        try container.encode(duration, forKey: .duration)
         try container.encode(musicItemId, forKey: .musicitemid)
         try container.encode(playerLoops, forKey: .playerloops)
+        try container.encode(backgroundColor, forKey: .backgroundcolor)
     }
 
     @Transient var hideCodable: Bool = false

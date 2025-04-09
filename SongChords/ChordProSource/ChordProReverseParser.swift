@@ -28,7 +28,8 @@ public class ChordProReverseParser {
         
         var lines = [String]()
         input.enumerateLines{ (line, _) -> () in
-            lines.append(line)
+            let cleanLine = line.replacingOccurrences(of: "\r", with: "")
+            lines.append(cleanLine)
         }
         
         var lastLine: (textElement: [TextElement], isChord: Bool)?

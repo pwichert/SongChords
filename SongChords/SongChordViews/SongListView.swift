@@ -21,6 +21,41 @@ struct IdentifiablePersistentIdentifierSet: Identifiable {
     }
 }
 
+enum BgColor: Int {
+    case none = 0
+    case red
+    case green
+    case blue
+    case yellow
+    
+    var color: Color {
+        switch self {
+        case .red: return Color.red
+        case .green: return Color.green
+        case .blue: return Color.blue
+        case .yellow: return Color.yellow
+        case .none: return Color.clear
+        }
+    }
+}
+
+struct ModifiedBG: ViewModifier {
+    let color: Int
+    
+    func body(content: Content) -> some View {
+        if let c = BgColor(rawValue: color), c != BgColor.none {
+            content
+            #if os(macOS)
+                .listRowBackground(c.color.opacity(0.4))
+            #else
+                .listRowBackground(c.color.shadow(color: c.color, radius: 4).opacity(0.4))
+            #endif
+        } else {
+            content
+        }
+    }
+}
+
 struct SongListView: View {
     let playlist: PlayList  // Übergebene Playlist
     @Binding var visibility: NavigationSplitViewVisibility
@@ -70,7 +105,26 @@ struct SongListView: View {
                             .foregroundStyle((song.musicItemId.starts(with: "local@") && !song.mp3FileExists()) ? .tertiary : .primary)
                     }
                 }
+                .modifier(ModifiedBG(color: song.backgroundColor))
                 .contextMenu {
+                    Menu("Choose background") {
+                        Button(action: { updateBGColor(songIds: getSelectedSongIDs(song: song), color: BgColor.red) }) {
+                            Text("🔴 red")
+                        }
+                        Button(action: { updateBGColor(songIds: getSelectedSongIDs(song: song), color: BgColor.blue) }) {
+                            Text("🔵 blue")
+                        }
+                        Button(action: { updateBGColor(songIds: getSelectedSongIDs(song: song), color: BgColor.green) }) {
+                            Text("🟢 green")
+                        }
+                        Button(action: { updateBGColor(songIds: getSelectedSongIDs(song: song), color: BgColor.yellow) }) {
+                            Text("🟡 yellow")
+                        }
+                        Button(action: { updateBGColor(songIds: getSelectedSongIDs(song: song), color: BgColor.none) }) {
+                            Text("⚪ none")
+                        }
+                    }
+                    
                     Button(action: {
                         // Selektierter Song und Kontext-geklickter sind nicht unbedingt gleich.
                         songIDsToCopy = IdentifiablePersistentIdentifierSet(identifiers: selectedSongIDs.contains(song.id) ? selectedSongIDs : [song.id])
@@ -250,6 +304,24 @@ struct SongListView: View {
         #else
         return editMode.isEditing
         #endif
+    }
+    
+    private func updateBGColor(songIds: IdentifiablePersistentIdentifierSet, color: BgColor) {
+        do {
+            for ids in songIds.identifiers {
+                if let s = Song.fetchSong(with: ids, in: modelContext) {
+                    s.backgroundColor = color.rawValue
+                }
+            }
+        
+            try modelContext.save()
+        } catch (let error) {
+            globals.setSongChordsError(error: error)
+        }
+    }
+    
+    private func getSelectedSongIDs(song: Song) -> IdentifiablePersistentIdentifierSet {
+        return IdentifiablePersistentIdentifierSet(identifiers: selectedSongIDs.contains(song.id) ? selectedSongIDs : [song.id])
     }
     
     private func trySongEditView() {
