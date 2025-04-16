@@ -269,16 +269,6 @@
         }
       }
     },
-    "Choose background" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Wähle Hintergrund"
-          }
-        }
-      }
-    },
     "Chordsize [%lld]" : {
       "localizations" : {
         "de" : {
@@ -501,6 +491,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Keine Akkorde darstellen"
+          }
+        }
+      }
+    },
+    "Highlight" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Markierung"
           }
         }
       }

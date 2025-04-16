@@ -107,7 +107,7 @@ struct SongListView: View {
                 }
                 .modifier(ModifiedBG(color: song.backgroundColor))
                 .contextMenu {
-                    Menu("Choose background") {
+                    Menu("Highlight") {
                         Button(action: { updateBGColor(songIds: getSelectedSongIDs(song: song), color: BgColor.red) }) {
                             Text("🔴 red")
                         }
