@@ -28,7 +28,7 @@ struct InfoContentView<Content: View>: View {
         .navigationTitle(navigationTitle)
         .toolbar {
             ToolbarItem(placement: .confirmationAction) {
-                Button("Ok") {
+                Button("Ok", systemImage: "checkmark") {
                     dismiss()
                 }
             }
@@ -42,7 +42,7 @@ struct InfoContentView<Content: View>: View {
         .navigationTitle(navigationTitle)
         .toolbar {
             ToolbarItem(placement: .confirmationAction) {
-                Button("Ok") {
+                Button("Ok", systemImage: "checkmark") {
                     dismiss()
                 }
             }

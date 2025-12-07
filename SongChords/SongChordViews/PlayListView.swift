@@ -60,22 +60,22 @@ struct PlayListView: View {
                             }
                         }
                     }
-                    .dropDestination(for: Data.self) { receivedDatas, location in
-                        do {
-                            return try dropDestinationData(playlist: playlist, data: receivedDatas, modelContext: modelContext, store: store)
-                        } catch(let error) {
-                            globals.setSongChordsError(error: error)
-                            return false
-                        }
-                    }
-                    .dropDestination(for: Song.self) { receivedSongs, location in
-                        do {
-                            return try dropDestinationSongs(playlist: playlist, songs: receivedSongs, modelContext: modelContext, store: store)
-                        } catch(let error) {
-                            globals.setSongChordsError(error: error)
-                            return false
-                        }
-                    }
+            }
+            .dropDestination(for: URL.self) { receivedURLs, location in
+                do {
+                    let playlist = playlists[max(0, location-1)]
+                    let _ = try dropDestinationURL(playlist: playlist, url: receivedURLs, modelContext: modelContext, store: store)
+                } catch(let error) {
+                    globals.setSongChordsError(error: error)
+                }
+            }
+            .dropDestination(for: SongTransferable.self) { receivedSongs, location in
+                do {
+                    let playlist = playlists[max(0, location-1)]
+                    let _ = try dropDestinationSongs(playlist: playlist, songs: receivedSongs, modelContext: modelContext, store: store)
+                } catch(let error) {
+                    globals.setSongChordsError(error: error)
+                }
             }
             .onDelete { indexSet in
                 do {
@@ -93,16 +93,20 @@ struct PlayListView: View {
                 Button(action: { showPlaylistNewView.toggle() }, label: { Image(systemName: "plus.circle") }).help("New Playlist")
             }
             #else
-            ToolbarItem(placement: .bottomBar) { // Fügt Menü unten hinzu
-                if !isEditing {
-                    HStack {
-                        Spacer()
-                        Text("\(playlists.count) Playlists").font(.footnote)
-                        Spacer()
-                        Button(action: { showPlaylistNewView.toggle() }, label: { Image(systemName: "plus.circle") })
-                    }
-                }
+            ToolbarSpacer(placement: .bottomBar)
+                
+            ToolbarItem(placement: .bottomBar) {
+                Text("\(playlists.count) Playlists").font(.footnote)
+                    .fixedSize(horizontal: true, vertical: false)   // ?? sonst clipped
             }
+            .sharedBackgroundVisibility(.hidden)
+                
+            ToolbarSpacer(.flexible, placement: .bottomBar)
+                
+            ToolbarItem(placement: .bottomBar) {
+                Button(action: { showPlaylistNewView.toggle() }, label: { Image(systemName: "plus.circle") })
+            }
+            
             ToolbarItem {
                 CustomEditButton(editMode: $editMode).id(UUID())
             }
@@ -256,10 +260,10 @@ struct PlayListView: View {
     }
     
     private func importPlaylist(url: URL) throws {
-        let playlist = try PlayList.fromUrl(url: url)
+        let playlist = try PlayListTransferable.fromUrl(url: url)
         let newPlaylist = try PlayList(modelContext: modelContext, title: playlist.title)
         modelContext.insert(newPlaylist)
-        try newPlaylist.sortAndCopy(songs: playlist.songs, modelContext: modelContext, store: store)
+        try newPlaylist.sortAndCopyCodable(songs: playlist.songs, modelContext: modelContext, store: store)
         try modelContext.save()
     }
 
@@ -313,7 +317,7 @@ struct PlaylistEditView: View {
         .navigationTitle(playlist == nil ? "New Playlist" : "Edit Playlist")
         .toolbar {
             ToolbarItem(placement: .confirmationAction) {
-                Button("Save") {
+                Button("Save", systemImage: "checkmark") {
                     do {
                         if let playlist {
                             if playlist.title != playlistTitle { playlist.title = playlistTitle; try modelContext.save() }
@@ -331,7 +335,7 @@ struct PlaylistEditView: View {
                 .disabled(playlistTitle.isEmpty || !Song.isValidTitle(playlistTitle))
             }
             ToolbarItem(placement: .cancellationAction) {
-                Button("Cancel") {
+                Button("Cancel", systemImage: "xmark") {
                     dismiss()
                 }
             }
@@ -366,13 +370,13 @@ struct PlaylistSelectionSheet: View {
         }
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
-                Button(action: {
+                Button("Done", systemImage: "checkmark") {
                     if let selectedPlaylist = selectedPlaylist {
                         if let pl = PlayList.fetchPlaylist(with: selectedPlaylist, in: modelContext) {
                             do {
-                                let urlSong = try Song.fromUrl(url: urlToInsert)
-                                let song = try Song(title: urlSong.title, modelContext: modelContext, store: store)
-                                song.updateFromSong(other: urlSong)
+                                let urlSong = try SongTransferable.fromUrl(url: urlToInsert)
+                                let song = try Song(from: urlSong, modelContext: modelContext, store: store)
+//                                song.updateFromSongCodable(other: urlSong)
                                 song.toPlaylist(playlist: pl)
                                 try modelContext.save()
                             } catch (let error) {
@@ -382,16 +386,11 @@ struct PlaylistSelectionSheet: View {
                     }
                     
                     dismiss()
-                }) {
-                    Text("Done")
                 }.disabled(selectedPlaylist == nil)
             }
             ToolbarItem(placement: .cancellationAction) {
-                Button(action: {
+                Button("Cancel", systemImage: "xmark") {
                     dismiss()
-                }
-                ) {
-                    Text("Cancel")
                 }
             }
         }

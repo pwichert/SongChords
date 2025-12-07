@@ -83,7 +83,7 @@ struct SongEditView: View {
         .navigationTitle((song == nil ? "" :  song?.title) ?? "")
         .toolbar {
             ToolbarItem(placement: .confirmationAction) {
-                Button("Save") {
+                Button("Save", systemImage: "checkmark") {
                     do {
                         var processSong: Bool = false
 
@@ -107,11 +107,12 @@ struct SongEditView: View {
                             }
                             if modelContext.hasChanges { try modelContext.save() }
                         } else {
-                            let song = try Song(title: title, modelContext: modelContext, store: store)
+//                            let song = try Song(title: title, modelContext: modelContext, store: store)
+                            let song = try Song(title: title, srcText: srcText, transpose: Int(transpose), showChords: true, showText: showText, showHeader: true, duration: 200, musicItemId: "", playerLoops: [], backgroundColor: 0, modelContext: modelContext, store: store)
                             modelContext.insert(song)
-                            song.showText = showText
-                            song.srcText = srcText
-                            song.transpose = Int(transpose)
+//                            song.showText = showText
+//                            song.srcText = srcText
+//                            song.transpose = Int(transpose)
                             song.toPlaylist(playlist: playlist)
                             
                             Task {
@@ -127,7 +128,7 @@ struct SongEditView: View {
                 }.disabled(title.isEmpty || !Song.isValidTitle(title))
             }
             ToolbarItem(placement: .cancellationAction) {
-                Button("Cancel") {
+                Button("Cancel", systemImage: "xmark") {
                     dismiss()
                 }
             }
@@ -174,14 +175,14 @@ struct ChordProEditorView: View {
             }
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") {
+                    Button("Save", systemImage: "checkmark") {
                         t = t.replacingOccurrences(of: "\r", with: "")
                         if srcText != t { srcText = t }
                         dismiss()
                     }
                 }
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") {
+                    Button("Cancel", systemImage: "xmark") {
                         dismiss()
                     }
                 }

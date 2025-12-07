@@ -24,10 +24,10 @@ public enum ProductId: String {
 
 @Observable
 final class SongChordsStore: @unchecked Sendable {
-    @MainActor
+//    @MainActor
     private(set) var products: [Product] = []
     
-    @MainActor
+//    @MainActor
     private(set) var purchasedProducts: [Product] = []
     
     private let productIds = [ProductId.songLimit.rawValue]
@@ -91,29 +91,29 @@ final class SongChordsStore: @unchecked Sendable {
         await taskManager.runListener(store: self)
     }
     
-    @MainActor
+//    @MainActor
     func updateProducts(product: Product) {
         products.append(product)
     }
 
-    @MainActor
+//    @MainActor
     func setPurchasedProducts(product: [Product]) {
         purchasedProducts = product
     }
 
-    @MainActor
+//    @MainActor
     func unlockedSonglimit() -> Bool {
         if !useStore { return true }
         return isPurchasedId(ProductId.songLimit.rawValue)
     }
     
-    @MainActor
+//    @MainActor
     func isUnlocked() -> Bool {
         if !useStore { return true }
         return products.allSatisfy({ isPurchased($0) })
     }
     
-    @MainActor
+//    @MainActor
     func isPurchased(_ product: Product) -> Bool {
         //Determine whether the user purchases a given product.
                 
@@ -125,7 +125,7 @@ final class SongChordsStore: @unchecked Sendable {
         return purchasedProducts.contains(product)
     }
     
-    @MainActor
+//    @MainActor
     func isPurchasedId(_ productID: String) -> Bool {
         //Determine whether the user purchases a given productID.
                 
@@ -140,6 +140,7 @@ final class SongChordsStore: @unchecked Sendable {
         return false
     }
 
+    nonisolated
     func listenForTransactions() -> Task<Void, Error> {
         return Task(priority: .background) {
             print("Store: listenForTransactions")
@@ -173,13 +174,14 @@ final class SongChordsStore: @unchecked Sendable {
 
             //Filter the products into categories based on their type.
             for product in storeProducts {
-                await updateProducts(product: product)
+                updateProducts(product: product)
             }
         } catch {
             print("Failed product request from the App Store server: \(error)")
         }
     }
     
+    nonisolated
     func checkVerified<T>(_ result: VerificationResult<T>) throws -> T {
         //Check whether the JWS passes StoreKit verification.
         switch result {
@@ -204,7 +206,7 @@ final class SongChordsStore: @unchecked Sendable {
                 //Check the `productType` of the transaction and get the corresponding product from the store.
                 switch transaction.productType {
                 case .nonConsumable:
-                    if let product = await products.first(where: { $0.id == transaction.productID }) {
+                    if let product = products.first(where: { $0.id == transaction.productID }) {
                         if transaction.revocationDate == nil {
                             purchasedProducts.append(product)
                             // Caching
@@ -224,6 +226,6 @@ final class SongChordsStore: @unchecked Sendable {
         }
 
         //Update the store information with the purchased products.
-        await setPurchasedProducts(product: purchasedProducts)
+        setPurchasedProducts(product: purchasedProducts)
     }
 }

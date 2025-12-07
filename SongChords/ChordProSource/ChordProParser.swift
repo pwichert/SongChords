@@ -11,6 +11,7 @@ import SwiftUI
     typealias UIFont = NSFont
 #endif
 
+nonisolated
 public final class SongRepresentation: Identifiable, Sendable {
     public let id = UUID()
     
@@ -49,6 +50,7 @@ public final class SongRepresentation: Identifiable, Sendable {
     }
 }
 
+nonisolated
 final class CPPSectionSendable: Identifiable, Sendable {
     public let id = UUID()
     
@@ -69,6 +71,7 @@ final class CPPSectionSendable: Identifiable, Sendable {
     }
 }
 
+nonisolated
 public class CPPSection: Identifiable {
     public let id = UUID()
     
@@ -92,6 +95,7 @@ public class CPPSection: Identifiable {
     }
 }
 
+nonisolated
 struct SplittedLine: Identifiable, Sendable {
     public let id = UUID()
     
@@ -132,6 +136,7 @@ struct SplittedLine: Identifiable, Sendable {
     }
 }
 
+nonisolated
 struct LineSendable: Identifiable, Sendable {
     let id = UUID()
     let elements: [Element]
@@ -150,6 +155,7 @@ struct LineSendable: Identifiable, Sendable {
     }
 }
 
+nonisolated
 class Line: Identifiable {
     let id = UUID()
     var elements: [Element] = []
@@ -162,6 +168,7 @@ class Line: Identifiable {
     }
 }
 
+nonisolated
 struct TextElement: Identifiable, Equatable, Sendable {
     let id = UUID()
     let txt: String
@@ -175,6 +182,7 @@ struct TextElement: Identifiable, Equatable, Sendable {
     }
 }
 
+nonisolated
 struct Element: Identifiable, Sendable {
     let id = UUID()
     let type: ElementType
@@ -197,13 +205,15 @@ struct Element: Identifiable, Sendable {
     }
 }
 
-enum ElementType: Sendable {    
+nonisolated
+enum ElementType: Sendable {
     case chord(String, ParsedChord, Double)
     case chordcomment(String, Double, Bool)
     case comment(String, Double)
     case text(String, Double)
 }
 
+nonisolated
 public class ChordProParser {
     private let songTranspose: Int
     private let tokens: [Token]

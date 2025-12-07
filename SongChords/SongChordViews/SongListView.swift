@@ -77,7 +77,6 @@ struct SongListView: View {
     @State private var showDeleteAlert: Bool = false
     @State private var showFileImport: Bool = false
     @State private var showFileExport: Bool = false
-    @State private var uttype: UTType = .pdf
     
     @Query private var songs: [Song]
     
@@ -135,8 +134,8 @@ struct SongListView: View {
                         print("Count: \(s.count)")
                         do {
                             for song in s {
-                                let sng = try Song(title: song.title, modelContext: modelContext, store: store)
-                                sng.updateFromSong(other: song)
+                                let sng = try Song(copying: song, modelContext: modelContext, store: store)
+//                                sng.updateFromSong(other: song)
                                 
                                 // MP3 nicht kopieren, da sonst mehrere Songs auf das gleiche MP3 zeigen.
                                 // Wenn dann davon eine inkl. MP3 glöscht würde, wäre das MP3 auch für die anderen weg.
@@ -155,18 +154,7 @@ struct SongListView: View {
                     
                     Button(role: .destructive, action: { prepareDelete(songIDs: selectedSongIDs.contains(song.id) ? selectedSongIDs : [song.id]) }) { Label("Delete", systemImage: "trash")}
                 }
-                #if false
-                    #if os(iOS)
-                    // TODO: zählt in drag-Gesten-Bubble nicht alle selektierten Songs, insb. wenn nicht alle sichtbar sind.
-                    // Ohne draggable wird richtig gezählt.
-                    .draggable(song.setTransData()) { Text(song.title) }
-                    #else
-                    // TODO: funktioniert nur mit Typen, die bereits Transferable sind (String, URL).
-                    // URL ist wegen möglicher gleicher Dateinamen (= Song.title) nicht zu verwenden.
-                    // String der persistentModelID funktioniert zwar innerhalb der App, kann aber sinnloserweise ins System gedropped werden.
-                    .draggable((try? song.persistentModelID.SCtoString()) ?? "") { Text(song.title) }
-                    #endif
-                #endif
+                .draggable(SongTransferable(from: song)) { Text(song.title) }
             }
             .onMove(perform: moveSongs)
             .onDelete { indexSet in
@@ -185,32 +173,51 @@ struct SongListView: View {
                     .disabled(selectedSongIDs.isEmpty)
             }
             #else
-            ToolbarItem(placement: .bottomBar) { // Fügt Menü unten hinzu
-                if !isEditing {
-                    HStack {
-                        ShareLink (
-                            item: playlist.setTransCodable(), preview: SharePreview(Text(playlist.title), image: Image("AppIconInternal"))
-                        )
-                        Spacer()
-                        Text("\(songs.count) Song").font(.footnote)
-                        Spacer()
-                        Button(action: { trySongEditView() }, label: { Image(systemName: "plus.circle") })
+            if !isEditing {
+                ToolbarItem(placement: .bottomBar) {
+                    ShareLink (
+                        item: PlayListTransferable(from: playlist), preview: SharePreview(playlist.title, image: Image("AppIconInternal"))
+                    )
+                }
+                
+                ToolbarSpacer(placement: .bottomBar)
+                    
+                ToolbarItem(placement: .bottomBar) {
+                    Text("\(songs.count) Song").font(.footnote)
+                        .fixedSize(horizontal: true, vertical: false)   // ?? sonst clipped
+                }
+                .sharedBackgroundVisibility(.hidden)
+                
+                ToolbarSpacer(placement: .bottomBar)
+                
+                ToolbarItem(placement: .bottomBar) {
+                    Button(action: { trySongEditView() }, label: { Image(systemName: "plus.circle") })
+                }
+            } else {
+                ToolbarItem(placement: .bottomBar) {
+                    Button(action: { songIDsToCopy = IdentifiablePersistentIdentifierSet(identifiers: selectedSongIDs)
+                    }) {
+                        Text("Copy To").disabled(selectedSongIDs.isEmpty)
                     }
-                } else {
-                    HStack {
-                        Button(action: { songIDsToCopy = IdentifiablePersistentIdentifierSet(identifiers: selectedSongIDs)
-                        }) {
-                            Text("Copy To").disabled(selectedSongIDs.isEmpty)
-                        }
-                        Spacer()
-                        Text("\(String(selectedSongIDs.count)) selected").font(.footnote)
-                        Spacer()
-                        Button(action: { prepareDelete(songIDs: selectedSongIDs) }) {
-                            Text("Delete").disabled(selectedSongIDs.isEmpty)
-                        }
+                }
+                                            
+                ToolbarSpacer(placement: .bottomBar)
+                    
+                ToolbarItem(placement: .bottomBar) {
+                    Text("\(String(selectedSongIDs.count)) selected").font(.footnote)
+                        .fixedSize(horizontal: true, vertical: false)   // ?? sonst clipped
+                }
+                .sharedBackgroundVisibility(.hidden)
+
+                ToolbarSpacer(placement: .bottomBar)
+
+                ToolbarItem(placement: .bottomBar) {
+                      Button(action: { prepareDelete(songIDs: selectedSongIDs) }) {
+                        Text("Delete").disabled(selectedSongIDs.isEmpty)
                     }
                 }
             }
+            
             ToolbarItem {
                 CustomEditButton(editMode: $editMode).id(UUID())
             }
@@ -230,10 +237,12 @@ struct SongListView: View {
                             importSongClipboard()
                         }) { Label("Import Text Clipboard", systemImage: "pencil.and.list.clipboard") }.help("Import Text Clipboard")
                         
-                        Button("Export PDF File", systemImage: "arrow.up.document.fill", action: { uttype = .pdf; playlist.setTransAll(); showFileExport.toggle() }).help("Export PDF File")
-                        
-                        #if os(macOS) // in iOS durch ShareLink ersetzt
-                        Button("Export Playlist", systemImage: "arrow.up.document", action: { uttype = .playlistJSON; playlist.setTransAll(); showFileExport.toggle() }).help("Export Playlist")
+                        #if os(macOS)
+                        Button("Export Playlist", systemImage: "arrow.up.document", action: { showFileExport.toggle() }).help("Export Playlist")
+                        #else
+                        ShareLink(item: PlayListTransferableForPDF(id: playlist.id, title: playlist.title), preview: SharePreview(playlist.title, image: Image("AppIconInternal"))) {
+                            Label("Export PDF File", systemImage: "arrow.up.document.fill")
+                        }
                         #endif
                         
                         #if false   // kein Drucken
@@ -260,7 +269,7 @@ struct SongListView: View {
             #endif
             }
         }
-        .fileExporter(isPresented: $showFileExport, item: playlist, contentTypes: [uttype], defaultFilename: Song.makeValidFilename(playlist.title)) { result in
+        .fileExporter(isPresented: $showFileExport, item: PlayListTransferable(from: playlist), contentTypes: [], defaultFilename: Song.makeValidFilename(playlist.title)) { result in
             switch result {
             case .success(let url):
                 print("Gespeichert: \(url)")
@@ -407,11 +416,12 @@ struct SongListView: View {
             let txt = chordProReverseParser.toString(sections: sections)
             
             do {
-                let song = try Song(title: "Import", modelContext: modelContext, store: store)
+//                let song = try Song(title: "Import", modelContext: modelContext, store: store)
+                let song = try Song(title: "Import", srcText: txt, modelContext: modelContext, store: store)
                 song.toPlaylist(playlist: playlist)
                 
                 song.title = "Import \(song.seq)"
-                song.srcText = txt
+//                song.srcText = txt
                 try modelContext.save()
             } catch (let error) {
                 globals.setSongChordsError(error: error)
@@ -421,7 +431,7 @@ struct SongListView: View {
     
     private func importSongTemplate() {
         do {
-            let song = try Song(title: String(localized: "New Song"), modelContext: modelContext, store: store)
+            let song = try Song(title: String(localized: "New Song"), srcText: "", modelContext: modelContext, store: store)
             song.toPlaylist(playlist: playlist)
             
             song.srcText.append("{st: Subtitle of Song}\n")
@@ -448,8 +458,8 @@ struct SongListView: View {
         do {
             let (filename, srcText) = try Song.srcTextFromText(url: url, modelContext: modelContext)
             let title = Song.titleFromDirective(srcText: srcText)
-            let song = try Song(title: Song.makeValidTitle(title ?? filename), modelContext: modelContext, store: store)
-            song.srcText = srcText
+            let song = try Song(title: Song.makeValidTitle(title ?? filename), srcText: srcText, modelContext: modelContext, store: store)
+//            song.srcText = srcText
             song.toPlaylist(playlist: playlist)
             try modelContext.save()
             success = true

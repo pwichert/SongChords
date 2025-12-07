@@ -9,6 +9,7 @@ import SwiftUI
 
 //extension String: Error {}
 
+nonisolated
 class MediaBoxes {
     // 72 dpi
     
@@ -53,6 +54,7 @@ enum PDFGeneratorError: Error {
     case securityScopedResource
 }
 
+nonisolated
 class PDFGenerator {
     private var userSettings: UserSettings
     private var cols: Int = 1
@@ -83,7 +85,7 @@ class PDFGenerator {
         self.userSettings = userSettings
         self.cols = cols
 
-        let cacheDirectoryURL = try FileManager.default.url(for: .documentDirectory, in: .userDomainMask, appropriateFor: nil, create: true)
+        let cacheDirectoryURL = FileManager.default.temporaryDirectory //.url(for: .cachesDirectory, in: .userDomainMask, appropriateFor: .cachesDirectory, create: true)
         
         url = cacheDirectoryURL
             .appendingPathComponent(viewURL ? "outputv" : "output")
@@ -98,7 +100,7 @@ class PDFGenerator {
 
 //        let urlSec = url.startAccessingSecurityScopedResource()
 //        let testUrlSec = testUrl.startAccessingSecurityScopedResource()
-        
+//        
 //        if !urlSec || !testUrlSec {
 //            throw PDFGeneratorError.securityScopedResource
 //        }

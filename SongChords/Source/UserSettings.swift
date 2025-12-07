@@ -13,6 +13,7 @@ enum DisplayMode: Int, Codable {
     case automatic
 }
 
+nonisolated
 public struct UserSettingsSendable: Sendable {
 #if os(macOS)
     typealias UIFont = NSFont
@@ -53,7 +54,7 @@ public struct UserSettingsSendable: Sendable {
 }
 
 @Observable
-public final class UserSettings {
+nonisolated public final class UserSettings {
     public init() {}
     
     public func makeSendable() -> UserSettingsSendable {

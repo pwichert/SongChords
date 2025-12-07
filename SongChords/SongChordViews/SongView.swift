@@ -25,7 +25,6 @@ struct SongView: View {
     @State private var pdfUrl: URL?
     
     @State private var showFileExport: Bool = false
-    @State private var uttype: UTType = .pdf
     
     @State private var currentLoop = PlayerLoop(start: 0, stop: 0, title: "")
     @State private var selectedLoop: PlayerLoop?
@@ -66,17 +65,26 @@ struct SongView: View {
                     Button("Detailed View", systemImage: "sidebar.left", action: { visibility = .detailOnly }).help("Detailed View")
                 }
             }
+            
             ToolbarItem(placement: .bottomBar) {
-                HStack {
                     ShareLink (
-                        item: pdfUrl != nil ? song.setTransPDF() : song.setTransCodable(), preview: SharePreview(Text(song.title), image: Image("AppIconInternal"))
+                        item: SongTransferable(from: song), preview: SharePreview(Text(song.title), image: Image("AppIconInternal"))
                     )
-                    Spacer()
-                    Button(action: {
-                        withAnimation(.easeInOut(duration: 0.3)) {
-                            showAudioPlayer.toggle()
-                        }}) { Label("Audio Player", systemImage: "music.note.list") }
+            }
+            
+            ToolbarItem(placement: .bottomBar) {
+                ShareLink(item: SongTransferablePDF(id: song.id, title: song.title), preview: SharePreview(song.title, image: Image("AppIconInternal"))) {
+                    Label("Export PDF File", systemImage: "arrow.up.document.fill")
                 }
+            }
+            
+            ToolbarSpacer(placement: .bottomBar)
+            
+            ToolbarItem(placement: .bottomBar) {
+                Button(action: {
+                    withAnimation(.easeInOut(duration: 0.3)) {
+                        showAudioPlayer.toggle()
+                    }}) { Label("Audio Player", systemImage: "music.note.list") }
             }
             #endif
             ToolbarItem {
@@ -85,12 +93,9 @@ struct SongView: View {
             ToolbarItem {
                 Button("Toggle PDF", systemImage: pdfUrl == nil ? "text.rectangle.page" : "text.page", action: { if pdfUrl == nil { Task { await showPdf() }} else { pdfUrl = nil } }).help("Toggle PDF")
             }
-            #if os(macOS) // in iOS durch ShareLink ersetzt
+            #if os(macOS)
             ToolbarItem {
-                Button("Export PDF File", systemImage: "arrow.up.document.fill", action: { uttype = .pdf; song.setTransAll(); showFileExport.toggle() }).help("Export PDF File")
-            }
-            ToolbarItem {
-                Button("Export Song", systemImage: "arrow.up.document", action: { uttype = .songJSON; song.setTransAll();showFileExport.toggle() }).help("Export Song")
+                Button("Export Song", systemImage: "arrow.up.document", action: { showFileExport.toggle() }).help("Export Song")
             }
             ToolbarItem {
                 Button(action: {
@@ -123,7 +128,7 @@ struct SongView: View {
             }
             .interactiveDismissDisabled()
         }
-        .fileExporter(isPresented: $showFileExport, item: song, contentTypes: [uttype], defaultFilename: Song.makeValidFilename(song.title)) { result in
+        .fileExporter(isPresented: $showFileExport, item: SongTransferable(from: song), contentTypes: [], defaultFilename: Song.makeValidFilename(song.title)) { result in
             switch result {
             case .success(let url):
                 print("Gespeichert: \(url)")

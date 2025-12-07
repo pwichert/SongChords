@@ -19,7 +19,9 @@ struct SongChordsApp: App {
         let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
 
         do {
-            return try ModelContainer(for: schema, configurations: [modelConfiguration])
+            let result = try ModelContainer(for: schema, configurations: [modelConfiguration])
+            GlobalModelContainer.shared = result
+            return result
         } catch {
             fatalError("Could not create ModelContainer: \(error)")
         }

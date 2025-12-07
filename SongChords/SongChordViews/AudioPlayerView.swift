@@ -506,7 +506,7 @@ struct MusicContentView: View {
         .frame(maxWidth: 500, idealHeight: 500)
         .toolbar {
             ToolbarItem(placement: .confirmationAction) {
-                Button(action: {
+                Button("Ok", systemImage: "checkmark", role: .confirm) {
                     do {
                         let id = String(selectedSong?.id ?? "")
                         song.tryRemoveMP3() // falls schon MP3 geladen wurde, erst löschen
@@ -518,16 +518,12 @@ struct MusicContentView: View {
                         globals.setSongChordsError(error: error)
                     }
                     dismiss()
-                }) {
-                    Text("Ok")
                 }.disabled(selectedSong == nil)
             }
             
             ToolbarItem(placement: .cancellationAction) {
-                Button(action: {
+                Button("Cancel", systemImage: "xmark", role: .cancel) {
                     dismiss()
-                }) {
-                    Text("Cancel")
                 }
             }
         }
