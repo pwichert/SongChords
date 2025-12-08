@@ -32,7 +32,8 @@ struct ContentView: View {
                 .environment(store)
                 .environment(audioPlayer)
                 .environment(timerManager)
-
+                .navigationSplitViewColumnWidth(min: 300, ideal: 300, max: 400)
+            
         } content: {
             
             if let selectedPlaylistID = selectedPlaylistID, let selectedPlaylist = PlayList.fetchPlaylist(with: selectedPlaylistID, in: modelContext) {
@@ -42,8 +43,10 @@ struct ContentView: View {
                     .environment(store)
                     .environment(audioPlayer)
                     .environment(timerManager)
+                    .navigationSplitViewColumnWidth(min: 200, ideal: 200, max: 300)
             } else {
                 ContentUnavailableView("Select a playlist", systemImage: "doc.text.image.fill")
+                    .navigationSplitViewColumnWidth(min: 200, ideal: 200, max: 300)
             }
             
         } detail: {

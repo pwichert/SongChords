@@ -60,15 +60,28 @@ struct PlayListView: View {
                             }
                         }
                     }
+                    #if os(iOS)
+                    // in iOS kann dropDestination() scheinbar auch hier (innerhalb Liste) sein. Optisch ist das Ziel dann besser sichtbar
+                    .dropDestination(for: SongTransferable.self) { receivedSongs, location in
+                        do {
+                            let _ = try dropDestinationSongs(playlist: playlist, songs: receivedSongs, modelContext: modelContext, store: store)
+                        } catch(let error) {
+                            globals.setSongChordsError(error: error)
+                        }
+                    }
+                    #if DEBUG
+                    // TODO: dropDestination() kann nur einen Typ droppen
+                    .dropDestination(for: URL.self) { receivedURLs, location in
+                        do {
+                            let _ =  try dropDestinationURL(playlist: playlist, url: receivedURLs, modelContext: modelContext, store: store)
+                        } catch(let error) {
+                            globals.setSongChordsError(error: error)
+                        }
+                    }
+                    #endif
+                    #endif
             }
-            .dropDestination(for: URL.self) { receivedURLs, location in
-                do {
-                    let playlist = playlists[max(0, location-1)]
-                    let _ = try dropDestinationURL(playlist: playlist, url: receivedURLs, modelContext: modelContext, store: store)
-                } catch(let error) {
-                    globals.setSongChordsError(error: error)
-                }
-            }
+            #if os(macOS)
             .dropDestination(for: SongTransferable.self) { receivedSongs, location in
                 do {
                     let playlist = playlists[max(0, location-1)]
@@ -77,6 +90,18 @@ struct PlayListView: View {
                     globals.setSongChordsError(error: error)
                 }
             }
+            #if DEBUG
+            // TODO: dropDestination kann nur einen Typ droppen
+            .dropDestination(for: URL.self) { receivedURLs, location in
+                do {
+                    let playlist = playlists[max(0, location-1)]
+                    let _ = try dropDestinationURL(playlist: playlist, url: receivedURLs, modelContext: modelContext, store: store)
+                } catch(let error) {
+                    globals.setSongChordsError(error: error)
+                }
+            }
+            #endif
+            #endif
             .onDelete { indexSet in
                 do {
                     try deletePlaylists(offsets: indexSet)
@@ -108,7 +133,8 @@ struct PlayListView: View {
             }
             
             ToolbarItem {
-                CustomEditButton(editMode: $editMode).id(UUID())
+//                CustomEditButton(editMode: $editMode).id(UUID())
+                EditButton()
             }
             #endif
             ToolbarItem {

@@ -118,7 +118,9 @@ struct SongTransferable: Transferable, Codable, Identifiable {
     let playerLoops: [PlayerLoop]
     let backgroundColor: Int
 
-    init(from song: Song) {
+    let includePDF: Bool
+    
+    init(from song: Song, includePDF: Bool = false) {
         self.persistentId = song.id
         self.seq = song.seq
         self.title = song.title
@@ -131,6 +133,7 @@ struct SongTransferable: Transferable, Codable, Identifiable {
         self.musicItemId = song.musicItemId
         self.playerLoops = song.playerLoops
         self.backgroundColor = song.backgroundColor
+        self.includePDF = includePDF
     }
     
     enum CodingKeys: CodingKey {
@@ -149,6 +152,7 @@ struct SongTransferable: Transferable, Codable, Identifiable {
     
     public init(from decoder: Decoder) throws {
         self.persistentId = nil
+        self.includePDF = false
         
         let container = try decoder.container(keyedBy: CodingKeys.self)
         seq = try container.decode(Int.self, forKey: .seq)
@@ -228,6 +232,7 @@ struct SongTransferable: Transferable, Codable, Identifiable {
             return data
         }
         .suggestedFileName { Song.makeValidFilename($0.title) }
+        .exportingCondition { song in return song.includePDF }
         #endif
     }
 }

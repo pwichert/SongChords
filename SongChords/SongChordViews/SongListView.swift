@@ -219,7 +219,8 @@ struct SongListView: View {
             }
             
             ToolbarItem {
-                CustomEditButton(editMode: $editMode).id(UUID())
+//                CustomEditButton(editMode: $editMode).id(UUID())
+                EditButton()
             }
             #endif
                 ToolbarItem {

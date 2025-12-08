@@ -32,7 +32,7 @@ enum SongChordsError: Error, Equatable {
 }
 
 @Model
-final class PlayList {
+final class PlayList: Identifiable {
     var seq: Int = 0
     var title: String = ""
     
@@ -151,7 +151,7 @@ final class RepresentationHolder: Sendable {
 }
 
 @Model
-final public class Song {
+final public class Song: Identifiable {
     var seq: Int = 0
     var title: String = ""
     var srcText: String = ""
@@ -364,15 +364,3 @@ extension PersistentIdentifier {
         return context.model(for: self) as? Model
     }
 }
-
-//extension PersistentIdentifier {
-//    public func SCtoString() throws -> String? {
-//        let jsonData = try JSONEncoder().encode(self)
-//        return String(data: jsonData, encoding: .utf8)
-//    }
-//    
-//    public static func SCfromString(_ string: String) throws -> PersistentIdentifier? {
-//        guard let jsonData = string.data(using: .utf8) else { return nil }
-//        return try JSONDecoder().decode(PersistentIdentifier.self, from: jsonData)
-//    }
-//}
