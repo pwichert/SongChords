@@ -48,7 +48,7 @@ struct SongView: View {
                     } else {
                         DetailContent(song: song, representationHolder: song.representationHolder)
                         #if os(iOS)
-                            .navigationBarTitleDisplayMode(.automatic)
+                            .navigationBarTitleDisplayMode(.large)
                         #endif
                     }
                     
@@ -58,6 +58,9 @@ struct SongView: View {
             }
         }
         .navigationTitle(song.title)
+        #if os(iOS)
+        .navigationBarTitleDisplayMode(.large)
+        #endif
         .toolbar {
             #if os(iOS)
             ToolbarItem(placement: .topBarLeading) {

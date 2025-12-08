@@ -163,6 +163,9 @@ struct SongListView: View {
             }
         }
         .navigationTitle(playlist.title)
+        #if os(iOS)
+        .navigationBarTitleDisplayMode(.large)
+        #endif
         .toolbar {
             #if os(macOS)
             ToolbarItem {

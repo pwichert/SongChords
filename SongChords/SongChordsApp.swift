@@ -5,8 +5,23 @@
 //  Created by Peter Wichert on 07.11.24.
 //
 
+/*
+ 
+TODO:
+
+- NavigationSplitView speichert die Spaltenbreiten in macOS nicht.
+ Ohne Initialisierung mit navigationSplitViewColumnWidth() kommen bei jedem Neustart
+ andere Breiten
+ 
+- dropDestination() kann nur einen Typ, daher ist URL erstmal raus.
+ 
+- Mehrfachselektion in iOS zeigt bei drag-Beginn falsche Anzahl im Ball an
+
+ */
+
 import SwiftUI
 import SwiftData
+
 
 @main
 struct SongChordsApp: App {

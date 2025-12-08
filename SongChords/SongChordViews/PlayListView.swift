@@ -112,6 +112,9 @@ struct PlayListView: View {
             .onMove(perform: movePlaylists)
         }
         .navigationTitle("Playlists")
+        #if os(iOS)
+        .navigationBarTitleDisplayMode(.large)
+        #endif
         .toolbar {
             #if os(macOS)
             ToolbarItem {
@@ -541,7 +544,7 @@ struct CustomEditButton: View {
             toggleEditMode()
         }) {
             if $editMode.wrappedValue == .active {
-                Label("Done", systemImage: "list.dash").labelStyle(.titleOnly)
+                Label("Done", systemImage: "checkmark").labelStyle(.iconOnly)
             } else {
                 Label("Done", systemImage: "list.dash").labelStyle(.iconOnly)
             }
