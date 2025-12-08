@@ -32,7 +32,9 @@ struct ContentView: View {
                 .environment(store)
                 .environment(audioPlayer)
                 .environment(timerManager)
+                #if os(macOS)
                 .navigationSplitViewColumnWidth(min: 300, ideal: 300, max: 400)
+                #endif
             
         } content: {
             
@@ -43,10 +45,14 @@ struct ContentView: View {
                     .environment(store)
                     .environment(audioPlayer)
                     .environment(timerManager)
+                    #if os(macOS)
                     .navigationSplitViewColumnWidth(min: 200, ideal: 200, max: 300)
+                    #endif
             } else {
                 ContentUnavailableView("Select a playlist", systemImage: "doc.text.image.fill")
+                    #if os(macOS)
                     .navigationSplitViewColumnWidth(min: 200, ideal: 200, max: 300)
+                    #endif
             }
             
         } detail: {
