@@ -356,10 +356,8 @@ struct PopoverButtonView: View {
                 VStack {
                     HStack {
                         Spacer()
-                        Button(action: { showChordShape = false }) {
-                            Image(systemName: "xmark.circle.fill")
-                                .foregroundColor(.gray)
-                                .imageScale(.large)
+                        Button(role: .close, action: { showChordShape = false }) {
+                            Image(systemName: "checkmark")
                         }
                         .padding()
                     }

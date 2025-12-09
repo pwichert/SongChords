@@ -135,14 +135,6 @@ struct SongListView: View {
                         do {
                             for song in s {
                                 let sng = try Song(copying: song, modelContext: modelContext, store: store)
-//                                sng.updateFromSong(other: song)
-                                
-                                // MP3 nicht kopieren, da sonst mehrere Songs auf das gleiche MP3 zeigen.
-                                // Wenn dann davon eine inkl. MP3 glöscht würde, wäre das MP3 auch für die anderen weg.
-                                // Also: beim Song-Kopieren wird MP3 nicht mitkopiert, sondern muss neu zugeordnet werden.
-                                // Siehe auch sortAndCopy()
-                                if sng.musicItemId.starts(with: "local@") { sng.musicItemId = "" }
-
                                 sng.toPlaylist(playlist: playlist, after: song)
                             }
                             try modelContext.save()

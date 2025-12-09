@@ -7,6 +7,7 @@
 
 import XCTest
 
+nonisolated
 final class SongChordsUITestsLaunchTests: XCTestCase {
 
     override class var runsForEachTargetApplicationUIConfiguration: Bool {

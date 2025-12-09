@@ -93,12 +93,6 @@ final class PlayList: Identifiable {
     public func sortAndCopy(songs: [Song]?, modelContext: ModelContext, store: SongChordsStore) throws {
         for song in (songs ?? []).sorted(by: { $0.seq < $1.seq }) {
             let newSong = try Song(copying: song, modelContext: modelContext, store: store)
-
-            // MP3 nicht kopieren, da sonst mehrere Songs auf das gleiche MP3 zeigen.
-            // Wenn dann davon eine inkl. MP3 glöscht würde, wäre das MP3 auch für die anderen weg.
-            // Also: beim Song-Kopieren wird MP3 nicht mitkopiert, sondern muss neu zugeordnet werden.
-            if newSong.musicItemId.starts(with: "local@") { newSong.musicItemId = "" }
-
             newSong.toPlaylist(playlist: self)
         }
     }
@@ -107,12 +101,6 @@ final class PlayList: Identifiable {
     public func sortAndCopyCodable(songs: [SongTransferable]?, modelContext: ModelContext, store: SongChordsStore) throws {
         for song in (songs ?? []).sorted(by: { $0.seq < $1.seq }) {
             let newSong = try Song(from: song, modelContext: modelContext, store: store)
-
-            // MP3 nicht kopieren, da sonst mehrere Songs auf das gleiche MP3 zeigen.
-            // Wenn dann davon eine inkl. MP3 glöscht würde, wäre das MP3 auch für die anderen weg.
-            // Also: beim Song-Kopieren wird MP3 nicht mitkopiert, sondern muss neu zugeordnet werden.
-            if newSong.musicItemId.starts(with: "local@") { newSong.musicItemId = "" }
-
             newSong.toPlaylist(playlist: self)
         }
     }
@@ -187,9 +175,14 @@ final public class Song: Identifiable {
         self.showText = showText
         self.showHeader = showHeader
         self.duration = duration
-        self.musicItemId = musicItemId
         self.playerLoops = playerLoops
         self.backgroundColor = backgroundColor
+
+        // Keine mehrfachen Verweise auf MP3 zulassen:
+        // MP3 nicht kopieren, da sonst mehrere Songs auf das gleiche MP3 zeigen.
+        // Wenn dann davon eine inkl. MP3 glöscht würde, wäre das MP3 auch für die anderen weg.
+        // Also: beim Song-Kopieren wird MP3 nicht mitkopiert, sondern muss neu zugeordnet werden.
+        if musicItemId.starts(with: "local@") { self.musicItemId = "" } else { self.musicItemId = musicItemId }
     }
 
     @MainActor

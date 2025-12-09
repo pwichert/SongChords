@@ -30,7 +30,7 @@ struct InfoContentView<Content: View>: View {
             ToolbarItem(placement: .confirmationAction) {
                 Button("Ok", systemImage: "checkmark") {
                     dismiss()
-                }
+                }.labelStyle(.iconOnly)
             }
         }
         #else
@@ -44,7 +44,7 @@ struct InfoContentView<Content: View>: View {
             ToolbarItem(placement: .confirmationAction) {
                 Button("Ok", systemImage: "checkmark") {
                     dismiss()
-                }
+                }.labelStyle(.iconOnly)
             }
         }
         #endif

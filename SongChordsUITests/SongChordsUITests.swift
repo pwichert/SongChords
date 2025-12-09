@@ -7,6 +7,7 @@
 
 import XCTest
 
+nonisolated
 final class SongChordsUITests: XCTestCase {
 
     override func setUpWithError() throws {

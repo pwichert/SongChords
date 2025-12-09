@@ -23,7 +23,7 @@ extension UTType {
 nonisolated
 struct PlayListTransferable: Transferable, Codable, Identifiable {
     let persistentId: PersistentIdentifier?
-    let id = UUID()
+    internal let id = UUID()
     let seq: Int
     let title: String
     let songs: [SongTransferable]
@@ -105,7 +105,7 @@ struct PlayListTransferableForPDF: Transferable, Identifiable {
 nonisolated
 struct SongTransferable: Transferable, Codable, Identifiable {
     let persistentId: PersistentIdentifier?
-    let id = UUID()
+    internal let id = UUID()
     let seq: Int
     let title: String
     let srcText: String
@@ -162,7 +162,13 @@ struct SongTransferable: Transferable, Codable, Identifiable {
         showHeader = try container.decode(Bool.self, forKey: .showheader)
         showChords = try container.decode(Bool.self, forKey: .showchords)
         duration = try container.decode(Double.self, forKey: .duration)
-        if container.contains(.musicitemid) { musicItemId = try container.decode(String.self, forKey: .musicitemid) } else { musicItemId = "" }
+        
+        if container.contains(.musicitemid) {
+            let mItemId = try container.decode(String.self, forKey: .musicitemid)
+            // keine mehrfachen Verweise auf MP3 zulassen
+            if mItemId.starts(with: "local@") { musicItemId = "" } else { musicItemId = mItemId }
+        } else { musicItemId = "" }
+
         if container.contains(.playerloops) { playerLoops = try container.decode([PlayerLoop].self, forKey: .playerloops) } else { playerLoops = [] }
         if container.contains(.showtext) { showText = try container.decode(Bool.self, forKey: .showtext) } else { showText = false }
         if container.contains(.backgroundcolor) { backgroundColor = try container.decode(Int.self, forKey: .backgroundcolor) } else { backgroundColor = 0 }

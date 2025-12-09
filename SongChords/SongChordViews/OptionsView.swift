@@ -126,7 +126,7 @@ struct OptionsView: View {
         .navigationTitle("Options")
         .toolbar {
             ToolbarItem(placement: .confirmationAction) {
-                Button("Save") {
+                Button("Save", systemImage: "checkmark") {
                     if Int(chordSize) != Int(userSettings.chordsize) { userSettings.chordsize = chordSize }
                     if Int(txtSize) != Int(userSettings.txtsize) { userSettings.txtsize = txtSize }
                     if Int(headerSize) != Int(userSettings.headersize) { userSettings.headersize = headerSize }
@@ -136,12 +136,12 @@ struct OptionsView: View {
                     if displayMode != userSettings.displayMode { userSettings.displayMode = displayMode }
                     
                     dismiss()
-                }
+                }.labelStyle(.iconOnly)
             }
             ToolbarItem(placement: .cancellationAction) {
-                Button("Cancel") {
+                Button("Cancel", systemImage: "xmark") {
                     dismiss()
-                }
+                }.labelStyle(.iconOnly)
             }
         }
         .onAppear {
@@ -232,18 +232,18 @@ struct PrintOptionsView: View {
         .navigationTitle("PDF Options")
         .toolbar {
             ToolbarItem(placement: .confirmationAction) {
-                Button("Save") {
+                Button("Save", systemImage: "checkmark") {
                     if Int(chordSize) != Int(userSettings.chordsizepdf) { userSettings.chordsizepdf = chordSize }
                     if Int(txtSize) != Int(userSettings.txtsizepdf) { userSettings.txtsizepdf = txtSize }
                     if Int(headerSize) != Int(userSettings.headersizepdf) { userSettings.headersizepdf = headerSize }
                     
                     dismiss()
-                }
+                }.labelStyle(.iconOnly)
             }
             ToolbarItem(placement: .cancellationAction) {
-                Button("Cancel") {
+                Button("Cancel", systemImage: "xmark") {
                     dismiss()
-                }
+                }.labelStyle(.iconOnly)
             }
         }
         .onAppear {
