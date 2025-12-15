@@ -22,7 +22,6 @@ struct PlayListView: View {
     
     @Environment(\.modelContext) private var modelContext
     @Environment(Globals.self) private var globals
-    @Environment(SongChordsStore.self) private var store
 
     #if os(iOS)
     @State private var editMode: EditMode = .inactive
@@ -61,46 +60,25 @@ struct PlayListView: View {
                         }
                     }
                     #if os(iOS)
-                    // in iOS kann dropDestination() scheinbar auch hier (innerhalb Liste) sein. Optisch ist das Ziel dann besser sichtbar
-                    .dropDestination(for: SongTransferable.self) { receivedSongs, location in
+                    // in iOS kann .dropDestination() scheinbar auch hier (innerhalb Liste) sein. Optisch ist das Ziel dann besser sichtbar
+                    .dropDestination(for: SongDropTransferable.self) { receivedSongs, location in
                         do {
-                            let _ = try dropDestinationSongs(playlist: playlist, songs: receivedSongs, modelContext: modelContext, store: store)
+                            try dropDestinationItems(dropItems: receivedSongs, playlist: playlist, modelContext: modelContext)
                         } catch(let error) {
                             globals.setSongChordsError(error: error)
                         }
                     }
-                    #if DEBUG
-                    // TODO: dropDestination() kann nur einen Typ droppen
-                    .dropDestination(for: URL.self) { receivedURLs, location in
-                        do {
-                            let _ =  try dropDestinationURL(playlist: playlist, url: receivedURLs, modelContext: modelContext, store: store)
-                        } catch(let error) {
-                            globals.setSongChordsError(error: error)
-                        }
-                    }
-                    #endif
                     #endif
             }
             #if os(macOS)
-            .dropDestination(for: SongTransferable.self) { receivedSongs, location in
+            .dropDestination(for: SongDropTransferable.self) { receivedSongs, location in
                 do {
                     let playlist = playlists[max(0, location-1)]
-                    let _ = try dropDestinationSongs(playlist: playlist, songs: receivedSongs, modelContext: modelContext, store: store)
+                    try dropDestinationItems(dropItems: receivedSongs, playlist: playlist, modelContext: modelContext)
                 } catch(let error) {
                     globals.setSongChordsError(error: error)
                 }
             }
-            #if DEBUG
-            // TODO: dropDestination kann nur einen Typ droppen
-            .dropDestination(for: URL.self) { receivedURLs, location in
-                do {
-                    let playlist = playlists[max(0, location-1)]
-                    let _ = try dropDestinationURL(playlist: playlist, url: receivedURLs, modelContext: modelContext, store: store)
-                } catch(let error) {
-                    globals.setSongChordsError(error: error)
-                }
-            }
-            #endif
             #endif
             .onDelete { indexSet in
                 do {
@@ -251,7 +229,11 @@ struct PlayListView: View {
     private func deletePlaylist(playlist: PlayList) throws {
         if (playlist.songs ?? []).count > 0 { throw SongChordsError.playlistNotEmpty }
         
+        let plid = playlist.id
+        if selectedPlaylistID == plid { selectedPlaylistID = nil }
+
         modelContext.delete(playlist)
+
         try modelContext.save()
     }
     
@@ -261,6 +243,8 @@ struct PlayListView: View {
         let sortedPlaylists = playlists
         for index in offsets {
             if (sortedPlaylists[index].songs ?? []).count == 0 {
+                let plid = sortedPlaylists[index].id
+                if selectedPlaylistID == plid { selectedPlaylistID = nil }
                 modelContext.delete(sortedPlaylists[index])
             } else {
                 try modelContext.save()
@@ -292,7 +276,7 @@ struct PlayListView: View {
         let playlist = try PlayListTransferable.fromUrl(url: url)
         let newPlaylist = try PlayList(modelContext: modelContext, title: playlist.title)
         modelContext.insert(newPlaylist)
-        try newPlaylist.sortAndCopyCodable(songs: playlist.songs, modelContext: modelContext, store: store)
+        try newPlaylist.sortAndCopyCodable(songs: playlist.songs, modelContext: modelContext)
         try modelContext.save()
     }
 
@@ -389,7 +373,7 @@ struct PlaylistSelectionSheet: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) var dismiss
     @Environment(Globals.self) private var globals
-    @Environment(SongChordsStore.self) private var store
+//    @Environment(SongChordsStore.self) private var store
 
     @State private var selectedPlaylist: PlayList.ID?
 
@@ -404,7 +388,7 @@ struct PlaylistSelectionSheet: View {
                         if let pl = PlayList.fetchPlaylist(with: selectedPlaylist, in: modelContext) {
                             do {
                                 let urlSong = try SongTransferable.fromUrl(url: urlToInsert)
-                                let song = try Song(from: urlSong, modelContext: modelContext, store: store)
+                                let song = try Song(from: urlSong, modelContext: modelContext)
 //                                song.updateFromSongCodable(other: urlSong)
                                 song.toPlaylist(playlist: pl)
                                 try modelContext.save()

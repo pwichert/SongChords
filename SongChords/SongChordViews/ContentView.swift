@@ -9,13 +9,10 @@ import SwiftUI
 import SwiftData
 
 struct ContentView: View {
-    let store: SongChordsStore
-    
     @State private var visibility: NavigationSplitViewVisibility = .all
     @State private var selectedPlaylistID: PersistentIdentifier?
     @State private var selectedSongIDs: Set<PersistentIdentifier> = []
     @State private var showAlert: Bool = false
-    @State private var showStore: Bool = false
 
     @Environment(TimerManager.self) private var timerManager
     @Environment(UserSettings.self) private var userSettings
@@ -29,12 +26,8 @@ struct ContentView: View {
             PlayListView(selectedPlaylistID: $selectedPlaylistID, visibility: $visibility)
                 .environment(userSettings)
                 .environment(globals)
-                .environment(store)
                 .environment(audioPlayer)
                 .environment(timerManager)
-                #if os(macOS)
-                .navigationSplitViewColumnWidth(min: 300, ideal: 300, max: 400)
-                #endif
             
         } content: {
             
@@ -42,17 +35,10 @@ struct ContentView: View {
                 SongListView(playlist: selectedPlaylist, visibility: $visibility, selectedSongIDs: $selectedSongIDs)
                     .environment(userSettings)
                     .environment(globals)
-                    .environment(store)
                     .environment(audioPlayer)
                     .environment(timerManager)
-                    #if os(macOS)
-                    .navigationSplitViewColumnWidth(min: 200, ideal: 200, max: 300)
-                    #endif
             } else {
                 ContentUnavailableView("Select a playlist", systemImage: "doc.text.image.fill")
-                    #if os(macOS)
-                    .navigationSplitViewColumnWidth(min: 200, ideal: 200, max: 300)
-                    #endif
             }
             
         } detail: {
@@ -61,7 +47,6 @@ struct ContentView: View {
                 SongView(song: song, visibility: $visibility)
                     .environment(userSettings)
                     .environment(globals)
-                    .environment(store)
                     .environment(audioPlayer)
                     .environment(timerManager)
             } else {
@@ -72,27 +57,10 @@ struct ContentView: View {
         .alert((globals.songChordsError?.error as? SongChordsError)?.desc ?? globals.songChordsError?.error.localizedDescription ?? "??", isPresented: $showAlert) {
             Button("Ok") { }
         }
-        .sheet(isPresented: $showStore) {
-            NavigationStack {
-                SongChordsStoreView(store: store, songChordsError: globals.songChordsError)
-            }
-        }
-        .onChange(of: globals.songChordsError) { errorChanged() }
+        .onChange(of: globals.songChordsError) { showAlert.toggle() }
         .onChange(of: selectedPlaylistID) { selectedSongIDs = [] }      // ContentUnavailable in SongView
         .navigationSplitViewStyle(.automatic)
         .preferredColorScheme(userSettings.displayMode == .dark ? .dark : (userSettings.displayMode == .light ? .light : nil))
-    }
-    
-    private func errorChanged() {
-        // Falls es jemals weitere Purchases gibt, müsste die Liste für showStore.toggle() erweitert werden
-        // Jeder Purchase wird von einem SongChordsError getriggert
-        
-        switch globals.songChordsError?.error as? SongChordsError {
-        case .limitReached:
-            showStore.toggle()
-        default:
-            showAlert.toggle()
-        }
     }
 }
 

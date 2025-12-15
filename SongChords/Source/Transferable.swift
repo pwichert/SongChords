@@ -260,6 +260,30 @@ struct SongTransferablePDF: Transferable, Identifiable {
     }
 }
 
+//
+// Transferable für .dropDestination. Erweiterung für mehrere Typen (SongTransferable, URL)
+//
+enum SongDropItem {
+    case song(SongTransferable)
+    case file(URL)
+}
+
+nonisolated
+struct SongDropTransferable: Transferable {
+    let items: [SongDropItem]
+
+    static var transferRepresentation: some TransferRepresentation {
+        // Einzelner Song
+        ProxyRepresentation { (song: SongTransferable) in
+            SongDropTransferable(items: [.song(song)])
+        }
+        // Einzelne URL
+        ProxyRepresentation { (url: URL) in
+            SongDropTransferable(items: [.file(url)])
+        }
+    }
+}
+
 // Global access point for a ModelContainer used by wrappers to export Files.
 // Set this once during app startup, e.g., in the App struct after creating the container.
 struct GlobalModelContainer {

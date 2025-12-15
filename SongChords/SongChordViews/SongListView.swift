@@ -64,7 +64,6 @@ struct SongListView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(UserSettings.self) private var userSettings
     @Environment(Globals.self) private var globals
-    @Environment(SongChordsStore.self) private var store
     @Environment(AudioPlayer.self) private var audioPlayer
 
 #if os(iOS)
@@ -134,7 +133,7 @@ struct SongListView: View {
                         print("Count: \(s.count)")
                         do {
                             for song in s {
-                                let sng = try Song(copying: song, modelContext: modelContext, store: store)
+                                let sng = try Song(copying: song, modelContext: modelContext)
                                 sng.toPlaylist(playlist: playlist, after: song)
                             }
                             try modelContext.save()
@@ -146,6 +145,7 @@ struct SongListView: View {
                     
                     Button(role: .destructive, action: { prepareDelete(songIDs: selectedSongIDs.contains(song.id) ? selectedSongIDs : [song.id]) }) { Label("Delete", systemImage: "trash")}
                 }
+                // TODO: Mehrfachselektion in iOS zeigt bei drag-Beginn falsche Anzahl im Ball an
                 .draggable(SongTransferable(from: song)) { Text(song.title) }
             }
             .onMove(perform: moveSongs)
@@ -161,7 +161,7 @@ struct SongListView: View {
         .toolbar {
             #if os(macOS)
             ToolbarItem {
-                Button(action: { trySongEditView() }, label: { Image(systemName: "plus.circle") }).help("New Song")
+                Button(action: { showSongEditView.toggle() }, label: { Image(systemName: "plus.circle") }).help("New Song")
             }
             ToolbarItem {
                 Button(action: { prepareDelete(songIDs: selectedSongIDs) }, label: { Image(systemName: "trash")} ).help("Delete Song(s)")
@@ -186,7 +186,7 @@ struct SongListView: View {
                 ToolbarSpacer(placement: .bottomBar)
                 
                 ToolbarItem(placement: .bottomBar) {
-                    Button(action: { trySongEditView() }, label: { Image(systemName: "plus.circle") })
+                    Button(action: { showSongEditView.toggle() }, label: { Image(systemName: "plus.circle") })
                 }
             } else {
                 ToolbarItem(placement: .bottomBar) {
@@ -329,18 +329,6 @@ struct SongListView: View {
         return IdentifiablePersistentIdentifierSet(identifiers: selectedSongIDs.contains(song.id) ? selectedSongIDs : [song.id])
     }
     
-    private func trySongEditView() {
-        do {
-            if try Song.countSongs(in: modelContext) > store.freeSongLimit && !store.unlockedSonglimit() {
-                throw SongChordsError.limitReached
-            } else {
-                showSongEditView.toggle()
-            }
-        } catch (let error) {
-            globals.setSongChordsError(error: error)
-        }
-    }
-
     private func moveSongs(from source: IndexSet, to destination: Int) {
         do {
             var sortedSongs = songs
@@ -387,6 +375,7 @@ struct SongListView: View {
             
             modelContext.delete(s)
             playlist.songs?.removeAll(where: { $0.seq == s.seq })
+            selectedSongIDs.remove(s.id)
         }
         try modelContext.save()
         #if os(iOS)
@@ -413,7 +402,7 @@ struct SongListView: View {
             
             do {
 //                let song = try Song(title: "Import", modelContext: modelContext, store: store)
-                let song = try Song(title: "Import", srcText: txt, modelContext: modelContext, store: store)
+                let song = try Song(title: "Import", srcText: txt, modelContext: modelContext)
                 song.toPlaylist(playlist: playlist)
                 
                 song.title = "Import \(song.seq)"
@@ -427,7 +416,7 @@ struct SongListView: View {
     
     private func importSongTemplate() {
         do {
-            let song = try Song(title: String(localized: "New Song"), srcText: "", modelContext: modelContext, store: store)
+            let song = try Song(title: String(localized: "New Song"), srcText: "", modelContext: modelContext)
             song.toPlaylist(playlist: playlist)
             
             song.srcText.append("{st: Subtitle of Song}\n")
@@ -454,7 +443,7 @@ struct SongListView: View {
         do {
             let (filename, srcText) = try Song.srcTextFromText(url: url, modelContext: modelContext)
             let title = Song.titleFromDirective(srcText: srcText)
-            let song = try Song(title: Song.makeValidTitle(title ?? filename), srcText: srcText, modelContext: modelContext, store: store)
+            let song = try Song(title: Song.makeValidTitle(title ?? filename), srcText: srcText, modelContext: modelContext)
 //            song.srcText = srcText
             song.toPlaylist(playlist: playlist)
             try modelContext.save()
@@ -485,7 +474,7 @@ struct CopyToPlaylistView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
     @Environment(Globals.self) private var globals
-    @Environment(SongChordsStore.self) private var store
+//    @Environment(SongChordsStore.self) private var store
 
     @State private var selectedPlaylist: PlayList.ID?
     
@@ -506,7 +495,7 @@ struct CopyToPlaylistView: View {
                     do {
                         if let selectedPlaylist = selectedPlaylist {
                             if let pl = PlayList.fetchPlaylist(with: selectedPlaylist, in: modelContext) {
-                                try pl.sortAndCopy(songs: fetchedSongs, modelContext: modelContext, store: store)
+                                try pl.sortAndCopy(songs: fetchedSongs, modelContext: modelContext)
                                 try modelContext.save()
                             }
                         }

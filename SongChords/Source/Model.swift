@@ -12,7 +12,6 @@ enum SongChordsError: Error, Equatable {
     case invalidSongtitle
     case invalidPlaylisttitle
     case playlistNotEmpty
-    case limitReached
     case invalidMP3reference
 
     var desc: String {
@@ -23,8 +22,6 @@ enum SongChordsError: Error, Equatable {
             return String(localized: "Invalid title")
         case .playlistNotEmpty:
             return String(localized: "Playlist must be empty")
-        case .limitReached:
-            return String(localized: "Free songlimit reached.\n\nEnjoying the app? Unlock song limit to manage unlimited songs and make the most out of your experience!")
         case .invalidMP3reference:
             return String(localized: "Invalid file reference")
         }
@@ -90,17 +87,17 @@ final class PlayList: Identifiable {
     }
     
     @MainActor
-    public func sortAndCopy(songs: [Song]?, modelContext: ModelContext, store: SongChordsStore) throws {
+    public func sortAndCopy(songs: [Song]?, modelContext: ModelContext) throws {
         for song in (songs ?? []).sorted(by: { $0.seq < $1.seq }) {
-            let newSong = try Song(copying: song, modelContext: modelContext, store: store)
+            let newSong = try Song(copying: song, modelContext: modelContext)
             newSong.toPlaylist(playlist: self)
         }
     }
     
     @MainActor
-    public func sortAndCopyCodable(songs: [SongTransferable]?, modelContext: ModelContext, store: SongChordsStore) throws {
+    public func sortAndCopyCodable(songs: [SongTransferable]?, modelContext: ModelContext) throws {
         for song in (songs ?? []).sorted(by: { $0.seq < $1.seq }) {
-            let newSong = try Song(from: song, modelContext: modelContext, store: store)
+            let newSong = try Song(from: song, modelContext: modelContext)
             newSong.toPlaylist(playlist: self)
         }
     }
@@ -159,15 +156,11 @@ final public class Song: Identifiable {
     @Transient static let invalidFilenameCharacters = CharacterSet(charactersIn: "\t\\\0/").union(.illegalCharacters).union(.symbols).union(.controlCharacters).union(.newlines)
         
     @MainActor
-    init(title: String, srcText: String, transpose: Int = 0, showChords: Bool = true, showText: Bool = true, showHeader: Bool = true, duration: Double = 200, musicItemId: String = "", playerLoops: [PlayerLoop] = [], backgroundColor: Int = 0, modelContext: ModelContext, store: SongChordsStore) throws {
+    init(title: String, srcText: String, transpose: Int = 0, showChords: Bool = true, showText: Bool = true, showHeader: Bool = true, duration: Double = 200, musicItemId: String = "", playerLoops: [PlayerLoop] = [], backgroundColor: Int = 0, modelContext: ModelContext) throws {
         if !Song.isValidTitle(title) {
             throw SongChordsError.invalidSongtitle
         }
-        
-        if try Song.countSongs(in: modelContext) > store.freeSongLimit && !store.unlockedSonglimit() {
-            throw SongChordsError.limitReached
-        }
-        
+                
         self.title = title.trimmingCharacters(in: .whitespaces)
         self.srcText = srcText
         self.transpose = transpose
@@ -186,13 +179,13 @@ final public class Song: Identifiable {
     }
 
     @MainActor
-    convenience init(copying other: Song, modelContext: ModelContext, store: SongChordsStore) throws {
-        try self.init(title: other.title, srcText: other.srcText, transpose: other.transpose, showChords: other.showChords, showText: other.showText, showHeader: other.showHeader, duration: other.duration, musicItemId: other.musicItemId, playerLoops: other.playerLoops, backgroundColor: other.backgroundColor, modelContext: modelContext, store: store)
+    convenience init(copying other: Song, modelContext: ModelContext) throws {
+        try self.init(title: other.title, srcText: other.srcText, transpose: other.transpose, showChords: other.showChords, showText: other.showText, showHeader: other.showHeader, duration: other.duration, musicItemId: other.musicItemId, playerLoops: other.playerLoops, backgroundColor: other.backgroundColor, modelContext: modelContext)
     }
     
     @MainActor
-    convenience init(from snapshot: SongTransferable, modelContext: ModelContext, store: SongChordsStore) throws {
-        try self.init(title: snapshot.title, srcText: snapshot.srcText, transpose: snapshot.transpose, showChords: snapshot.showChords, showText: snapshot.showText, showHeader: snapshot.showHeader, duration: snapshot.duration, musicItemId: snapshot.musicItemId, playerLoops: snapshot.playerLoops, backgroundColor: snapshot.backgroundColor, modelContext: modelContext, store: store)
+    convenience init(from snapshot: SongTransferable, modelContext: ModelContext) throws {
+        try self.init(title: snapshot.title, srcText: snapshot.srcText, transpose: snapshot.transpose, showChords: snapshot.showChords, showText: snapshot.showText, showHeader: snapshot.showHeader, duration: snapshot.duration, musicItemId: snapshot.musicItemId, playerLoops: snapshot.playerLoops, backgroundColor: snapshot.backgroundColor, modelContext: modelContext)
     }
 
     func toPlaylist(playlist: PlayList, after: Song? = nil) {
@@ -246,7 +239,7 @@ final public class Song: Identifiable {
         return res
     }
     
-    nonisolated
+    @MainActor
     static func fetchSong(with id: PersistentIdentifier, in context: ModelContext) -> Song? {
         return id.SCpersistentModel(from: context)
     }
@@ -254,7 +247,7 @@ final public class Song: Identifiable {
     @MainActor
     static func fetchSongProcessing(with id: PersistentIdentifier, in context: ModelContext, userSettings: UserSettingsSendable, forPrinting: Bool) -> Song? {
         let song = Song.fetchSong(with: id, in: context)
-
+        
         if let song {
             let representationHolder = song.representationHolder
             let srcText = song.srcText
@@ -353,7 +346,7 @@ final public class Song: Identifiable {
 }
 
 extension PersistentIdentifier {
-    nonisolated public func SCpersistentModel<Model>(from context: ModelContext) -> Model? where Model : PersistentModel {
+    public func SCpersistentModel<Model>(from context: ModelContext) -> Model? where Model : PersistentModel {
         return context.model(for: self) as? Model
     }
 }

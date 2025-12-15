@@ -9,60 +9,42 @@ import SwiftUI
 import SwiftData
 
 extension PlayListView {
-//    public func dropDestinationData(playlist: PlayList, data: [Data], modelContext: ModelContext, store: SongChordsStore) throws -> Bool {
-//        print(".dropDestination: received (Data) \(data) for playlist \(playlist.title)")
-//        // erster Versuch mit Data
-//        let songs = try? songsFromDatas(data: data)
-//        
-//        if (songs ?? []).isEmpty { print("no result"); return false }
-//        
-//        try playlist.sortAndCopyCodable(songs: songs, modelContext: modelContext, store: store)
-//        try modelContext.save()
-//        
-//        for s in songs ?? [] { print(s.title) }
-//        return true
-//    }
-    
-    public func dropDestinationURL(playlist: PlayList, url: [URL], modelContext: ModelContext, store: SongChordsStore) throws -> Bool {
-        print(".dropDestination: received (URL) \(url) for playlist \(playlist.title)")
-
-        // Playlist- oder Song-URL?
-        if let songs = try? songsFromURLs(url: url) {
-            try playlist.sortAndCopyCodable(songs: songs, modelContext: modelContext, store: store)
-            try modelContext.save()
-            
-            for s in songs { print(s.title) }
-            return true
-        } else {
-            if let url = url.first {
-                let playlist = try PlayListTransferable.fromUrl(url: (url))
-                let newPlaylist = try PlayList(modelContext: modelContext, title: playlist.title)
-                modelContext.insert(newPlaylist)
-                try newPlaylist.sortAndCopyCodable(songs: playlist.songs, modelContext: modelContext, store: store)
-                try modelContext.save()
-                return true
+    public func dropDestinationItems(dropItems: [SongDropTransferable], playlist: PlayList, modelContext: ModelContext) throws {
+        print("drop in Playlist \(playlist.title)")
+        
+        for receivedSong in dropItems.flatMap(\.items) {
+            switch receivedSong {
+            case .song(let song):
+                try dropDestinationSong(playlist: playlist, song: song, modelContext: modelContext)
+            case .file(let url):
+                try dropDestinationURL(playlist: playlist, url: url, modelContext: modelContext)
             }
         }
-        
-        return false
+    }
+    
+    private func dropDestinationURL(playlist: PlayList, url: URL, modelContext: ModelContext) throws {
+        print(".dropDestinationURL: received \(url) for playlist \(playlist.title)")
+
+        // Playlist- oder Song-URL?
+        if let song = try? SongTransferable.fromUrl(url: url)  {
+            try playlist.sortAndCopyCodable(songs: [song], modelContext: modelContext)
+            try modelContext.save()
+            
+            print("song-url von \(song.title)")
+        } else {
+            let playlist = try PlayListTransferable.fromUrl(url: (url))
+            let newPlaylist = try PlayList(modelContext: modelContext, title: playlist.title)
+            modelContext.insert(newPlaylist)
+            try newPlaylist.sortAndCopyCodable(songs: playlist.songs, modelContext: modelContext)
+            try modelContext.save()
+            print("playlist-url von \(playlist.title) mit \(playlist.songs.count) Songs")
+        }
     }
 
-    public func dropDestinationSongs(playlist: PlayList, songs: [SongTransferable], modelContext: ModelContext, store: SongChordsStore) throws -> Bool {
-        print(".dropDestinationSongs: received (Songs) \(songs) for playlist \(playlist.title)")
-        if songs.isEmpty { print("no result"); return false }
+    private func dropDestinationSong(playlist: PlayList, song: SongTransferable, modelContext: ModelContext) throws {
+        print(".dropDestinationSong: received \(song.title) for playlist \(playlist.title)")
         
-        try playlist.sortAndCopyCodable(songs: songs, modelContext: modelContext, store: store)
+        try playlist.sortAndCopyCodable(songs: [song], modelContext: modelContext)
         try modelContext.save()
-        
-        for s in songs { print(s.title) }
-        return true
-    }
-    
-    private func songsFromURLs(url: [URL]) throws -> [SongTransferable] {
-        return try url.compactMap { try SongTransferable.fromUrl(url: $0) }
-    }
-    
-//    private func songsFromDatas(data: [Data]) throws -> [SongTransferable] {
-//        return try data.compactMap { try SongTransferable.fromData(data: $0) }
-//    }    
+    }   
 }

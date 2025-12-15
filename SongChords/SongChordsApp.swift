@@ -5,23 +5,8 @@
 //  Created by Peter Wichert on 07.11.24.
 //
 
-/*
- 
-TODO:
-
-- NavigationSplitView speichert die Spaltenbreiten in macOS nicht.
- Ohne Initialisierung mit navigationSplitViewColumnWidth() kommen bei jedem Neustart
- andere Breiten
- 
-- dropDestination() kann nur einen Typ, daher ist URL erstmal raus.
- 
-- Mehrfachselektion in iOS zeigt bei drag-Beginn falsche Anzahl im Ball an
-
- */
-
 import SwiftUI
 import SwiftData
-
 
 @main
 struct SongChordsApp: App {
@@ -44,7 +29,6 @@ struct SongChordsApp: App {
 
     @State private var userSettings: UserSettings = UserSettings()
     @State private var globals: Globals = Globals()
-    @State private var store: SongChordsStore = SongChordsStore()
     @State private var audioPlayer = AudioPlayer()
     @State private var timerManager = TimerManager()
 //    let songTaskManager = SongTaskManager.shared
@@ -52,7 +36,7 @@ struct SongChordsApp: App {
     var body: some Scene {
         #if os(macOS)
         Window ("SongChords", id: "main") {
-            ContentView(store: store)
+            ContentView()
                 .environment(userSettings)
                 .environment(globals)
                 .environment(audioPlayer)
@@ -64,7 +48,7 @@ struct SongChordsApp: App {
         .modelContainer(sharedModelContainer)
         #else
         WindowGroup {
-            ContentView(store: store)
+            ContentView()
                 .environment(userSettings)
                 .environment(globals)
                 .environment(audioPlayer)
@@ -80,10 +64,8 @@ struct SongChordsApp: App {
     private func scenePhaseChanged(_ phase: ScenePhase) async {
         if scenePhase == .active {
             print("-> active")
-            await store.runListener()
         } else {
             if scenePhase == .background { print("-> background")
-                await store.stopListener()
                 if audioPlayer.someIsLoaded { audioPlayer.stopAll() }
                 await timerManager.stopTimer()
             }
