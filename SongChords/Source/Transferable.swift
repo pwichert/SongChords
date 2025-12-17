@@ -152,7 +152,6 @@ struct SongTransferable: Transferable, Codable, Identifiable {
     }
     
     public init(from decoder: Decoder) throws {
-//        self.persistentId = nil
         self.includePDF = false
         
         let container = try decoder.container(keyedBy: CodingKeys.self)
@@ -234,7 +233,6 @@ struct SongTransferable: Transferable, Codable, Identifiable {
         #if os(macOS)
         DataRepresentation(exportedContentType: .pdf) { songPDF in
             let PDFrep = PDFHelper()
-//            guard let id = songPDF.persistentId else { throw NSError(domain: "no id", code: 0, userInfo: nil) }
 
             let url = try await PDFrep.createSongPDF(id: songPDF.persistentId, title: songPDF.title)
             let data = try Data(contentsOf: url)

@@ -41,6 +41,12 @@ extension PlayListView {
     private func dropDestinationSong(playlist: PlayList, song: SongTransferable, modelContext: ModelContext) throws {
         if let s = Song.fetchSong(with: song.persistentId, in: modelContext) {
             print(".dropDestinationSong: received \(song.title) for playlist \(playlist.title), playlist origin \(s.playlist?.title ?? "??")")
+            
+            if s.playlist?.persistentModelID == playlist.persistentModelID {
+                print("keine Aktion, identische Playlist")
+                return
+            }
+            
             // Hier darf der MP3-Verweis übernommen werden, da der Song verschoben und nicht kopiert wird.
             s.toPlaylist(playlist: playlist)
             try modelContext.save()

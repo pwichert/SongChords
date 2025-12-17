@@ -401,12 +401,10 @@ struct SongListView: View {
             let txt = chordProReverseParser.toString(sections: sections)
             
             do {
-//                let song = try Song(title: "Import", modelContext: modelContext, store: store)
                 let song = try Song(title: "Import", srcText: txt, modelContext: modelContext)
                 song.toPlaylist(playlist: playlist)
                 
                 song.title = "Import \(song.seq)"
-//                song.srcText = txt
                 try modelContext.save()
             } catch (let error) {
                 globals.setSongChordsError(error: error)
@@ -444,7 +442,6 @@ struct SongListView: View {
             let (filename, srcText) = try Song.srcTextFromText(url: url, modelContext: modelContext)
             let title = Song.titleFromDirective(srcText: srcText)
             let song = try Song(title: Song.makeValidTitle(title ?? filename), srcText: srcText, modelContext: modelContext)
-//            song.srcText = srcText
             song.toPlaylist(playlist: playlist)
             try modelContext.save()
             success = true
@@ -474,7 +471,6 @@ struct CopyToPlaylistView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
     @Environment(Globals.self) private var globals
-//    @Environment(SongChordsStore.self) private var store
 
     @State private var selectedPlaylist: PlayList.ID?
     

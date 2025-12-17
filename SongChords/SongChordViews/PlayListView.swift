@@ -127,11 +127,11 @@ struct PlayListView: View {
                         Button(action: { showPrintOptionsView.toggle() }) {
                             Label("PDF Options", systemImage: "printer")
                         }
-                        Button(action: { showInfoView.toggle() }) {
-                            Label("Info", systemImage: "info.circle")
-                        }
                         Button(action: { showPrivacyView.toggle() }) {
                             Label("Privacy Policy", systemImage: "person.fill.questionmark")
+                        }
+                        Button(action: { showInfoView.toggle() }) {
+                            Label("Info", systemImage: "info.circle")
                         }
                         #if DEBUG
                         Button(action: { printAll() }) {
@@ -373,7 +373,6 @@ struct PlaylistSelectionSheet: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) var dismiss
     @Environment(Globals.self) private var globals
-//    @Environment(SongChordsStore.self) private var store
 
     @State private var selectedPlaylist: PlayList.ID?
 

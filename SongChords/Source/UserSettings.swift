@@ -19,7 +19,6 @@ public struct UserSettingsSendable: Sendable {
     typealias UIFont = NSFont
 #endif
     
-//    let useStore: Bool
     let isGermanNotation: Bool
     let hidechords: Bool
     let textfollowschords: Bool
@@ -59,7 +58,6 @@ nonisolated public final class UserSettings {
     
     public func makeSendable() -> UserSettingsSendable {
         return .init(
-//            useStore: useStore,
             isGermanNotation: isGermanNotation,
             hidechords: hidechords,
             textfollowschords: textfollowschords,
@@ -85,9 +83,7 @@ nonisolated public final class UserSettings {
 #if os(macOS)
     typealias UIFont = NSFont
 #endif
-       
-//    var useStore: Bool = false
-    
+           
     var isGermanNotation: Bool = UserDefaults.standard.bool(forKey: "set_isGermanNotation")
     { didSet { UserDefaults.standard.set(isGermanNotation, forKey: "set_isGermanNotation") }}
 
