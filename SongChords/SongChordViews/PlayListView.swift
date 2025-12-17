@@ -389,7 +389,6 @@ struct PlaylistSelectionSheet: View {
                             do {
                                 let urlSong = try SongTransferable.fromUrl(url: urlToInsert)
                                 let song = try Song(from: urlSong, modelContext: modelContext)
-//                                song.updateFromSongCodable(other: urlSong)
                                 song.toPlaylist(playlist: pl)
                                 try modelContext.save()
                             } catch (let error) {

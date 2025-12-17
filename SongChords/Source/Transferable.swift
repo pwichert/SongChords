@@ -104,7 +104,7 @@ struct PlayListTransferableForPDF: Transferable, Identifiable {
 
 nonisolated
 struct SongTransferable: Transferable, Codable, Identifiable {
-    let persistentId: PersistentIdentifier?
+    let persistentId: PersistentIdentifier
     internal let id = UUID()
     let seq: Int
     let title: String
@@ -137,6 +137,7 @@ struct SongTransferable: Transferable, Codable, Identifiable {
     }
     
     enum CodingKeys: CodingKey {
+        case persistentid
         case seq
         case title
         case srctext
@@ -151,10 +152,11 @@ struct SongTransferable: Transferable, Codable, Identifiable {
     }
     
     public init(from decoder: Decoder) throws {
-        self.persistentId = nil
+//        self.persistentId = nil
         self.includePDF = false
         
         let container = try decoder.container(keyedBy: CodingKeys.self)
+        persistentId = try container.decode(PersistentIdentifier.self, forKey: .persistentid)
         seq = try container.decode(Int.self, forKey: .seq)
         title = try container.decode(String.self, forKey: .title)
         srcText = try container.decode(String.self, forKey: .srctext)
@@ -176,6 +178,7 @@ struct SongTransferable: Transferable, Codable, Identifiable {
     
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(persistentId, forKey: .persistentid)
         try container.encode(seq, forKey: .seq)
         try container.encode(title, forKey: .title)
         try container.encode(srcText, forKey: .srctext)
@@ -231,9 +234,9 @@ struct SongTransferable: Transferable, Codable, Identifiable {
         #if os(macOS)
         DataRepresentation(exportedContentType: .pdf) { songPDF in
             let PDFrep = PDFHelper()
-            guard let id = songPDF.persistentId else { throw NSError(domain: "no id", code: 0, userInfo: nil) }
+//            guard let id = songPDF.persistentId else { throw NSError(domain: "no id", code: 0, userInfo: nil) }
 
-            let url = try await PDFrep.createSongPDF(id: id, title: songPDF.title)
+            let url = try await PDFrep.createSongPDF(id: songPDF.persistentId, title: songPDF.title)
             let data = try Data(contentsOf: url)
             return data
         }

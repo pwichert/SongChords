@@ -219,11 +219,7 @@ struct DetailContent: View {
     @Environment(UserSettings.self) private var userSettings
 
     @State private var darkColor = Color.init(red: 0.25, green: 0.25, blue: 0.25)
-    #if os(macOS)
-    @State private var lightColor = Color.init(red: 0.85, green: 0.85, blue: 0.85)
-    #else
     @State private var lightColor = Color.init(red: 0.90, green: 0.90, blue: 0.90)
-    #endif
 
     var body: some View {
         VStack (alignment: .leading) {

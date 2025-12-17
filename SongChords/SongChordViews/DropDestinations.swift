@@ -10,8 +10,6 @@ import SwiftData
 
 extension PlayListView {
     public func dropDestinationItems(dropItems: [SongDropTransferable], playlist: PlayList, modelContext: ModelContext) throws {
-        print("drop in Playlist \(playlist.title)")
-        
         for receivedSong in dropItems.flatMap(\.items) {
             switch receivedSong {
             case .song(let song):
@@ -27,24 +25,27 @@ extension PlayListView {
 
         // Playlist- oder Song-URL?
         if let song = try? SongTransferable.fromUrl(url: url)  {
+            print("dropDestinationURL: song-url von \(song.title)")
             try playlist.sortAndCopyCodable(songs: [song], modelContext: modelContext)
             try modelContext.save()
-            
-            print("song-url von \(song.title)")
         } else {
             let playlist = try PlayListTransferable.fromUrl(url: (url))
             let newPlaylist = try PlayList(modelContext: modelContext, title: playlist.title)
             modelContext.insert(newPlaylist)
             try newPlaylist.sortAndCopyCodable(songs: playlist.songs, modelContext: modelContext)
             try modelContext.save()
-            print("playlist-url von \(playlist.title) mit \(playlist.songs.count) Songs")
+            print("dropDestinationURL: playlist-url von \(playlist.title) mit \(playlist.songs.count) Songs")
         }
     }
 
     private func dropDestinationSong(playlist: PlayList, song: SongTransferable, modelContext: ModelContext) throws {
-        print(".dropDestinationSong: received \(song.title) for playlist \(playlist.title)")
-        
-        try playlist.sortAndCopyCodable(songs: [song], modelContext: modelContext)
-        try modelContext.save()
-    }   
+        if let s = Song.fetchSong(with: song.persistentId, in: modelContext) {
+            print(".dropDestinationSong: received \(song.title) for playlist \(playlist.title), playlist origin \(s.playlist?.title ?? "??")")
+            // Hier darf der MP3-Verweis übernommen werden, da der Song verschoben und nicht kopiert wird.
+            s.toPlaylist(playlist: playlist)
+            try modelContext.save()
+        } else {
+            print(".dropDestinationSong: song nicht gefunden, \(song.title) for playlist \(playlist.title)")
+        }
+    }
 }
