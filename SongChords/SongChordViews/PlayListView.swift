@@ -69,6 +69,7 @@ struct PlayListView: View {
                         }
                     }
                     #endif
+                    .draggable(PlayListTransferable(from: playlist, includeCodable: true, includeData: true)) { Text(playlist.title) }
             }
             #if os(macOS)
             .dropDestination(for: SongDropTransferable.self) { receivedSongs, location in

@@ -16,13 +16,15 @@ extension PlayListView {
                 try dropDestinationSong(playlist: playlist, song: song, modelContext: modelContext)
             case .file(let url):
                 try dropDestinationURL(playlist: playlist, url: url, modelContext: modelContext)
+//            case .data(let data):
+//                print("Data")
             }
         }
     }
     
     private func dropDestinationURL(playlist: PlayList, url: URL, modelContext: ModelContext) throws {
         print(".dropDestinationURL: received \(url) for playlist \(playlist.title)")
-
+        
         // Playlist- oder Song-URL?
         if let song = try? SongTransferable.fromUrl(url: url)  {
             print("dropDestinationURL: song-url von \(song.title)")
@@ -37,9 +39,10 @@ extension PlayListView {
             print("dropDestinationURL: playlist-url von \(playlist.title) mit \(playlist.songs.count) Songs")
         }
     }
-
+    
     private func dropDestinationSong(playlist: PlayList, song: SongTransferable, modelContext: ModelContext) throws {
-        if let s = Song.fetchSong(with: song.persistentId, in: modelContext) {
+        // DragDrop von einer Playlist in andere
+        if let id = song.persistentId, let s = Song.fetchSong(with: id, in: modelContext) {
             print(".dropDestinationSong: received \(song.title) for playlist \(playlist.title), playlist origin \(s.playlist?.title ?? "??")")
             
             if s.playlist?.persistentModelID == playlist.persistentModelID {

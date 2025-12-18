@@ -71,12 +71,12 @@ struct SongView: View {
             
             ToolbarItem(placement: .bottomBar) {
                 ShareLink (
-                    item: SongTransferable(from: song), preview: SharePreview(Text(song.title), image: Image("AppIconInternal"))
+                    item: SongTransferable(from: song, includeCodable: true), preview: SharePreview(Text(song.title), image: Image("AppIconInternal"))
                 )
             }
             
             ToolbarItem(placement: .bottomBar) {
-                ShareLink(item: SongTransferablePDF(id: song.id, title: song.title), preview: SharePreview(song.title, image: Image("AppIconInternal"))) {
+                ShareLink(item: SongTransferable(from: song, includePDF: true), preview: SharePreview(song.title, image: Image("AppIconInternal"))) {
                     Label("Export PDF File", systemImage: "arrow.up.document.fill")
                 }
             }
@@ -131,7 +131,7 @@ struct SongView: View {
             }
             .interactiveDismissDisabled()
         }
-        .fileExporter(isPresented: $showFileExport, item: SongTransferable(from: song, includePDF: true), contentTypes: [], defaultFilename: Song.makeValidFilename(song.title)) { result in
+        .fileExporter(isPresented: $showFileExport, item: SongTransferable(from: song, includeCodable: true, includePDF: true), contentTypes: [], defaultFilename: Song.makeValidFilename(song.title)) { result in
             switch result {
             case .success(let url):
                 print("Gespeichert: \(url)")

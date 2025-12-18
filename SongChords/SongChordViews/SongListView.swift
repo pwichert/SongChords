@@ -146,7 +146,7 @@ struct SongListView: View {
                     Button(role: .destructive, action: { prepareDelete(songIDs: selectedSongIDs.contains(song.id) ? selectedSongIDs : [song.id]) }) { Label("Delete", systemImage: "trash")}
                 }
                 // TODO: Mehrfachselektion in iOS zeigt bei drag-Beginn falsche Anzahl im Ball an
-                .draggable(SongTransferable(from: song)) { Text(song.title) }
+                .draggable(SongTransferable(from: song, includeCodable: true, includeData: true)) { Text(song.title) }
             }
             .onMove(perform: moveSongs)
             .onDelete { indexSet in
@@ -171,7 +171,7 @@ struct SongListView: View {
             if !isEditing {
                 ToolbarItem(placement: .bottomBar) {
                     ShareLink (
-                        item: PlayListTransferable(from: playlist), preview: SharePreview(playlist.title, image: Image("AppIconInternal"))
+                        item: PlayListTransferable(from: playlist, includeCodable: true), preview: SharePreview(playlist.title, image: Image("AppIconInternal"))
                     )
                 }
                 
@@ -236,7 +236,7 @@ struct SongListView: View {
                         #if os(macOS)
                         Button("Export Playlist", systemImage: "arrow.up.document", action: { showFileExport.toggle() }).help("Export Playlist")
                         #else
-                        ShareLink(item: PlayListTransferableForPDF(id: playlist.id, title: playlist.title), preview: SharePreview(playlist.title, image: Image("AppIconInternal"))) {
+                        ShareLink(item: PlayListTransferable(from: playlist, includePDF: true), preview: SharePreview(playlist.title, image: Image("AppIconInternal"))) {
                             Label("Export PDF File", systemImage: "arrow.up.document.fill")
                         }
                         #endif
@@ -265,7 +265,7 @@ struct SongListView: View {
             #endif
             }
         }
-        .fileExporter(isPresented: $showFileExport, item: PlayListTransferable(from: playlist), contentTypes: [], defaultFilename: Song.makeValidFilename(playlist.title)) { result in
+        .fileExporter(isPresented: $showFileExport, item: PlayListTransferable(from: playlist, includeCodable: true, includePDF: true), contentTypes: [], defaultFilename: Song.makeValidFilename(playlist.title)) { result in
             switch result {
             case .success(let url):
                 print("Gespeichert: \(url)")

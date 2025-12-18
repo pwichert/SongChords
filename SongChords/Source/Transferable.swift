@@ -27,14 +27,22 @@ struct PlayListTransferable: Transferable, Codable, Identifiable {
     let seq: Int
     let title: String
     let songs: [SongTransferable]
-    
+
+    let includeCodable: Bool
+    let includeData: Bool
+    let includePDF: Bool
+
     enum CodingKeys: CodingKey {
         case seq
         case title
         case songs
     }
     
-    init(from playlist: PlayList) {
+    init(from playlist: PlayList, includeCodable: Bool = false, includeData: Bool = false, includePDF: Bool = false) {
+        self.includeCodable = includeCodable
+        self.includeData = includeData
+        self.includePDF = includePDF
+
         self.persistentId = playlist.id
         self.seq = playlist.seq
         self.title = playlist.title
@@ -42,6 +50,10 @@ struct PlayListTransferable: Transferable, Codable, Identifiable {
     }
     
     public init(from decoder: Decoder) throws {
+        self.includeCodable = false
+        self.includeData = false
+        self.includePDF = false
+
         self.persistentId = nil
         let container = try decoder.container(keyedBy: CodingKeys.self)
         seq = try container.decode(Int.self, forKey: .seq)
@@ -65,15 +77,44 @@ struct PlayListTransferable: Transferable, Codable, Identifiable {
         return try decoder.decode(PlayListTransferable.self, from: playlistData)
     }
     
+    func toTempFile(filename: String) throws -> URL {
+        let tempDirectory = FileManager.default.temporaryDirectory
+        let fileURL = tempDirectory.appendingPathComponent(filename)
+        print(fileURL.absoluteString)
+        try toUrl(url: fileURL)
+        return fileURL
+    }
+    
+    func toUrl(url: URL) throws {
+        let data = try toData()
+        
+        let startSecurityScope = url.startAccessingSecurityScopedResource()
+        try data.write(to: url)
+        if startSecurityScope { url.stopAccessingSecurityScopedResource() }
+    }
+    
+    func toData() throws -> Data {
+        let encoder = JSONEncoder()
+        return try encoder.encode(self)
+    }
+
     public static var transferRepresentation: some TransferRepresentation {
         // Endung .scplaylist
         CodableRepresentation(contentType: .playlistJSON)
-            .suggestedFileName { Song.makeValidFilename($0.title) }
+        .suggestedFileName { Song.makeValidFilename($0.title) }
+        .exportingCondition { playlist in return playlist.includeCodable }
 
+        // Nur für DragDrop auf außerhalb
+        DataRepresentation(exportedContentType: .fileURL, exporting: { playlist in
+            let url = try playlist.toTempFile(filename: "\(Song.makeValidFilename(playlist.title)).scplaylist")
+            return url.dataRepresentation
+        })
+        .exportingCondition { playlist in return playlist.includeData } // soll beim File-Exporter nicht erscheinen
+        
         // für fileExporter-Auswahl
-        #if os(macOS)
         DataRepresentation(exportedContentType: .pdf) { playlistPDF in
             let PDFrep = PDFHelper()
+            
             guard let id = playlistPDF.persistentId else { throw NSError(domain: "no id", code: 0, userInfo: nil) }
             
             let url = try await PDFrep.createPlaylistPDF(playlistID: id, title: playlistPDF.title)
@@ -81,30 +122,13 @@ struct PlayListTransferable: Transferable, Codable, Identifiable {
             return data
         }
         .suggestedFileName { Song.makeValidFilename($0.title) }
-        #endif
-    }
-}
-
-nonisolated
-struct PlayListTransferableForPDF: Transferable, Identifiable {
-    let id: PersistentIdentifier
-    let title: String
-    
-    public static var transferRepresentation: some TransferRepresentation {
-        DataRepresentation(exportedContentType: .pdf) { playlistPDF in
-            let PDFrep = PDFHelper()
-            
-            let url = try await PDFrep.createPlaylistPDF(playlistID: playlistPDF.id, title: playlistPDF.title)
-            let data = try Data(contentsOf: url)
-            return data
-        }
-        .suggestedFileName { Song.makeValidFilename($0.title) }
+        .exportingCondition { playlist in return playlist.includePDF }
     }
 }
 
 nonisolated
 struct SongTransferable: Transferable, Codable, Identifiable {
-    let persistentId: PersistentIdentifier
+    let persistentId: PersistentIdentifier?
     internal let id = UUID()
     let seq: Int
     let title: String
@@ -118,9 +142,11 @@ struct SongTransferable: Transferable, Codable, Identifiable {
     let playerLoops: [PlayerLoop]
     let backgroundColor: Int
 
+    let includeCodable: Bool
+    let includeData: Bool
     let includePDF: Bool
-    
-    init(from song: Song, includePDF: Bool = false) {
+
+    init(from song: Song, includeCodable: Bool = false, includeData: Bool = false, includePDF: Bool = false) {
         self.persistentId = song.id
         self.seq = song.seq
         self.title = song.title
@@ -133,7 +159,10 @@ struct SongTransferable: Transferable, Codable, Identifiable {
         self.musicItemId = song.musicItemId
         self.playerLoops = song.playerLoops
         self.backgroundColor = song.backgroundColor
+        
         self.includePDF = includePDF
+        self.includeData = includeData
+        self.includeCodable = includeCodable
     }
     
     enum CodingKeys: CodingKey {
@@ -152,8 +181,10 @@ struct SongTransferable: Transferable, Codable, Identifiable {
     }
     
     public init(from decoder: Decoder) throws {
+        self.includeCodable = false
+        self.includeData = false
         self.includePDF = false
-        
+
         let container = try decoder.container(keyedBy: CodingKeys.self)
         persistentId = try container.decode(PersistentIdentifier.self, forKey: .persistentid)
         seq = try container.decode(Int.self, forKey: .seq)
@@ -227,37 +258,28 @@ struct SongTransferable: Transferable, Codable, Identifiable {
     public static var transferRepresentation: some TransferRepresentation {
         // Endung .songchords
         CodableRepresentation(contentType: .songJSON)
-            .suggestedFileName { Song.makeValidFilename($0.title) }
+        .suggestedFileName { Song.makeValidFilename($0.title) }
+        .exportingCondition { song in return song.includeCodable }
+
+        // Nur für DragDrop auf außerhalb
+        DataRepresentation(exportedContentType: .fileURL) { song in
+            let url = try song.toTempFile(filename: "\(Song.makeValidFilename(song.title)).songchords")
+            return url.dataRepresentation
+        }
+        .exportingCondition { song in return song.includeData } // soll beim File-Exporter nicht erscheinen
         
         // für fileExporter-Auswahl
-        #if os(macOS)
         DataRepresentation(exportedContentType: .pdf) { songPDF in
             let PDFrep = PDFHelper()
 
-            let url = try await PDFrep.createSongPDF(id: songPDF.persistentId, title: songPDF.title)
+            guard let id = songPDF.persistentId else { throw NSError(domain: "no id", code: 0, userInfo: nil) }
+            
+            let url = try await PDFrep.createSongPDF(id: id, title: songPDF.title)
             let data = try Data(contentsOf: url)
             return data
         }
         .suggestedFileName { Song.makeValidFilename($0.title) }
         .exportingCondition { song in return song.includePDF }
-        #endif
-    }
-}
-
-nonisolated
-struct SongTransferablePDF: Transferable, Identifiable {
-    let id: PersistentIdentifier
-    let title: String
-    
-    public static var transferRepresentation: some TransferRepresentation {
-        DataRepresentation(exportedContentType: .pdf) { songPDF in
-            let PDFrep = PDFHelper()
-
-            let url = try await PDFrep.createSongPDF(id: songPDF.id, title: songPDF.title)
-            let data = try Data(contentsOf: url)
-            return data
-        }
-        .suggestedFileName { Song.makeValidFilename($0.title) }
     }
 }
 
@@ -267,6 +289,7 @@ struct SongTransferablePDF: Transferable, Identifiable {
 enum SongDropItem {
     case song(SongTransferable)
     case file(URL)
+//    case data(Data)
 }
 
 nonisolated
@@ -282,6 +305,10 @@ struct SongDropTransferable: Transferable {
         ProxyRepresentation { (url: URL) in
             SongDropTransferable(items: [.file(url)])
         }
+        // Data
+//        ProxyRepresentation { (data: Data) in
+//            SongDropTransferable(items: [.data(data)])
+//        }
     }
 }
 
