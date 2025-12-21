@@ -7,41 +7,46 @@
 
 import Foundation
 
-actor SongTaskManager {
+extension Thread {
+    nonisolated static var currentThread: Thread {
+        return Thread.current
+    }
+}
+
+@MainActor
+class SongTaskManager {
     private var processingTask: Task<Void, Never>?
-    
-    public static let shared = SongTaskManager()
-    
-    func run(_ task: Task<Void, Never>) {
+    static let shared = SongTaskManager()
+
+    func processSongInBackground(representationHolder: RepresentationHolder, srcText: String, transpose: Int, userSettings: UserSettings) {
         processingTask?.cancel()
-        processingTask = task
+
+        processingTask = Task {
+            let result = await createSongRepresentation(userSettings: userSettings, srcText: srcText, transpose: transpose, forPrinting: false)
+
+            guard !Task.isCancelled, let result else { return }
+
+            representationHolder.updateSongRepresentation(result)
+        }
     }
-    
-    func processSongInBackground(representationHolder: RepresentationHolder, srcText: String, transpose: Int, userSettings: UserSettingsSendable) {
-        self.run(Task.detached {
-            // Aufgabe im Hintergrund ausführen
-            let result = await self.createSongRepresentation(userSettings: userSettings, srcText: srcText, transpose: transpose, forPrinting: false)
-            
-            // Ergebnis auf dem Main-Thread aktualisieren
-            if let result = result {
-                await representationHolder.updateSongRepresentation(result)
-            }
-        })
-    }
-    
-    func createSongRepresentation(userSettings: UserSettingsSendable, srcText: String, transpose: Int, forPrinting: Bool) -> SongRepresentation? {
+
+    @concurrent
+    func createSongRepresentation(userSettings: UserSettings, srcText: String, transpose: Int, forPrinting: Bool) async -> SongRepresentation? {
         do {
-            print("songRepresentation on \(Thread.current)")
-            
-            let tokens = try ChordProLexer(input: srcText).tokenize()
-            if Task.isCancelled { print("lexer cancelled"); return nil }
-            
-            let songRepresentation = try ChordProParser(userSettings: userSettings, songTranspose: transpose, tokens: tokens, forPrinting: forPrinting).parse()
-            if Task.isCancelled { print("parser cancelled"); return nil }
-            
+            print("createSongRepresentation:", Thread.currentThread)
+
+            let tokens = try await ChordProLexer(input: srcText).tokenize()
+            try Task.checkCancellation()
+
+            let songRepresentation = try await ChordProParser(userSettings: userSettings, songTranspose: transpose, tokens: tokens, forPrinting: forPrinting).parse()
+            try Task.checkCancellation()
+
             return songRepresentation
+        } catch is CancellationError {
+//            print("createSongRepresentation cancelled")
+            return nil
         } catch {
-            print("\(error)")
+            print(error)
             return nil
         }
     }

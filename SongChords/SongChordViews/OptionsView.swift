@@ -7,6 +7,29 @@
 
 import SwiftUI
 
+struct OptionsContentView<Content: View>: View {
+    @ViewBuilder let content: Content
+    
+    init(@ViewBuilder content: () -> Content) {
+        self.content = content()
+    }
+    
+    var body: some View {
+        #if os(macOS)
+        ScrollView {
+            Form {
+                content
+            }
+            .frame(idealHeight: 300)
+        }
+        #else
+        Form {
+            content
+        }
+        #endif
+    }
+}
+
 struct OptionsView: View {
     @Environment(UserSettings.self) private var userSettings
     @Environment(\.dismiss) private var dismiss
@@ -20,11 +43,7 @@ struct OptionsView: View {
     @State private var displayMode: DisplayMode = .automatic
         
     var body: some View {
-        #if DEBUG
-        Text("Debug Mode").padding()
-        #endif
-
-        Form {
+        OptionsContentView {
             Picker("Display Mode", selection: $displayMode) {
                 Text("light").tag(DisplayMode.light)
                 Text("dark").tag(DisplayMode.dark)
@@ -117,8 +136,10 @@ struct OptionsView: View {
                 }
             }
         }
-        .onChange(of: hideChords, initial: false) {
-            if hideChords { textFollowsChords = false }
+        .onChange(of: hideChords) { _, newValue in
+            if newValue {
+                textFollowsChords = false
+            }
         }
         #if os(macOS)
         .padding()
@@ -165,7 +186,7 @@ struct PrintOptionsView: View {
     @State private var headerSize: Double = 0
     
     var body: some View {
-        Form {
+        OptionsContentView {
             HStack {
                 #if os(iOS)
                 Text("Headersize [\(Int(headerSize))]")

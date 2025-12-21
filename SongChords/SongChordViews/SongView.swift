@@ -34,8 +34,6 @@ struct SongView: View {
     @State private var songMP3Uuid: String = ""
     @State private var songPosition: TimeInterval = 0.0
 
-    @State private var lastID: PersistentIdentifier?
-
     var body: some View {
         GeometryReader { viewSize in    // Größe des umgebenden Containers
             ScrollView(userSettings.hidechords ? .vertical : [.horizontal, .vertical], showsIndicators: false) {
@@ -139,22 +137,8 @@ struct SongView: View {
                 globals.setSongChordsError(error: error)
             }
         }
-        .onChange(of: song.persistentModelID, initial: true) {
-            if lastID != song.persistentModelID {
-                songChangedAction()
-                lastID = song.persistentModelID
-            }
-        }
-        .onChange(of: userSettings.chordsize, initial: false) { print("chordsize changed"); updateSongRepresentation() }
-        .onChange(of: userSettings.txtsize, initial: false) { print("txtsize changed"); updateSongRepresentation() }
-        .onChange(of: userSettings.headersize, initial: false) { print("headersize changed"); updateSongRepresentation() }
-        .onChange(of: userSettings.isGermanNotation, initial: false) { print("isGermanNotation changed"); updateSongRepresentation() }
-        .onChange(of: userSettings.textfollowschords, initial: false) { print("textfollowschords changed"); updateSongRepresentation() }
-    }
-
-    private func updateSongRepresentation() {
-        Task {
-            await SongTaskManager.shared.processSongInBackground(representationHolder: song.representationHolder, srcText: song.srcText, transpose: song.transpose, userSettings: userSettings.makeSendable())
+        .onAppear {
+            songChangedAction()
         }
     }
     

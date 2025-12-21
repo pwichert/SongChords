@@ -7,6 +7,7 @@
 
 import SwiftUI
 
+nonisolated
 public class GlobalFunctions {
     public static func formatTimeInterval(_ timeInterval: TimeInterval) -> String {
         let formatter = DateComponentsFormatter()

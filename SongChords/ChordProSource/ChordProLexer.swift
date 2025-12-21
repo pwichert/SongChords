@@ -14,7 +14,6 @@ enum LexerError: Error {
     case inputTooLarge
 }
 
-nonisolated
 public enum Token: Equatable {
     case bracketEnclosed(String)    // [C] -> "Cm"
     case curlyEnclosed(String)      // {title: My Song} -> "title: My Song"
@@ -23,7 +22,6 @@ public enum Token: Equatable {
     case newLine                    // \n -> newLine
 }
 
-nonisolated
 public class ChordProLexer {
     private let input: String
     private var position: String.Index

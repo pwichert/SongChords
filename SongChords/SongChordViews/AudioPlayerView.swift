@@ -636,7 +636,6 @@ struct MusicContentView: View {
     }
     
     /// Safely updates the `albums` property on the main thread.
-    @MainActor
     private func applySong(_ searchResponse: MusicItem, for searchTerm: String) {
         if self.searchTerm == searchTerm {
             self.songMusicItem = searchResponse
@@ -644,7 +643,6 @@ struct MusicContentView: View {
     }
     
     /// Safely updates the `albums` property on the main thread.
-    @MainActor
     private func apply(_ searchResponse: [MusicItem], for searchTerm: String) {
         if self.searchTerm == searchTerm {
             self.songs = searchResponse
@@ -652,7 +650,6 @@ struct MusicContentView: View {
     }
     
     /// Safely resets the `albums` property on the main thread.
-    @MainActor
     private func reset() {
         self.songs = []
     }

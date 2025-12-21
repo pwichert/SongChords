@@ -20,7 +20,6 @@ extension UTType {
     static let playlistJSON = UTType(exportedAs: "com.wichert.songchordslist", conformingTo: .json)
 }
 
-nonisolated
 struct PlayListTransferable: Transferable, Codable, Identifiable {
     let persistentId: PersistentIdentifier?
     internal let id = UUID()
@@ -46,7 +45,7 @@ struct PlayListTransferable: Transferable, Codable, Identifiable {
         self.persistentId = playlist.id
         self.seq = playlist.seq
         self.title = playlist.title
-        self.songs = (playlist.songs ?? []).compactMap { SongTransferable(from: $0) }
+        self.songs = (playlist.songs ?? []).compactMap { SongTransferable(from: $0, includeCodable: includeCodable, includeData: includeData, includePDF: includePDF) }
     }
     
     public init(from decoder: Decoder) throws {
@@ -126,7 +125,6 @@ struct PlayListTransferable: Transferable, Codable, Identifiable {
     }
 }
 
-nonisolated
 struct SongTransferable: Transferable, Codable, Identifiable {
     let persistentId: PersistentIdentifier?
     internal let id = UUID()
@@ -292,7 +290,6 @@ enum SongDropItem {
 //    case data(Data)
 }
 
-nonisolated
 struct SongDropTransferable: Transferable {
     let items: [SongDropItem]
 
@@ -318,7 +315,6 @@ struct GlobalModelContainer {
     static var shared: ModelContainer?
 }
 
-nonisolated
 struct PDFHelper {
     func createSongPDF(id: PersistentIdentifier, title: String) async throws -> URL {
         print("FileRepresentation (.pdf) exported song \(title)")
@@ -326,10 +322,10 @@ struct PDFHelper {
         do {
             let userSettings = UserSettings()
             let defaultPaper = MediaBoxes.getBox(name: userSettings.mediabox)
-            let modelContainer: ModelContainer? = await MainActor.run { GlobalModelContainer.shared }
+            let modelContainer: ModelContainer? = GlobalModelContainer.shared
             guard let modelContainer else { throw NSError(domain: "PDFCreationError", code: 5, userInfo: ["reason": "Missing ModelContainer for PDF export"]) }
             let delegate = await PrintSongDelegate(songID: id, modelContainer: modelContainer)
-            guard let delegate = delegate, let pdfUrl = await delegate.createPDF(paperSize: defaultPaper) else {
+            guard let delegate = delegate, let pdfUrl = delegate.createPDF(paperSize: defaultPaper) else {
                 throw NSError(domain: "PDFCreationError", code: 4, userInfo: ["reason": "Failed to create PDF"])
             }
             let url1 = pdfUrl.deletingLastPathComponent()
@@ -351,10 +347,10 @@ struct PDFHelper {
         do {
             let userSettings = UserSettings()
             let defaultPaper = MediaBoxes.getBox(name: userSettings.mediabox)
-            let modelContainer: ModelContainer? = await MainActor.run { GlobalModelContainer.shared }
+            let modelContainer: ModelContainer? = GlobalModelContainer.shared
             guard let modelContainer else { throw NSError(domain: "PDFCreationError", code: 5, userInfo: ["reason": "Missing ModelContainer for PDF export"]) }
-            let delegate = await PrintSetlistDelegate(playlistID: playlistID, modelContainer: modelContainer)
-            guard let delegate = delegate, let pdfUrl = await delegate.createPDF(paperSize: defaultPaper) else {
+            let delegate = PrintSetlistDelegate(playlistID: playlistID, modelContainer: modelContainer)
+            guard let delegate = delegate, let pdfUrl = delegate.createPDF(paperSize: defaultPaper) else {
                 throw NSError(domain: "PDFCreationError", code: 4, userInfo: ["reason": "Failed to create PDF"])
             }
             let url1 = pdfUrl.deletingLastPathComponent()

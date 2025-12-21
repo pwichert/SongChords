@@ -11,7 +11,6 @@ import SwiftUI
     typealias UIFont = NSFont
 #endif
 
-nonisolated
 public final class SongRepresentation: Identifiable, Sendable {
     public let id = UUID()
     
@@ -50,7 +49,6 @@ public final class SongRepresentation: Identifiable, Sendable {
     }
 }
 
-nonisolated
 final class CPPSectionSendable: Identifiable, Sendable {
     public let id = UUID()
     
@@ -71,7 +69,6 @@ final class CPPSectionSendable: Identifiable, Sendable {
     }
 }
 
-nonisolated
 public class CPPSection: Identifiable {
     public let id = UUID()
     
@@ -95,7 +92,6 @@ public class CPPSection: Identifiable {
     }
 }
 
-nonisolated
 struct SplittedLine: Identifiable, Sendable {
     public let id = UUID()
     
@@ -136,7 +132,6 @@ struct SplittedLine: Identifiable, Sendable {
     }
 }
 
-nonisolated
 struct LineSendable: Identifiable, Sendable {
     let id = UUID()
     let elements: [Element]
@@ -155,7 +150,6 @@ struct LineSendable: Identifiable, Sendable {
     }
 }
 
-nonisolated
 class Line: Identifiable {
     let id = UUID()
     var elements: [Element] = []
@@ -168,7 +162,6 @@ class Line: Identifiable {
     }
 }
 
-nonisolated
 struct TextElement: Identifiable, Equatable, Sendable {
     let id = UUID()
     let txt: String
@@ -182,7 +175,6 @@ struct TextElement: Identifiable, Equatable, Sendable {
     }
 }
 
-nonisolated
 struct Element: Identifiable, Sendable {
     let id = UUID()
     let type: ElementType
@@ -205,7 +197,6 @@ struct Element: Identifiable, Sendable {
     }
 }
 
-nonisolated
 enum ElementType: Sendable {
     case chord(String, ParsedChord, Double)
     case chordcomment(String, Double, Bool)
@@ -213,15 +204,14 @@ enum ElementType: Sendable {
     case text(String, Double)
 }
 
-nonisolated
 public class ChordProParser {
     private let songTranspose: Int
     private let tokens: [Token]
-    private let userSettings: UserSettingsSendable
+    private let userSettings: UserSettings
     private let forPrinting: Bool
     private let directiveManager = DirectiveManager()
     
-    public init(userSettings: UserSettingsSendable, songTranspose: Int, tokens: [Token], forPrinting: Bool) {
+    public init(userSettings: UserSettings, songTranspose: Int, tokens: [Token], forPrinting: Bool) {
         self.songTranspose = songTranspose
         self.tokens = tokens
         self.userSettings = userSettings
@@ -264,7 +254,7 @@ public class ChordProParser {
                 // D.h. sie erzeugen Texte, Comments oder section-Struktur
                 numDirectives += 1
                 
-                if let d = directiveManager.addDirective(processReplace(userSettings: userSettings, srcline: directive, root: &rootSystem)) {
+                if let d = directiveManager.addDirective(processReplace(srcline: directive, root: &rootSystem)) {
                     switch d {
                     // Markiert für die nächste Zeile ColumnBreak oder NewPage
                     case .column_break: nextlineIsColumnBreak = true
@@ -288,7 +278,7 @@ public class ChordProParser {
                     default: break
                     }
                 } else {
-                    let str = processReplace(userSettings: userSettings, srcline: directive, root: &rootSystem)
+                    let str = processReplace(srcline: directive, root: &rootSystem)
                     let strLen = sizeOfString(string: str, font: txtf)
                     getLine().elements.append(Element(type: .text(str, strLen)))
                     setLineDirectives()
@@ -297,7 +287,7 @@ public class ChordProParser {
             case .bracketEnclosed(let chord):
                 numChords += 1
                 if chord.starts(with: "*") {
-                    let str = processReplace(userSettings: userSettings, srcline: String(chord.dropFirst()), root: &rootSystem)
+                    let str = processReplace(srcline: String(chord.dropFirst()), root: &rootSystem)
                     let strLen = sizeOfString(string: str, font: chordf)
                     getLine().elements.append(Element(type: .chordcomment(str, strLen, true)))  // "*" merken
                 } else {
@@ -306,7 +296,7 @@ public class ChordProParser {
                         let strLen = sizeOfString(string: str, font: chordf)
                         getLine().elements.append(Element(type: .chord(str, tchord ?? pchord, strLen)))
                     } else {
-                        let str = processReplace(userSettings: userSettings, srcline: chord, root: &rootSystem)
+                        let str = processReplace(srcline: chord, root: &rootSystem)
                         let strLen = sizeOfString(string: str, font: chordf)
                         getLine().elements.append(Element(type: .chordcomment(str, strLen, false)))
                     }
@@ -314,13 +304,13 @@ public class ChordProParser {
                 setLineDirectives()
 
             case .text(let text):
-                let str = processReplace(userSettings: userSettings, srcline: text, root: &rootSystem)
+                let str = processReplace(srcline: text, root: &rootSystem)
                 let strLen = sizeOfString(string: str, font: txtf)
                 getLine().elements.append(Element(type: .text(str, strLen)))
                 setLineDirectives()
 
             case .comment(let text):
-                let str = processReplace(userSettings: userSettings, srcline: text, root: &rootSystem)
+                let str = processReplace(srcline: text, root: &rootSystem)
                 let strLen = sizeOfString(string: str, font: txtf)
                 getLine().elements.append(Element(type: .comment(str, strLen)))
                 setLineDirectives()
@@ -565,7 +555,7 @@ public class ChordProParser {
     }
     
     // Ersetzt Variablen durch ihren Wert: %{ variable }
-    private func processReplace(userSettings: UserSettingsSendable, srcline: String, root: inout ChordRoot) -> String {
+    private func processReplace(srcline: String, root: inout ChordRoot) -> String {
         if srcline.isEmpty { return srcline }
         
         var src: String = srcline

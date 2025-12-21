@@ -9,7 +9,6 @@ import SwiftUI
 
 //extension String: Error {}
 
-nonisolated
 class MediaBoxes {
     // 72 dpi
     
@@ -54,7 +53,6 @@ enum PDFGeneratorError: Error {
     case securityScopedResource
 }
 
-nonisolated
 class PDFGenerator {
     private var userSettings: UserSettings
     private var cols: Int = 1
@@ -154,7 +152,6 @@ class PDFGenerator {
     }
     
     
-    @MainActor
     func drawTest<T:View>(col: Int, view: T) {
         context.beginPDFPage(nil)
         let scale = 0.7
@@ -170,7 +167,6 @@ class PDFGenerator {
         context.closePDF()
     }
     
-    @MainActor
     func draw<T:View>(col: Int, view: T) {
         var viewSize = CGSizeZero
         let renderer = ImageRenderer(content: view.environment(userSettings))

@@ -60,6 +60,7 @@ struct PlayListView: View {
                         }
                     }
                     #if os(iOS)
+                    // TODO: Drop von externen Dateien funktioniert in iOS nicht
                     // in iOS kann .dropDestination() scheinbar auch hier (innerhalb Liste) sein. Optisch ist das Ziel dann besser sichtbar
                     .dropDestination(for: SongDropTransferable.self) { receivedSongs, location in
                         do {
@@ -115,7 +116,6 @@ struct PlayListView: View {
             }
             
             ToolbarItem {
-//                CustomEditButton(editMode: $editMode).id(UUID())
                 EditButton()
             }
             #endif
@@ -518,30 +518,30 @@ struct PrivacyView: View {
     }
 }
 
-#if os(iOS)
-struct CustomEditButton: View {
-    @Binding var editMode: EditMode
-    
-    var body: some View {
-        Button(action: {
-            toggleEditMode()
-        }) {
-            if $editMode.wrappedValue == .active {
-                Label("Done", systemImage: "checkmark").labelStyle(.iconOnly)
-            } else {
-                Label("Done", systemImage: "list.dash").labelStyle(.iconOnly)
-            }
-        }
-    }
-    
-    private func toggleEditMode() {
-        withAnimation {
-            if $editMode.wrappedValue == .active {
-                $editMode.wrappedValue = .inactive
-            } else {
-                $editMode.wrappedValue = .active
-            }
-        }
-    }
-}
-#endif
+//#if os(iOS)
+//struct CustomEditButton: View {
+//    @Binding var editMode: EditMode
+//    
+//    var body: some View {
+//        Button(action: {
+//            toggleEditMode()
+//        }) {
+//            if $editMode.wrappedValue == .active {
+//                Label("Done", systemImage: "checkmark").labelStyle(.iconOnly)
+//            } else {
+//                Label("Done", systemImage: "list.dash").labelStyle(.iconOnly)
+//            }
+//        }
+//    }
+//    
+//    private func toggleEditMode() {
+//        withAnimation {
+//            if $editMode.wrappedValue == .active {
+//                $editMode.wrappedValue = .inactive
+//            } else {
+//                $editMode.wrappedValue = .active
+//            }
+//        }
+//    }
+//}
+//#endif

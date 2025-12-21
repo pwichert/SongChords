@@ -306,7 +306,7 @@ class ApplicationPlayer: AudioPlayerProtocol {
     func handleAuthorizationStatus() {
         switch musicAuthorizationStatus {
         case .notDetermined:
-            Task { @MainActor in
+            Task {
                 let musicAuthorizationStatus = await MusicAuthorization.request()
                 update(with: musicAuthorizationStatus)
             }

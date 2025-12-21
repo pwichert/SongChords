@@ -86,7 +86,6 @@ final class PlayList: Identifiable {
         }
     }
     
-    @MainActor
     public func sortAndCopy(songs: [Song]?, modelContext: ModelContext) throws {
         for song in (songs ?? []).sorted(by: { $0.seq < $1.seq }) {
             let newSong = try Song(copying: song, modelContext: modelContext)
@@ -94,7 +93,6 @@ final class PlayList: Identifiable {
         }
     }
     
-    @MainActor
     public func sortAndCopyCodable(songs: [SongTransferable]?, modelContext: ModelContext) throws {
         for song in (songs ?? []).sorted(by: { $0.seq < $1.seq }) {
             let newSong = try Song(from: song, modelContext: modelContext)
@@ -102,7 +100,6 @@ final class PlayList: Identifiable {
         }
     }
     
-    @MainActor
     static func fetchPlaylists(with ids: Set<PlayList.ID>, in context: ModelContext) -> [PlayList] {
         var res: [PlayList] = []
         
@@ -115,18 +112,16 @@ final class PlayList: Identifiable {
         return res
     }
     
-    @MainActor
     static func fetchPlaylist(with id: PlayList.ID, in context: ModelContext) -> PlayList? {
         return id.SCpersistentModel(from: context)
     }
 }
 
-
-
 @Observable
-final class RepresentationHolder: Sendable {
+@MainActor
+class RepresentationHolder {
     private(set) var songRepresentation: SongRepresentation = SongRepresentation(sections: [], directiveManager: DirectiveManagerSendable(directiveManager: DirectiveManager()))
-    
+
     func updateSongRepresentation(_ newRepresentation: SongRepresentation) {
         songRepresentation = newRepresentation
     }
@@ -155,7 +150,6 @@ final public class Song: Identifiable {
     @Transient static let invalidTitleCharacters = CharacterSet(charactersIn: "\t\\\0").union(.illegalCharacters).union(.controlCharacters).union(.newlines)
     @Transient static let invalidFilenameCharacters = CharacterSet(charactersIn: "\t\\\0/").union(.illegalCharacters).union(.symbols).union(.controlCharacters).union(.newlines)
         
-    @MainActor
     init(title: String, srcText: String, transpose: Int = 0, showChords: Bool = true, showText: Bool = true, showHeader: Bool = true, duration: Double = 200, musicItemId: String = "", playerLoops: [PlayerLoop] = [], backgroundColor: Int = 0, modelContext: ModelContext) throws {
         if !Song.isValidTitle(title) {
             throw SongChordsError.invalidSongtitle
@@ -178,12 +172,10 @@ final public class Song: Identifiable {
         if musicItemId.starts(with: "local@") { self.musicItemId = "" } else { self.musicItemId = musicItemId }
     }
 
-    @MainActor
     convenience init(copying other: Song, modelContext: ModelContext) throws {
         try self.init(title: other.title, srcText: other.srcText, transpose: other.transpose, showChords: other.showChords, showText: other.showText, showHeader: other.showHeader, duration: other.duration, musicItemId: other.musicItemId, playerLoops: other.playerLoops, backgroundColor: other.backgroundColor, modelContext: modelContext)
     }
     
-    @MainActor
     convenience init(from snapshot: SongTransferable, modelContext: ModelContext) throws {
         try self.init(title: snapshot.title, srcText: snapshot.srcText, transpose: snapshot.transpose, showChords: snapshot.showChords, showText: snapshot.showText, showHeader: snapshot.showHeader, duration: snapshot.duration, musicItemId: snapshot.musicItemId, playerLoops: snapshot.playerLoops, backgroundColor: snapshot.backgroundColor, modelContext: modelContext)
     }
@@ -206,7 +198,7 @@ final public class Song: Identifiable {
     static func titleFromDirective(srcText: String) -> String? {
         do {
             let tokens = try ChordProLexer(input: srcText).tokenize()
-            let songRepresentation = try ChordProParser(userSettings: UserSettings().makeSendable(), songTranspose: 0, tokens: tokens, forPrinting: false).parse()
+            let songRepresentation = try ChordProParser(userSettings: UserSettings(), songTranspose: 0, tokens: tokens, forPrinting: false).parse()
             
             if let titleDirective = songRepresentation.directiveManager.getDirective(DirectiveType.title.rawValue) {
                 return titleDirective
@@ -226,7 +218,6 @@ final public class Song: Identifiable {
         return (fileName, srcText)
     }
     
-    @MainActor
     static func fetchSongs(with ids: Set<PersistentIdentifier>, in context: ModelContext) -> [Song] {
         var res: [Song] = []
         
@@ -239,25 +230,14 @@ final public class Song: Identifiable {
         return res
     }
     
-    @MainActor
     static func fetchSong(with id: PersistentIdentifier, in context: ModelContext) -> Song? {
         return id.SCpersistentModel(from: context)
     }
 
     @MainActor
-    static func fetchSongProcessing(with id: PersistentIdentifier, in context: ModelContext, userSettings: UserSettingsSendable, forPrinting: Bool) -> Song? {
-        let song = Song.fetchSong(with: id, in: context)
-        
-        if let song {
-            let representationHolder = song.representationHolder
-            let srcText = song.srcText
-            let transpose = song.transpose
-            
-            Task {
-                await SongTaskManager.shared.processSongInBackground(representationHolder: representationHolder, srcText: srcText, transpose: transpose, userSettings: userSettings)
-            }
-        }
-        
+    static func fetchSongProcessing(with id: PersistentIdentifier, in context: ModelContext, userSettings: UserSettings, forPrinting: Bool) -> Song? {
+        guard let song = Song.fetchSong(with: id, in: context) else { return nil }
+        SongTaskManager.shared.processSongInBackground(representationHolder: song.representationHolder, srcText: song.srcText, transpose: song.transpose, userSettings: userSettings)
         return song
     }
 
@@ -315,7 +295,6 @@ final public class Song: Identifiable {
         musicItemId = "local@\(uuid)@" + String(format: "%.2f", pitch)
     }
     
-    @MainActor
     func mp3FileExists() -> Bool {
         do {
             let destDir = try GlobalFunctions.mp3Path()
@@ -329,7 +308,6 @@ final public class Song: Identifiable {
         return false
     }
     
-    @MainActor
     func tryRemoveMP3() {
         do {
             let destDir = try GlobalFunctions.mp3Path()
@@ -346,6 +324,7 @@ final public class Song: Identifiable {
 }
 
 extension PersistentIdentifier {
+    nonisolated
     public func SCpersistentModel<Model>(from context: ModelContext) -> Model? where Model : PersistentModel {
         return context.model(for: self) as? Model
     }

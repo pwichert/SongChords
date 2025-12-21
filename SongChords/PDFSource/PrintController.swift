@@ -13,12 +13,10 @@ import SwiftData
 protocol UIPrintInteractionControllerDelegate {}
 #endif
 
-@MainActor
 protocol PrintDelegateBase {
     func createPDF(paperSize: CGRect) -> URL?
 }
 
-@MainActor
 class PrintSongDelegate: NSObject, PrintDelegateBase, UIPrintInteractionControllerDelegate {
     let userSettings = UserSettings()
     let song: Song
@@ -30,7 +28,7 @@ class PrintSongDelegate: NSObject, PrintDelegateBase, UIPrintInteractionControll
         // bei fetchSong() nicht die Task-Variante, weil asynchron evtl. zu spät fertig ist und songRepresentation überschreibt
         guard let song = Song.fetchSong(with: songID, in: modelContext) else { return nil }
         self.song = song
-        songRepresentation = await SongTaskManager.shared.createSongRepresentation(userSettings: userSettings.makeSendable(), srcText: song.srcText, transpose: song.transpose, forPrinting: true) ?? SongRepresentation(sections: [], directiveManager: DirectiveManagerSendable(directiveManager: DirectiveManager()))
+        songRepresentation = await SongTaskManager.shared.createSongRepresentation(userSettings: userSettings, srcText: song.srcText, transpose: song.transpose, forPrinting: true) ?? SongRepresentation(sections: [], directiveManager: DirectiveManagerSendable(directiveManager: DirectiveManager()))
     }
     
     // nur, um eine andere URL als beim Drucken zu haben. Sicher ist sicher.
@@ -158,7 +156,6 @@ class PrintSongDelegate: NSObject, PrintDelegateBase, UIPrintInteractionControll
     }
 }
 
-@MainActor
 class PrintSetlistDelegate: NSObject, PrintDelegateBase, UIPrintInteractionControllerDelegate {
     let userSettings = UserSettings()
     let playlist: PlayList
@@ -216,7 +213,6 @@ class PrintSetlistDelegate: NSObject, PrintDelegateBase, UIPrintInteractionContr
     }
 }
 
-@MainActor
 class PrintController {
     static func onPrint(title: String, delegate: UIPrintInteractionControllerDelegate) {
         

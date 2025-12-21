@@ -5,7 +5,6 @@
 //  Created by Peter Wichert on 23.02.25.
 //
 
-nonisolated
 struct ChordGenerator {
     static func barre(grundton: Int, quality: ChordQuality?, ext: ChordExt?, basston: Int?) -> [ChordFretVariant] {
         var res: [ChordFretVariant] = []

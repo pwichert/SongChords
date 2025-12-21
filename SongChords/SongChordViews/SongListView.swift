@@ -214,7 +214,6 @@ struct SongListView: View {
             }
             
             ToolbarItem {
-//                CustomEditButton(editMode: $editMode).id(UUID())
                 EditButton()
             }
             #endif
@@ -452,7 +451,6 @@ struct SongListView: View {
         return success
     }
     
-    @MainActor
     func printSetlist() async {
         let modelContainer = modelContext.container
         if let delegate = PrintSetlistDelegate(playlistID: playlist.persistentModelID, modelContainer: modelContainer) {

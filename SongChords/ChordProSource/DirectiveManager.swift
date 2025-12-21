@@ -6,7 +6,6 @@
 //
 
 // Direktiventypen, die möglicherweise in einem System vorkommen könnten
-nonisolated
 enum DirectiveType: String, CaseIterable, Sendable {
     case title
     case subtitle
@@ -43,7 +42,6 @@ enum DirectiveType: String, CaseIterable, Sendable {
 }
 
 // Abkürzungen für die verschiedenen Direktiven
-nonisolated
 private let abbreviations: [String: DirectiveType] = [
     "t": .title,
     "st": .subtitle,
@@ -70,7 +68,6 @@ enum DirectiveNamesSpecial: String, CaseIterable, Sendable {
     case key_from
 }
 
-nonisolated
 final class DirectiveManagerSendable: Sendable {
     let directives: [DirectiveType: String]
     
@@ -106,7 +103,7 @@ final class DirectiveManagerSendable: Sendable {
 }
 
 // Verwaltungsklasse für Direktiven
-nonisolated class DirectiveManager {
+class DirectiveManager {
     // Dictionary zur Speicherung der Direktiven und ihrer Werte
     private(set) var directives: [DirectiveType: String] = [:]
     
