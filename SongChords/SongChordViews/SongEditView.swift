@@ -29,7 +29,7 @@ struct SongEditView: View {
     @FocusState private var focusedField: FocusedField?
 
     var body: some View {
-        Form {
+        OptionsContentView {
             TextField("Title", text: $title)
                 .focused($focusedField, equals: .songTitle)
                 .autocorrectionDisabled()
@@ -76,9 +76,6 @@ struct SongEditView: View {
             .padding(.bottom, 4)
             #endif
         }
-        #if os(macOS)
-        .padding()
-        #endif
         .navigationTitle((song == nil ? "" :  song?.title) ?? "")
         .toolbar {
             ToolbarItem(placement: .confirmationAction) {

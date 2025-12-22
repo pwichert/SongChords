@@ -11,6 +11,7 @@ import SwiftUI
     typealias UIFont = NSFont
 #endif
 
+// Sendable ist eig überflüssig, da per default MainActor isoliert
 public final class SongRepresentation: Identifiable, Sendable {
     public let id = UUID()
     

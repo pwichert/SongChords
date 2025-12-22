@@ -21,6 +21,7 @@ struct OptionsContentView<Content: View>: View {
                 content
             }
             .frame(idealHeight: 300)
+            .padding()
         }
         #else
         Form {
@@ -141,9 +142,6 @@ struct OptionsView: View {
                 textFollowsChords = false
             }
         }
-        #if os(macOS)
-        .padding()
-        #endif
         .navigationTitle("Options")
         .toolbar {
             ToolbarItem(placement: .confirmationAction) {
@@ -247,9 +245,6 @@ struct PrintOptionsView: View {
                 }
             }
         }
-        #if os(macOS)
-        .padding()
-        #endif
         .navigationTitle("PDF Options")
         .toolbar {
             ToolbarItem(placement: .confirmationAction) {
