@@ -139,7 +139,7 @@ struct SongView: View {
                 globals.setSongChordsError(error: error)
             }
         }
-        onChange(of: song.persistentModelID, initial: true) {
+        .onChange(of: song.persistentModelID, initial: true) {
             if lastID != song.persistentModelID {
                 songChangedAction()
                 lastID = song.persistentModelID
