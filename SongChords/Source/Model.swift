@@ -122,6 +122,20 @@ final class PlayList: Identifiable {
 class RepresentationHolder {
     private(set) var songRepresentation: SongRepresentation = SongRepresentation(sections: [], directiveManager: DirectiveManagerSendable(directiveManager: DirectiveManager()))
 
+    #if false
+    var renderChunks: [SongRenderChunk] = []
+    var renderChunks_: [SongRenderChunk] = []
+
+    func reset() {
+        renderChunks.removeAll()
+        renderChunks_.removeAll()
+    }
+
+    func append(_ chunk: SongRenderChunk) {
+        renderChunks_.append(chunk)
+    }
+    #endif
+    
     func updateSongRepresentation(_ newRepresentation: SongRepresentation) {
         songRepresentation = newRepresentation
     }
@@ -195,15 +209,15 @@ final public class Song: Identifiable {
     }
 
     @MainActor
-    static func titleFromDirective(srcText: String) -> String? {
-        do {
-            let tokens = try ChordProLexer(input: srcText).tokenize()
-            let songRepresentation = try ChordProParser(userSettings: UserSettings(), songTranspose: 0, tokens: tokens, forPrinting: false).parse()
-            
-            if let titleDirective = songRepresentation.directiveManager.getDirective(DirectiveType.title.rawValue) {
-                return titleDirective
-            }
-        } catch { }
+    static func titleFromDirective(srcText: String) async throws -> String? {
+        let lexer = ChordProLexer(input: srcText)
+        let tokens = try lexer.tokensAsStream()
+        let songRepresentation = try await ChordProParser(userSettings: UserSettings(), songTranspose: 0, tokens: tokens, forPrinting: false).parse()
+        
+        if let titleDirective = songRepresentation.directiveManager.getDirective(DirectiveType.title.rawValue) {
+            return titleDirective
+        }
+        
         return nil
     }
         

@@ -51,7 +51,7 @@ public final class SongRepresentation: Identifiable, Sendable {
 }
 
 final class CPPSectionSendable: Identifiable, Sendable {
-    public let id = UUID()
+    public let id: Int
     
     let name: String
     let lines: [LineSendable]
@@ -67,11 +67,12 @@ final class CPPSectionSendable: Identifiable, Sendable {
         self.isColumnBreak = cppSection.isColumnBreak
         self.col = cppSection.col
         self.lines = cppSection.lines.map({ LineSendable(line: $0) })
+        self.id = cppSection.id
     }
 }
 
 public class CPPSection: Identifiable {
-    public let id = UUID()
+    public let id: Int
     
     var name: String
     var lines: [Line] = []
@@ -80,8 +81,9 @@ public class CPPSection: Identifiable {
     var isColumnBreak: Bool = false
     var col: Int = 0
     
-    init(name: String) {
+    init(id: Int, name: String) {
         self.name = name
+        self.id = id
     }
     
     func linesToString() -> String {
@@ -93,8 +95,8 @@ public class CPPSection: Identifiable {
     }
 }
 
-struct SplittedLine: Identifiable, Sendable {
-    public let id = UUID()
+public struct SplittedLine: Identifiable, Sendable {
+    public let id: Int
     
     var chords: [TextElement] = []
     var texts: [TextElement] = []
@@ -164,7 +166,7 @@ class Line: Identifiable {
 }
 
 struct TextElement: Identifiable, Equatable, Sendable {
-    let id = UUID()
+    let id: Int
     let txt: String
     let fontOffset: Double
     let background: Bool
@@ -207,12 +209,13 @@ enum ElementType: Sendable {
 
 public class ChordProParser {
     private let songTranspose: Int
-    private let tokens: [Token]
+    private let tokens: AsyncThrowingStream<Token, any Error>
     private let userSettings: UserSettings
     private let forPrinting: Bool
     private let directiveManager = DirectiveManager()
+    private let idManager = IdManager()
     
-    public init(userSettings: UserSettings, songTranspose: Int, tokens: [Token], forPrinting: Bool) {
+    public init(userSettings: UserSettings, songTranspose: Int, tokens: AsyncThrowingStream<Token, any Error>, forPrinting: Bool) {
         self.songTranspose = songTranspose
         self.tokens = tokens
         self.userSettings = userSettings
@@ -223,15 +226,15 @@ public class ChordProParser {
     // Wandelt die Token-Folge in Section : Line : Element um
     // Directiven sind nicht mehr enthalten
     
-    public func parse() throws -> SongRepresentation {
+    public func parse() async throws -> SongRepresentation {
         var sections: [CPPSection] = []
         
         var cSection: CPPSection?
         var cLine: Line?
-                
+        
         var nextlineIsColumnBreak: Bool = false
         var nextlineIsNewPage: Bool = false
-                
+        
         var position: Int = 0
         var numChords: Int = 0
         var numDirectives: Int = 0
@@ -244,10 +247,10 @@ public class ChordProParser {
         
         var rootSystem: ChordRoot = userSettings.isGermanNotation ? EnglishGermanRoot() : EnglishDutchRoot()
         
-        while position < tokens.count {
+        for try await token in tokens {
             if Task.isCancelled { print("cancelled"); break }
             
-            let token = tokens[position]
+            //            let token = tokens[position]
             
             switch token {
             case .curlyEnclosed(let directive):
@@ -257,7 +260,7 @@ public class ChordProParser {
                 
                 if let d = directiveManager.addDirective(processReplace(srcline: directive, root: &rootSystem)) {
                     switch d {
-                    // Markiert für die nächste Zeile ColumnBreak oder NewPage
+                        // Markiert für die nächste Zeile ColumnBreak oder NewPage
                     case .column_break: nextlineIsColumnBreak = true
                     case .new_page: nextlineIsNewPage = true
                         
@@ -275,7 +278,7 @@ public class ChordProParser {
                         let strLen = sizeOfString(string: val, font: txtf)
                         getLine().elements.append(Element(type: .comment(val, strLen)))
                         setLineDirectives()
-
+                        
                     default: break
                     }
                 } else {
@@ -303,79 +306,82 @@ public class ChordProParser {
                     }
                 }
                 setLineDirectives()
-
+                
             case .text(let text):
                 let str = processReplace(srcline: text, root: &rootSystem)
                 let strLen = sizeOfString(string: str, font: txtf)
                 getLine().elements.append(Element(type: .text(str, strLen)))
                 setLineDirectives()
-
+                
             case .comment(let text):
                 let str = processReplace(srcline: text, root: &rootSystem)
                 let strLen = sizeOfString(string: str, font: txtf)
                 getLine().elements.append(Element(type: .comment(str, strLen)))
                 setLineDirectives()
                 
-            case .newLine: break
+            case .commentHidden(_): break
                 
-            }
-            
-            // neue Zeile oder Ende?
-            if .newLine == token || position == tokens.endIndex - 1 {
-                // Zeileninhalt in den aktuellen Abschnitt einfügen.
-                if numChords == 1 && onlyWhitespaceOrChordCommentForSection(elements: cLine?.elements ?? []) {
-                    // Section-Name [abc], einzelner ChordComment (ohne "*") in Zeile entdeckt:
-                    
-                    // neuen Sectionnamen festlegen
-                    var newSectionName = ""
-                    if let cSection = cSection, let cLine = cLine {
-                        if let elem = getFirstChordComment(elements: cLine.elements),
-                           case let .chordcomment(comment, _, _) = elem.type {
-                            newSectionName = comment
-                        }
-                        
-                        // alte Section abschließen, aber aktuelle Zeile löschen, da sie nur aus [Section] besteht
-                        // vor dem Löschen die Info übernehmen
-                        nextlineIsNewPage = cLine.lineIsNewPage
-                        nextlineIsColumnBreak = cLine.lineIsColumnBreak
-                        cSection.lines = cSection.lines.dropLast()
-                    }
-
-                    // neue Section erzeugen
-                    cSection = nil
-                    setSectionDirectives()
-                    getSection().name = newSectionName
-                } else if numDirectives > 0 && cLine != nil && onlyWhitespace(elements: cLine?.elements ?? []) {
-                    // Zeile löschen, falls sie nur aus Directiven (+ evtl. WhiteSpace) besteht
-                    if let cSection = cSection {
-                        cSection.lines = cSection.lines.dropLast()
-                    }
-                } else if numDirectives == 0 && cLine == nil {
-                    // leere Zeile, bleibt erhalten
-                    _ = getLine(true)
-                }
-                
-                // neue Zeile starten
-                cLine = nil
-                numDirectives = 0
-                numChords = 0
+            case .newLine:
+                finishLine()
             }
             
             position += 1
         }
         
+        finishLine()
+        
         createSplittedLines()
         
-//        print(sections.map { $0.linesToString() }.joined())
-//        print(sections.map { $0.splToString() }.joined())
-
+        //        print(sections.map { $0.linesToString() }.joined())
+        //        print(sections.map { $0.splToString() }.joined())
+        
         let directiveManagerSendable = DirectiveManagerSendable(directiveManager: directiveManager)
         let sectionsSendable = sections.map( { CPPSectionSendable(cppSection: $0) })
         let sr = SongRepresentation(sections: sectionsSendable, directiveManager: directiveManagerSendable)
-
+        
         return sr
         
         // Codevereinfachung
+        
+        func finishLine() {
+            // Zeileninhalt in den aktuellen Abschnitt einfügen.
+            if numChords == 1 && onlyWhitespaceOrChordCommentForSection(elements: cLine?.elements ?? []) {
+                // Section-Name [abc], einzelner ChordComment (ohne "*") in Zeile entdeckt:
+                
+                // neuen Sectionnamen festlegen
+                var newSectionName = ""
+                if let cSection = cSection, let cLine = cLine {
+                    if let elem = getFirstChordComment(elements: cLine.elements),
+                       case let .chordcomment(comment, _, _) = elem.type {
+                        newSectionName = comment
+                    }
+                    
+                    // alte Section abschließen, aber aktuelle Zeile löschen, da sie nur aus [Section] besteht
+                    // vor dem Löschen die Info übernehmen
+                    nextlineIsNewPage = cLine.lineIsNewPage
+                    nextlineIsColumnBreak = cLine.lineIsColumnBreak
+                    cSection.lines = cSection.lines.dropLast()
+                }
+                
+                // neue Section erzeugen
+                cSection = nil
+                setSectionDirectives()
+                getSection().name = newSectionName
+            } else if numDirectives > 0 && cLine != nil && onlyWhitespace(elements: cLine?.elements ?? []) {
+                // Zeile löschen, falls sie nur aus Directiven (+ evtl. WhiteSpace) besteht
+                if let cSection = cSection {
+                    cSection.lines = cSection.lines.dropLast()
+                }
+            } else if numDirectives == 0 && cLine == nil {
+                // leere Zeile, bleibt erhalten
+                _ = getLine(true)
+            }
+            
+            // neue Zeile starten
+            cLine = nil
+            numDirectives = 0
+            numChords = 0
+        }
         
         func setLineDirectives() {
             if nextlineIsNewPage { getLine().lineIsNewPage = nextlineIsNewPage }
@@ -383,28 +389,28 @@ public class ChordProParser {
             nextlineIsColumnBreak = false
             nextlineIsNewPage = false
         }
-
+        
         func setSectionDirectives() {
             if nextlineIsNewPage { getSection().isNewPage = nextlineIsNewPage }
             if nextlineIsColumnBreak { getSection().isColumnBreak = nextlineIsColumnBreak }
             nextlineIsNewPage = false
             nextlineIsColumnBreak = false
         }
-
+        
         func getSection(_ new: Bool = false) -> CPPSection {
             if cSection == nil || new {
                 // leere sections vermeiden
                 if let last = sections.last, last.lines.isEmpty && last.name.isEmpty{
                     cSection = last
                 } else {
-                    cSection = CPPSection(name: "")
+                    cSection = CPPSection(id: idManager.getSectionID(), name: "")
                     sections.append(cSection!)
                 }
                 cLine = nil
             }
             return cSection!
         }
-
+        
         func getLine(_ new: Bool = false) -> Line {
             let section = getSection()
             if cLine == nil || new {
@@ -413,9 +419,10 @@ public class ChordProParser {
             }
             return cLine!
         }
-
+        
         // Teil 2, erzeugen der Chord-/Textzeilen
         func createSplittedLines() {
+            
             let chordPadding: Double = 3
             var currentColumn: Int = 0
             
@@ -432,7 +439,7 @@ public class ChordProParser {
                     var nextTextPosition: Double = 0
                     var minNextChordPosition: Double = 0
                     
-                    var spl = SplittedLine()
+                    var spl = SplittedLine(id: idManager.getLineID())
                     
                     if line.lineIsNewPage { spl.onNewPage = true }
                     
@@ -447,7 +454,7 @@ public class ChordProParser {
                         switch elem.type {
                         case .chord(let chordtxt, let tchord, let len):
                             let position = max(nextChordPosition, minNextChordPosition)
-                            let tElem = TextElement(txt: chordtxt, fontOffset: position, background: true, chord: tchord)
+                            let tElem = TextElement(id: idManager.getTextElementID(), txt: chordtxt, fontOffset: position, background: true, chord: tchord)
                             spl.chords.append(tElem)
                             
                             // wenn Chords angezeigt werden, soll sich der Text danach richten
@@ -464,7 +471,7 @@ public class ChordProParser {
                             
                         case .chordcomment(let comment, let len, _):
                             let position = nextChordPosition
-                            let tElem = TextElement(txt: comment, fontOffset: position, background: false, chord: nil)
+                            let tElem = TextElement(id: idManager.getTextElementID(), txt: comment, fontOffset: position, background: false, chord: nil)
                             spl.chords.append(tElem)
                             
                             if showChords {
@@ -478,7 +485,7 @@ public class ChordProParser {
                             minNextChordPosition = nextChordPosition
                             
                         case .text(let txt, let len), .comment(let txt, let len):
-                            let tElem = TextElement(txt: txt, fontOffset: nextTextPosition, background: false, chord: nil)
+                            let tElem = TextElement(id: idManager.getTextElementID(), txt: txt, fontOffset: nextTextPosition, background: false, chord: nil)
                             spl.texts.append(tElem)
                             spl.plainText.append(txt)
                             
@@ -515,7 +522,7 @@ public class ChordProParser {
             }
         }
     }
-
+    
     private func sizeOfStringPart(str: String, end: Int, font: UIFont) -> Double {
         let iStart = str.startIndex
         let i2 = str.index(iStart, offsetBy: end)
@@ -558,66 +565,315 @@ public class ChordProParser {
     // Ersetzt Variablen durch ihren Wert: %{ variable }
     private func processReplace(srcline: String, root: inout ChordRoot) -> String {
         if srcline.isEmpty { return srcline }
+        var res = ""
         
-        var src: String = srcline
-
-        // TODO: Maskiertes \%{ fehlt hier noch. Außerdem sollte die Schleife sicherer werden.
-        
-        while true {
-            let dirRepl = findSubstringBetweenDelimiters(mainString: src, startDelimiter: "%{", endDelimiter: "}")
+        do {
+            let lexer = ChordProLexer(input: srcline)
             
-            if dirRepl == nil { break }
-            let str = dirRepl!.substring.trimmingCharacters(in: .whitespaces).lowercased()
-            let s1Index = dirRepl!.startIndex
-            let eIndex = dirRepl!.endIndex
-            let sIndex = src.index(s1Index, offsetBy: -2)
-            
-            var repl: String?
-            if str.count < 10000 && str.count > 0 {
-                if let dirval = directiveManager.getDirective(str) {
-                    repl = dirval
-                } else {
-                    if let special = DirectiveNamesSpecial(rawValue: str) {
-                        switch special {
-                        case DirectiveNamesSpecial.key_actual:
-                            let key = directiveManager.getDirective(DirectiveType.key.rawValue)
-                            if let key = key {
-                                let chord = ParsedChord.parse(key, rootSystem: &root, strict: true)
-                                if let chord = chord {
-                                    (repl, _) = chord.toString(transpose: directiveManager.transpose, rootSystem: &root)
+            while let token = lexer.nextVariableToken() {
+                switch(token) {
+                case .curlyEnclosed(let enc):
+                    let txt = enc.trimmingCharacters(in: .whitespaces).lowercased()
+                    var repl: String? = ""
+                    if let dirval = directiveManager.getDirective(txt) {
+                        repl = dirval
+                    } else {
+                        if let special = DirectiveNamesSpecial(rawValue: txt) {
+                            switch special {
+                            case DirectiveNamesSpecial.key_actual:
+                                let key = directiveManager.getDirective(DirectiveType.key.rawValue)
+                                if let key = key {
+                                    let chord = ParsedChord.parse(key, rootSystem: &root, strict: true)
+                                    if let chord = chord {
+                                        (repl, _) = chord.toString(transpose: directiveManager.transpose, rootSystem: &root)
+                                    }
                                 }
+                                break
+                            case DirectiveNamesSpecial.key_from:
+                                let key = directiveManager.getDirective(DirectiveType.key.rawValue)
+                                if let key = key {
+                                    repl = key
+                                }
+                                break
                             }
-                            break
-                        case DirectiveNamesSpecial.key_from:
-                            let key = directiveManager.getDirective(DirectiveType.key.rawValue)
-                            if let key = key {
-                                repl = key
-                            }
-                            break
                         }
                     }
+                    res += repl ?? ""
+                    
+                case .text(let txt):
+                    res += txt
+                    
+                default:
+                    break
                 }
             }
-                        
-            src = src[src.startIndex..<sIndex].appending(repl ?? "").appending(src[src.index(after: eIndex)...])
         }
         
-        return src
-    }
-    
-    private func findSubstringBetweenDelimiters(mainString: String, startDelimiter: String, endDelimiter: String) -> (substring: String, startIndex: String.Index, endIndex: String.Index)? {
-        guard let rangeStart = mainString.range(of: startDelimiter),
-              let rangeEnd = mainString.range(of: endDelimiter, range: rangeStart.upperBound..<mainString.endIndex)
-        else {
-            return nil
-        }
-
-        let startIndex = rangeStart.upperBound
-        let endIndex = rangeEnd.lowerBound
-
-        let substring = mainString[startIndex..<endIndex]
-
-        return (String(substring), startIndex, endIndex)
+        return res
     }
 }
 
+#if false
+/// Ein inkrementell darstellbares Render-Fragment (z. B. eine fertige Zeile)
+public enum SongRenderChunk: Sendable, Identifiable {
+    case sectionStarted(String)
+    case line(SplittedLine)
+    case sectionEnded
+    case newPage
+    case columnBreak
+
+    public var id: UUID { UUID() }
+}
+
+// MARK: - Streaming Parser
+
+public final class ChordProStreamingParser {
+
+    private let songTranspose: Int
+    private let userSettings: UserSettings
+    private let forPrinting: Bool
+    private let directiveManager = DirectiveManager()
+
+    private var sections: [CPPSection] = []
+    private var cSection: CPPSection?
+    private var cLine: Line?
+
+    private var nextlineIsColumnBreak = false
+    private var nextlineIsNewPage = false
+
+    private var numChords = 0
+    private var numDirectives = 0
+
+    private var rootSystem: ChordRoot
+
+    private let txtf: UIFont
+    private let chordf: UIFont
+
+    private let showChords: Bool
+    private let textFollowsChords: Bool
+    
+    private let idManager = IdManager()
+    
+    public init(
+        userSettings: UserSettings,
+        songTranspose: Int,
+        forPrinting: Bool
+    ) {
+        self.songTranspose = songTranspose
+        self.userSettings = userSettings
+        self.forPrinting = forPrinting
+
+        self.txtf = forPrinting ? userSettings.txtPDFUIFont : userSettings.txtUIFont
+        self.chordf = forPrinting ? userSettings.chordPDFUIFont : userSettings.chordUIFont
+
+        self.showChords = !userSettings.hidechords
+        self.textFollowsChords = userSettings.textfollowschords
+
+        self.rootSystem = userSettings.isGermanNotation
+            ? EnglishGermanRoot()
+            : EnglishDutchRoot()
+    }
+
+    /// Konsumiert genau EIN Token und liefert ggf. ein Render-Chunk zurück
+    public func consume(_ token: Token) throws -> SongRenderChunk? {
+        if Task.isCancelled { return nil }
+
+//        print(token)
+//        return .sectionStarted("txt")
+        
+        switch token {
+
+        case .curlyEnclosed(let directive):
+            numDirectives += 1
+
+            if let d = directiveManager.addDirective(processReplace(srcline: directive)) {
+                switch d {
+                case .column_break: nextlineIsColumnBreak = true
+                case .new_page: nextlineIsNewPage = true
+
+                case .start_of_verse, .start_of_bridge, .start_of_chorus:
+                    let val = directiveManager.getDirective(d.rawValue) ?? ""
+                    cSection = nil
+                    let section = getSection()
+                    section.name = val
+                    setSectionDirectives()
+                    return .sectionStarted(val)
+
+                case .end_of_verse, .end_of_bridge, .end_of_chorus:
+                    cSection = nil
+                    return .sectionEnded
+
+                case .comment, .comment_box, .comment_italic:
+                    let val = directiveManager.getDirective(d.rawValue) ?? ""
+                    let strLen = sizeOfString(string: val, font: txtf)
+                    getLine().elements.append(Element(type: .comment(val, strLen)))
+                    setLineDirectives()
+
+                default: break
+                }
+            } else {
+                let str = processReplace(srcline: directive)
+                let strLen = sizeOfString(string: str, font: txtf)
+                getLine().elements.append(Element(type: .text(str, strLen)))
+                setLineDirectives()
+            }
+
+        case .bracketEnclosed(let chord):
+            numChords += 1
+
+            if chord.starts(with: "*") {
+                let str = processReplace(srcline: String(chord.dropFirst()))
+                let strLen = sizeOfString(string: str, font: chordf)
+                getLine().elements.append(Element(type: .chordcomment(str, strLen, true)))
+            } else {
+                if let pchord = ParsedChord.parse(chord, rootSystem: &rootSystem, strict: true) {
+                    let (str, tchord) = pchord.toString(
+                        transpose: songTranspose + directiveManager.transpose,
+                        rootSystem: &rootSystem
+                    )
+                    let strLen = sizeOfString(string: str, font: chordf)
+                    getLine().elements.append(Element(type: .chord(str, tchord ?? pchord, strLen)))
+                } else {
+                    let str = processReplace(srcline: chord)
+                    let strLen = sizeOfString(string: str, font: chordf)
+                    getLine().elements.append(Element(type: .chordcomment(str, strLen, false)))
+                }
+            }
+            setLineDirectives()
+
+        case .text(let text):
+            let str = processReplace(srcline: text)
+            let strLen = sizeOfString(string: str, font: txtf)
+            getLine().elements.append(Element(type: .text(str, strLen)))
+            setLineDirectives()
+
+        case .comment(let text):
+            let str = processReplace(srcline: text)
+            let strLen = sizeOfString(string: str, font: txtf)
+            getLine().elements.append(Element(type: .comment(str, strLen)))
+            setLineDirectives()
+
+        case .commentHidden(_):
+            break
+
+        case .newLine:
+            break
+        }
+
+        // Zeilenabschluss?
+        if token == .newLine {
+            let chunk = finalizeLineIfNeeded()
+            return chunk
+        }
+
+        return nil
+    }
+
+    /// MUSS am Ende einmal aufgerufen werden
+    public func finish() -> [SongRenderChunk] {
+        var chunks: [SongRenderChunk] = []
+        if let last = finalizeLineIfNeeded() {
+            chunks.append(last)
+        }
+        return chunks
+    }
+
+    // MARK: - Helpers (leicht gekürzt, Logik identisch)
+
+    private func finalizeLineIfNeeded() -> SongRenderChunk? {
+        guard let line = cLine else { return nil }
+
+        defer {
+            cLine = nil
+            numDirectives = 0
+            numChords = 0
+        }
+
+        let spl = buildSplittedLine(from: line)
+        return .line(spl)
+    }
+
+    private func buildSplittedLine(from line: Line) -> SplittedLine {
+        var spl = SplittedLine(id: idManager.getLineID(), chords: [], texts: [])
+        var nextChordPosition: Double = 0
+        var nextTextPosition: Double = 0
+        var minNextChordPosition: Double = 0
+        let chordPadding: Double = 3
+        
+        for elem in line.elements {
+            switch elem.type {
+            case .chord(let chordtxt, let tchord, let len):
+                let position = max(nextChordPosition, minNextChordPosition)
+                spl.chords.append(
+                    TextElement(id: idManager.getTextElementID(), txt: chordtxt, fontOffset: position, background: true, chord: tchord)
+                )
+                if showChords, textFollowsChords || (spl.chords.count > 1 && spl.texts.isEmpty) {
+                    nextTextPosition = position
+                }
+                nextChordPosition = position + len
+                minNextChordPosition = nextChordPosition + chordPadding
+
+            case .chordcomment(let comment, let len, _):
+                let position = nextChordPosition
+                spl.chords.append(
+                    TextElement(id: idManager.getTextElementID(), txt: comment, fontOffset: position, background: false, chord: nil)
+                )
+                nextChordPosition = position + len
+                minNextChordPosition = nextChordPosition
+
+            case .text(let txt, let len), .comment(let txt, let len):
+                spl.texts.append(
+                    TextElement(id: idManager.getTextElementID(), txt: txt, fontOffset: nextTextPosition, background: false, chord: nil)
+                )
+                spl.plainText.append(txt)
+                nextTextPosition += len
+                nextChordPosition = max(nextTextPosition, nextChordPosition)
+            }
+        }
+
+        return spl
+    }
+
+    private func setLineDirectives() {
+        if nextlineIsNewPage { getLine().lineIsNewPage = true }
+        if nextlineIsColumnBreak { getLine().lineIsColumnBreak = true }
+        nextlineIsColumnBreak = false
+        nextlineIsNewPage = false
+    }
+
+    private func setSectionDirectives() {
+        if nextlineIsNewPage { getSection().isNewPage = true }
+        if nextlineIsColumnBreak { getSection().isColumnBreak = true }
+        nextlineIsColumnBreak = false
+        nextlineIsNewPage = false
+    }
+
+    private func getSection() -> CPPSection {
+        if cSection == nil {
+            cSection = CPPSection(id: idManager.getSectionID(), name: "")
+            sections.append(cSection!)
+            cLine = nil
+        }
+        return cSection!
+    }
+
+    private func getLine() -> Line {
+        let section = getSection()
+        if cLine == nil {
+            cLine = Line()
+            section.lines.append(cLine!)
+        }
+        return cLine!
+    }
+
+    private func processReplace(srcline: String) -> String {
+        var root = rootSystem
+        return srcline // vereinfachte Weiterverwendung der existierenden Logik
+    }
+
+    private func sizeOfString(string: String, font: UIFont) -> Double {
+        let fontAttributes = [NSAttributedString.Key.font: font]
+        return string.size(withAttributes: fontAttributes).width
+    }
+}
+#endif

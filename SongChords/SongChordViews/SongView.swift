@@ -145,6 +145,15 @@ struct SongView: View {
                 lastID = song.persistentModelID
             }
         }
+        .onChange(of: userSettings.chordsize, initial: false) { print("chordsize changed"); updateSongRepresentation() }
+        .onChange(of: userSettings.txtsize, initial: false) { print("txtsize changed"); updateSongRepresentation() }
+        .onChange(of: userSettings.headersize, initial: false) { print("headersize changed"); updateSongRepresentation() }
+        .onChange(of: userSettings.isGermanNotation, initial: false) { print("isGermanNotation changed"); updateSongRepresentation() }
+        .onChange(of: userSettings.textfollowschords, initial: false) { print("textfollowschords changed"); updateSongRepresentation() }
+    }
+    
+    private func updateSongRepresentation() {
+        SongTaskManager.shared.processSongInBackground(representationHolder: song.representationHolder, srcText: song.srcText, transpose: song.transpose, userSettings: userSettings)
     }
     
     private func songChangedAction() {
@@ -201,9 +210,10 @@ struct SongView: View {
     }
 }
 
+#if true
 struct DetailContent: View {
     let song: Song
-    var representationHolder: RepresentationHolder
+    let representationHolder: RepresentationHolder
 
     @Environment(UserSettings.self) private var userSettings
 
@@ -251,6 +261,105 @@ struct DetailContent: View {
         }.padding()
     }
 }
+#else
+struct DetailContent: View {
+    let song: Song
+    let representationHolder: RepresentationHolder
+    
+    @Environment(UserSettings.self) private var userSettings
+    
+    @State private var darkColor = Color(red: 0.25, green: 0.25, blue: 0.25)
+    @State private var lightColor = Color(red: 0.90, green: 0.90, blue: 0.90)
+    
+    var body: some View {
+        VStack(alignment: .leading) {
+            
+#if os(macOS)
+            Text(song.title)
+                .font(.title)
+                .fontWeight(.bold)
+                .padding(.bottom, 10)
+#endif
+            
+            ForEach(representationHolder.renderChunks) { chunk in
+                render(chunk)
+            }
+        }
+        .padding()
+    }
+    
+    
+    @ViewBuilder
+    private func render(_ chunk: SongRenderChunk) -> some View {
+        switch chunk {
+        case .sectionStarted(let title):
+            Text(title)
+//            SectionHeaderView(
+//                sectionTitle: title,
+//                lightColor: lightColor,
+//                darkColor: darkColor
+//            )
+            .font(Font(userSettings.headerUIFont))
+            .padding(.bottom, 2)
+            
+        case .line(let line):
+            renderLine(line)
+            
+        case .sectionEnded:
+            EmptyView()
+        default:
+            EmptyView()
+        }
+    }
+    
+    @ViewBuilder
+    private func renderLine(_ line: SplittedLine) -> some View {
+        
+        if (userSettings.hidechords && line.textsIsWhithespaceOrEmpty() && !line.chords.isEmpty) ||
+            (!song.showText && !line.textsIsWhithespaceOrEmpty() && line.chords.isEmpty) ||
+            (!song.showText && userSettings.hidechords && !line.textsIsWhithespaceOrEmpty() && !line.chords.isEmpty) {
+            
+            EmptyView()
+            
+        } else {
+            VStack(alignment: .leading, spacing: 0) {
+                
+                if line.chords.isEmpty && line.textsIsWhithespaceOrEmpty() {
+                    Text(" ")
+                        .font(Font(userSettings.txtUIFont))
+                    
+                } else if userSettings.hidechords {
+                    if song.showText {
+                        Text(line.plainText)
+                            .font(Font(userSettings.txtUIFont))
+                    }
+                    
+                } else {
+                    if song.showText {
+                        ChordsLineView(
+                            line: line,
+                            lightColor: lightColor,
+                            darkColor: darkColor
+                        )
+                        .font(Font(userSettings.chordUIFont))
+                        
+                        TextsLineView(line: line)
+                            .font(Font(userSettings.txtUIFont))
+                    } else {
+                        ChordsPlainView(
+                            line: line,
+                            lightColor: lightColor,
+                            darkColor: darkColor
+                        )
+                        .font(Font(userSettings.chordUIFont))
+                    }
+                }
+            }
+            .padding(.bottom, userSettings.linespacing)
+        }
+    }
+}
+#endif
 
 struct SectionHeaderView: View {
     let section: CPPSectionSendable

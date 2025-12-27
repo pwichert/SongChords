@@ -277,8 +277,7 @@ struct SongListView: View {
             case .success(let urls):
                 for url in urls {
                     print("Playlist: \(playlist.title): .fileImporter: URL: " + url.absoluteString)
-                    let success = importTextSong(url: url)
-                    if !success { break }
+                    importTextSong(url: url)
                 }
             case .failure(let error):
                 globals.setSongChordsError(error: error)
@@ -433,22 +432,20 @@ struct SongListView: View {
         }
     }
     
-    private func importTextSong(url: URL) -> Bool {
+    private func importTextSong(url: URL) {
         print("importTextSong URL: \(url.absoluteString)")
-        var success = false
         
-        do {
-            let (filename, srcText) = try Song.srcTextFromText(url: url, modelContext: modelContext)
-            let title = Song.titleFromDirective(srcText: srcText)
-            let song = try Song(title: Song.makeValidTitle(title ?? filename), srcText: srcText, modelContext: modelContext)
-            song.toPlaylist(playlist: playlist)
-            try modelContext.save()
-            success = true
-        } catch (let error) {
-            globals.setSongChordsError(error: error)
+        Task {
+            do {
+                let (filename, srcText) = try Song.srcTextFromText(url: url, modelContext: modelContext)
+                let title = try await Song.titleFromDirective(srcText: srcText)
+                let song = try Song(title: Song.makeValidTitle(title ?? filename), srcText: srcText, modelContext: modelContext)
+                song.toPlaylist(playlist: playlist)
+                try modelContext.save()
+            } catch (let error) {
+                globals.setSongChordsError(error: error)
+            }
         }
-        
-        return success
     }
     
     func printSetlist() async {
