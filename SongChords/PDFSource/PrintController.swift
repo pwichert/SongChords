@@ -20,7 +20,7 @@ protocol PrintDelegateBase {
 class PrintSongDelegate: NSObject, PrintDelegateBase, UIPrintInteractionControllerDelegate {
     let userSettings = UserSettings()
     let song: Song
-    let songRepresentation: SongRepresentation
+    let representationHolder = RepresentationHolder()
     
     init?(songID: PersistentIdentifier, modelContainer: ModelContainer) async {
         let modelContext = ModelContext(modelContainer)
@@ -28,7 +28,10 @@ class PrintSongDelegate: NSObject, PrintDelegateBase, UIPrintInteractionControll
         // bei fetchSong() nicht die Task-Variante, weil asynchron evtl. zu spät fertig ist und songRepresentation überschreibt
         guard let song = Song.fetchSong(with: songID, in: modelContext) else { return nil }
         self.song = song
-        songRepresentation = await SongTaskManager.shared.createSongRepresentation(userSettings: userSettings, srcText: song.srcText, transpose: song.transpose, forPrinting: true) ?? SongRepresentation(sections: [], directiveManager: DirectiveManagerSendable(directiveManager: DirectiveManager()))
+        
+        SongTaskManager.shared.processSongInBackground(representationHolder: representationHolder, srcText: song.srcText, transpose: song.transpose, showHeader: song.showHeader, showText: song.showText, userSettings: userSettings, forPrinting: true)
+        // warten, bis fertig
+        let _ = await SongTaskManager.shared.processingTask?.result
     }
     
     // nur, um eine andere URL als beim Drucken zu haben. Sicher ist sicher.
@@ -72,23 +75,33 @@ class PrintSongDelegate: NSObject, PrintDelegateBase, UIPrintInteractionControll
         #else
         
         do {
-            let mgr = songRepresentation.directiveManager
-            let cols = mgr.columns
+            let mgr = representationHolder.directiveManager
 
-            let gen = try PDFGenerator(userSettings: userSettings, mediaBox: paperSize, cols: cols, viewURL: viewURL)
+            let darkColor = Color(red: 0.15, green: 0.15, blue: 0.15)
+            let lightColor = Color(red: 0.85, green: 0.85, blue: 0.85)
+
+            let gen = try PDFGenerator(userSettings: userSettings, mediaBox: paperSize, cols: mgr.columns, viewURL: viewURL)
             gen.startPDF()
             
-            var topPadding: CGFloat = 0
             let title = mgr.getDirective("title") ?? song.title
             if !title.isEmpty {
-                gen.draw(col: 0, view: Text(title).font(.system(size: userSettings.chordsizepdf+4, weight: .bold, design: .rounded)))
+                gen.draw(view: Text(title).font(.system(size: userSettings.chordsizepdf+4, weight: .bold, design: .rounded)))
             }
 
-            gen.draw(col: 0, view: Color.clear.padding(.bottom, 2))
+            gen.draw(view: Color.clear.padding(.bottom, 2))
             gen.setColumnTop()
             
-            topPadding = 0
-
+            #if true
+            for row in representationHolder.rows {
+                // function je nach row.rowEvent festlegen
+                let f: (() -> Void)? = switch row.rowEvent {
+                    case .newpage: gen.setNewPage
+                    case .columnbreak: gen.setColumnBreak
+                    case .none: nil
+                }
+                gen.draw(view: RowView(id: row.id, darkColor: darkColor, lightColor: lightColor, model: row, rowEvent: f, forPrinting: true))
+            }
+            #else
             for section in songRepresentation.sections {
                 if section.isNewPage { gen.setNewPage() }
 
@@ -145,6 +158,7 @@ class PrintSongDelegate: NSObject, PrintDelegateBase, UIPrintInteractionControll
                 
                 topPadding = 8
             }
+            #endif
             
             try gen.endPDF()
             return gen.url
@@ -191,7 +205,7 @@ class PrintSetlistDelegate: NSObject, PrintDelegateBase, UIPrintInteractionContr
             let gen = try PDFGenerator(userSettings: userSettings, mediaBox: paperSize, cols: 2)
             gen.startPDF()
             
-            gen.draw(col: 0, view: Text(playlist.title).font(.system(size: userSettings.txtsizepdf+8, weight: .bold, design: .rounded))
+            gen.draw(view: Text(playlist.title).font(.system(size: userSettings.txtsizepdf+8, weight: .bold, design: .rounded))
                 .padding(.bottom, userSettings.txtsizepdf+8))
             
             gen.setColumnTop()
@@ -199,7 +213,7 @@ class PrintSetlistDelegate: NSObject, PrintDelegateBase, UIPrintInteractionContr
 
             var cnt = 1
             for song in (playlist.songs ?? []).sorted(by: { a,b in a.seq < b.seq }) {
-                gen.draw(col: 0, view: Text("\(cnt).  \(song.title)").font(.system(size: userSettings.txtsizepdf+4, weight: .semibold, design: .rounded)).padding(.top, topPadding))
+                gen.draw(view: Text("\(cnt).  \(song.title)").font(.system(size: userSettings.txtsizepdf+4, weight: .semibold, design: .rounded)).padding(.top, topPadding))
                 
                 cnt += 1
             }
@@ -213,69 +227,68 @@ class PrintSetlistDelegate: NSObject, PrintDelegateBase, UIPrintInteractionContr
     }
 }
 
-class PrintController {
-    static func onPrint(title: String, delegate: UIPrintInteractionControllerDelegate) {
-        
-        let defaultPaper = MediaBoxes.getBox(name: UserSettings().mediabox)
-        
-#if os(iOS)
-        // UIPrintInfo contains information about the print job
-        let printInfo = UIPrintInfo(dictionary: nil)
-        printInfo.outputType = .general
-        printInfo.jobName = title
-        printInfo.orientation = UIPrintInfo.Orientation.portrait
+//class PrintController {
+//    static func onPrint(title: String, delegate: UIPrintInteractionControllerDelegate) {
+//        
+//        let defaultPaper = MediaBoxes.getBox(name: UserSettings().mediabox)
+//        
+//#if os(iOS)
+//        // UIPrintInfo contains information about the print job
+//        let printInfo = UIPrintInfo(dictionary: nil)
+//        printInfo.outputType = .general
+//        printInfo.jobName = title
+//        printInfo.orientation = UIPrintInfo.Orientation.portrait
+//
+//        // UIPrintInteractionController presents a user interface and manages the printing
+//        let printController = UIPrintInteractionController.shared
+//        let delegate = delegate
+//        printController.delegate = delegate
+//        printController.printInfo = printInfo
+//
+//        let url = (delegate as! PrintDelegateBase).createPDF(paperSize: defaultPaper)
+//        
+//        if let url = url {
+//            printController.printingItem = url
+//            
+//            // Present print controller like usual view controller. Also completionHandler is available if needed.
+//            printController.present(animated: true)
+//        }
+//#endif
+//        
+//#if os(macOS)
+//        let printInfo = NSPrintInfo.shared
+//        printInfo.orientation = NSPrintInfo.PaperOrientation.portrait
+//        printInfo.isHorizontallyCentered = false
+//        printInfo.isVerticallyCentered = false
+//        printInfo.horizontalPagination = NSPrintInfo.PaginationMode.fit
+//        printInfo.verticalPagination = NSPrintInfo.PaginationMode.fit
+//        printInfo.leftMargin = 0
+//        printInfo.rightMargin = 0
+//        printInfo.topMargin = 0
+//        printInfo.bottomMargin = 0
+//
+//        let url = (delegate as! PrintDelegateBase).createPDF(paperSize: defaultPaper)
+//                
+//        if let url = url {
+//            let pdfDoc = PDFDocument(url: url)!
+//            
+//            let po = pdfDoc.printOperation(for: printInfo, scalingMode: .pageScaleNone, autoRotate: false)!
+//            po.showsPrintPanel = true
+//            po.jobTitle = title
+//            po.showsProgressPanel = true
+//            po.printPanel.options.insert(NSPrintPanel.Options.showsPaperSize)
+//            po.printPanel.options.insert(NSPrintPanel.Options.showsOrientation)
+//
+//            #if true
+//            if po.run() {
+//                print("In Print completion")
+//            }
+//            #else
+//            po.runModal(for: NSApplication.shared.mainWindow!, delegate: delegate, didRun: nil, contextInfo: nil)
+//            #endif
+//        }
+//#endif
+//    }
+//}
 
-        // UIPrintInteractionController presents a user interface and manages the printing
-        let printController = UIPrintInteractionController.shared
-        let delegate = delegate
-        printController.delegate = delegate
-        printController.printInfo = printInfo
-
-        let url = (delegate as! PrintDelegateBase).createPDF(paperSize: defaultPaper)
-        
-        if let url = url {
-            printController.printingItem = url
-            
-            // Present print controller like usual view controller. Also completionHandler is available if needed.
-            printController.present(animated: true)
-        }
-#endif
-        
-#if os(macOS)
-        let printInfo = NSPrintInfo.shared
-        printInfo.orientation = NSPrintInfo.PaperOrientation.portrait
-        printInfo.isHorizontallyCentered = false
-        printInfo.isVerticallyCentered = false
-        printInfo.horizontalPagination = NSPrintInfo.PaginationMode.fit
-        printInfo.verticalPagination = NSPrintInfo.PaginationMode.fit
-        printInfo.leftMargin = 0
-        printInfo.rightMargin = 0
-        printInfo.topMargin = 0
-        printInfo.bottomMargin = 0
-
-        let url = (delegate as! PrintDelegateBase).createPDF(paperSize: defaultPaper)
-                
-        if let url = url {
-            let pdfDoc = PDFDocument(url: url)!
-            
-            let po = pdfDoc.printOperation(for: printInfo, scalingMode: .pageScaleNone, autoRotate: false)!
-            po.showsPrintPanel = true
-            po.jobTitle = title
-            po.showsProgressPanel = true
-            po.printPanel.options.insert(NSPrintPanel.Options.showsPaperSize)
-            po.printPanel.options.insert(NSPrintPanel.Options.showsOrientation)
-
-            #if true
-            if po.run() {
-                print("In Print completion")
-            }
-            #else
-            po.runModal(for: NSApplication.shared.mainWindow!, delegate: delegate, didRun: nil, contextInfo: nil)
-            #endif
-        }
-#endif
-    }
-}
-
-
-class delegate: NSObject { }
+//class delegate: NSObject { }

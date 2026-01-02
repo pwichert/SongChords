@@ -117,25 +117,68 @@ final class PlayList: Identifiable {
     }
 }
 
+enum RowEvent {
+    case newpage
+    case columnbreak
+}
+
+@MainActor
+//@Observable   // ??
+final class RenderRowModel: Identifiable {
+    let id: Int
+    let content: SongRenderChunk.chunkContent
+    let rowEvent: RowEvent?
+    
+    init(id: Int, content: SongRenderChunk.chunkContent, rowEvent: RowEvent? = nil) {
+        self.id = id
+        self.content = content
+        self.rowEvent = rowEvent
+    }
+}
+
+@MainActor
+@Observable
+class RepresentationHolder {
+    @ObservationIgnored
+    var directiveManager = DirectiveManager()
+    
+    // TODO: ohne @ObservationIgnored und upd-Abhängigkeit ergibt sich ein dynamischer, zeilenweiser View-Aufbau.
+    // Allerdings flackert die View dann mehrmals, wg. mehrerer unerklärlicher Changed-Ereignisse
+    
+    @ObservationIgnored
+    private(set) var rows: [RenderRowModel] = []
+
+    var upd: Int = 0
+    
+    func append(_ chunks: [SongRenderChunk]) {
+        // parser-token in entsprechenden rowEvent für RenderRowModel umsetzen
+        for chunk in chunks {
+            let event: RowEvent? = switch chunk.content {
+                case .newpage: .newpage
+                case .columnbreak: .columnbreak
+                default:  nil
+            }
+            rows.append(RenderRowModel(id: chunk.id, content: chunk.content, rowEvent: event))
+        }
+    }
+    
+    func reset() {
+        rows = []
+    }
+    
+    func update() {
+        upd += 1
+    }
+        
+    // nonisolated wegen Default-Initialisierung in Song
+    nonisolated init() {}
+}
+
 @Observable
 @MainActor
-class RepresentationHolder {
+class RepresentationHolder_ {
     private(set) var songRepresentation: SongRepresentation = SongRepresentation(sections: [], directiveManager: DirectiveManagerSendable(directiveManager: DirectiveManager()))
 
-    #if false
-    var renderChunks: [SongRenderChunk] = []
-    var renderChunks_: [SongRenderChunk] = []
-
-    func reset() {
-        renderChunks.removeAll()
-        renderChunks_.removeAll()
-    }
-
-    func append(_ chunk: SongRenderChunk) {
-        renderChunks_.append(chunk)
-    }
-    #endif
-    
     func updateSongRepresentation(_ newRepresentation: SongRepresentation) {
         songRepresentation = newRepresentation
     }
@@ -251,7 +294,8 @@ final public class Song: Identifiable {
     @MainActor
     static func fetchSongProcessing(with id: PersistentIdentifier, in context: ModelContext, userSettings: UserSettings, forPrinting: Bool) -> Song? {
         guard let song = Song.fetchSong(with: id, in: context) else { return nil }
-        SongTaskManager.shared.processSongInBackground(representationHolder: song.representationHolder, srcText: song.srcText, transpose: song.transpose, userSettings: userSettings)
+        SongTaskManager.shared.processSongInBackground(representationHolder: song.representationHolder, srcText: song.srcText, transpose: song.transpose, showHeader: song.showHeader, showText: song.showText, userSettings: userSettings)
+        
         return song
     }
 

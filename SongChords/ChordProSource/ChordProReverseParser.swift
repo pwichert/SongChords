@@ -6,8 +6,6 @@
 //
 
 public class ChordProReverseParser {
-    private let idManager = IdManager()
-    
     public init() {}
     
     public func toString(sections: [CPPSection]) -> String {
@@ -53,7 +51,7 @@ public class ChordProReverseParser {
                 
                 if let lastSection = lastSection { sections.append(lastSection) }
                 sectionName = String(line[s..<e])
-                lastSection = CPPSection(id: idManager.getSectionID(), name: sectionName)
+                lastSection = CPPSection(name: sectionName)
                 
                 continue
             }
@@ -62,25 +60,25 @@ public class ChordProReverseParser {
                 // aktuelle Zeile sind Chords
                 if let last = lastLine, last.isChord {
                     // letzte Zeile waren auch Chords, also eine einzelne Chordzeile ohne Text
-                    if lastSection == nil { lastSection = CPPSection(id: idManager.getSectionID(), name: sectionName) }
-                    lastSection!.splittedLines.append(SplittedLine(id: idManager.getLineID(), chords: last.textElement))
+                    if lastSection == nil { lastSection = CPPSection(name: sectionName) }
+                    lastSection!.splittedLines.append(SplittedLine(chords: last.textElement))
                 }
                 // für nächste Zeile merken
                 lastLine = curLine
-                if cnt == 0 { lastSection!.splittedLines.append(SplittedLine(id: idManager.getLineID(), chords: curLine.textElement)) }
+                if cnt == 0 { lastSection!.splittedLines.append(SplittedLine(chords: curLine.textElement)) }
             } else {
                 // aktuelle Zeile keine Chords
                 if let last = lastLine, last.isChord {
                     // letzte Zeile waren Chords, also komplette Chord/Text-Zeile
-                    if lastSection == nil { lastSection = CPPSection(id: idManager.getSectionID(), name: sectionName) }
-                    lastSection!.splittedLines.append(SplittedLine(id: idManager.getLineID(), chords: last.textElement, texts: curLine.textElement))
+                    if lastSection == nil { lastSection = CPPSection(name: sectionName) }
+                    lastSection!.splittedLines.append(SplittedLine(chords: last.textElement, texts: curLine.textElement))
 
                     // Text als erledigt merken
                     lastLine = nil
                 } else  {
                     // letzte Zeile waren keine Chords, also eine einzelne Textzeile ohne Chord
-                    if lastSection == nil { lastSection = CPPSection(id: idManager.getSectionID(), name: sectionName) }
-                    lastSection!.splittedLines.append(SplittedLine(id: idManager.getLineID(), chords: [], texts: curLine.textElement))
+                    if lastSection == nil { lastSection = CPPSection(name: sectionName) }
+                    lastSection!.splittedLines.append(SplittedLine(chords: [], texts: curLine.textElement))
                  
                     // Text als erledigt merken
                     lastLine = nil
@@ -104,15 +102,15 @@ public class ChordProReverseParser {
         for word in spl {
             // falls es Chords sind
             if let chord = ParsedChord.parse(word.txt, rootSystem: &rootSystem, strict: true) {
-                chords.append(TextElement(id: idManager.getTextElementID(), txt: "[" + chord.name + "]", fontOffset: Double(word.pos), background: false, chord: chord))
+                chords.append(TextElement(txt: "[" + chord.name + "]", isChordcomment: false, fontOffset: Double(word.pos), background: false, chord: chord))
                 numChords += 1
             } else {
-                chords.append(TextElement(id: idManager.getTextElementID(), txt: word.txt, fontOffset: Double(word.pos), background: false, chord: nil))
+                chords.append(TextElement(txt: word.txt, isChordcomment: false, fontOffset: Double(word.pos), background: false, chord: nil))
                 numTexts += 1
             }
             
             // falls es keine Chords sind
-            txts.append(TextElement(id: idManager.getTextElementID(), txt: word.txt, fontOffset: Double(word.pos), background: false, chord: nil))
+            txts.append(TextElement(txt: word.txt, isChordcomment: false, fontOffset: Double(word.pos), background: false, chord: nil))
         }
         
         if numChords > 0 && numChords > spl.count / 2 { return (chords, true) }

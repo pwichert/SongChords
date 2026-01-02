@@ -72,6 +72,7 @@ class PDFGenerator {
     private var currentCol = 0
     private var lastCol = 0
     private var columnTop: CGFloat = 0
+    private var col: Int = 0
     
     private var xTranslate: CGFloat = 0
     private var yTranslate: CGFloat = 0
@@ -151,6 +152,11 @@ class PDFGenerator {
         nextPage()
     }
     
+    func setColumnBreak() {
+        // Directive { colb }
+        col = (col + 1) % cols
+        print("setColummnBreak")
+    }
     
     func drawTest<T:View>(col: Int, view: T) {
         context.beginPDFPage(nil)
@@ -167,7 +173,7 @@ class PDFGenerator {
         context.closePDF()
     }
     
-    func draw<T:View>(col: Int, view: T) {
+    func draw<T:View>(view: T) {
         var viewSize = CGSizeZero
         let renderer = ImageRenderer(content: view.environment(userSettings))
         
@@ -260,30 +266,5 @@ class PDFGenerator {
 private struct testView: View {
     var body: some View {
         Text(Date.now.description)
-    }
-}
-
-private struct SimpleView: View {
-    var body: some View {
-        ContainerView {
-            Text("")
-        }
-    }
-}
-
-private struct GreedyContainerView<Content: View>: View {
-    @ViewBuilder let content: Content
-    
-    var body: some View {
-        content
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-    }
-}
-
-private struct ContainerView<Content: View>: View {
-    @ViewBuilder let content: Content
-    
-    var body: some View {
-        content
     }
 }

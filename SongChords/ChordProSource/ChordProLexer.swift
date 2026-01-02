@@ -44,10 +44,17 @@ public class ChordProLexer {
     }
     
     public func tokensAsStream() throws -> AsyncThrowingStream<Token, Error> {
-        return AsyncThrowingStream { continuation in
+        
+        AsyncThrowingStream { continuation in
+            let lexer = ChordProLexer(input: input)
+            
+            continuation.onTermination = { termination in
+//                print("token stream terminated:", termination)
+            }
+            
             Task {
                 do {
-                    while let token = nextToken() {
+                    while let token = lexer.nextToken() {
                         try Task.checkCancellation()
                         continuation.yield(token)
                     }

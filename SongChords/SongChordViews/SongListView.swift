@@ -448,12 +448,12 @@ struct SongListView: View {
         }
     }
     
-    func printSetlist() async {
-        let modelContainer = modelContext.container
-        if let delegate = PrintSetlistDelegate(playlistID: playlist.persistentModelID, modelContainer: modelContainer) {
-            PrintController.onPrint(title: playlist.title, delegate: delegate)
-        }
-    }
+//    func printSetlist() async {
+//        let modelContainer = modelContext.container
+//        if let delegate = PrintSetlistDelegate(playlistID: playlist.persistentModelID, modelContainer: modelContainer) {
+//            PrintController.onPrint(title: playlist.title, delegate: delegate)
+//        }
+//    }
 }
 
 struct CopyToPlaylistView: View {

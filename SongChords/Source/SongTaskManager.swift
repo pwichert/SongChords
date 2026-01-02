@@ -15,10 +15,10 @@ extension Thread {
 
 @MainActor
 class SongTaskManager {
-    private var processingTask: Task<Void, Never>?
+    private(set) var processingTask: Task<Void, Never>?
     static let shared = SongTaskManager()
 
-    #if true
+    #if false
     func processSongInBackground(representationHolder: RepresentationHolder, srcText: String, transpose: Int, userSettings: UserSettings) {
         processingTask?.cancel()
 
@@ -50,54 +50,49 @@ class SongTaskManager {
         }
     }
     #else
-    func processSongInBackground(representationHolder: RepresentationHolder, srcText: String, transpose: Int, userSettings: UserSettings) {
+    func processSongInBackground(representationHolder: RepresentationHolder, srcText: String, transpose: Int, showHeader: Bool, showText: Bool, userSettings: UserSettings, forPrinting: Bool = false) {
         processingTask?.cancel()
+        print("processSongInBackground")
         
         processingTask = Task {
             do {
                 representationHolder.reset()
+                representationHolder.directiveManager = DirectiveManager()
                 
-                let lexer = ChordProLexerII(input: srcText)
+                // Streaming-Pipeline:
+                // Lexer [Token] -> Parser [SongRenderChunk] -> Filter [SongRenderChunk] -> RepresentationHolder.rows [RenderRowModel] -> DetailContent [RowView]
+                
+                let lexer = ChordProLexer(input: srcText)
                 let tokenStream = try lexer.tokensAsStream()
                 
-                let parser = ChordProStreamingParser(
-                    userSettings: userSettings,
-                    songTranspose: transpose,
-                    forPrinting: false
-                )
+                let parser = ChordProParserII(directiveManager: representationHolder.directiveManager, userSettings: userSettings, songTranspose: transpose, forPrinting: forPrinting)
+                let chunkStream = parser.chunksAsStream(tokens: tokenStream)
+
+                let chunkFilter = ViewFilter(userSettings: userSettings, showHeader: showHeader, showText: showText)
+                let filteredStream = chunkFilter.chunksAsStream(chunks: chunkStream)
                 
-                for try await token in tokenStream {
+                for try await chunk in filteredStream {
                     try Task.checkCancellation()
-                    
-                    if let chunk = try parser.consume(token) {
-                        //                        print(chunk)
-                        await MainActor.run {
-                            representationHolder.append(chunk)
-                        }
-                    }
+                    representationHolder.append(chunk)
                 }
+                representationHolder.update()
                 
-                // letztes Fragment flushen
-                let tail = parser.finish()
-                await MainActor.run {
-                    tail.forEach { representationHolder.append($0) }
-                    representationHolder.renderChunks = representationHolder.renderChunks_
-                }
             } catch is CancellationError {
-                //            print("createSongRepresentation cancelled")
+                print("processSongInBackground cancelled")
             } catch {
-                print(error)
+                print("error:", error)
             }
         }
     }
-    func createSongRepresentation(userSettings: UserSettings, srcText: String, transpose: Int, forPrinting: Bool) async -> SongRepresentation? {
+    
+    func createSongRepresentation_(userSettings: UserSettings, srcText: String, transpose: Int, forPrinting: Bool) async -> SongRepresentation? {
         do {
             print("createSongRepresentation:", Thread.currentThread)
 
 //            let tokens = try await ChordProLexer(input: srcText).tokenize()
 //            try Task.checkCancellation()
 
-            let lexer = ChordProLexerII(input: srcText)
+            let lexer = ChordProLexer(input: srcText)
             let tokenStream = try lexer.tokensAsStream()
             
             let songRepresentation = try await ChordProParser(userSettings: userSettings, songTranspose: transpose, tokens: tokenStream, forPrinting: forPrinting).parse()

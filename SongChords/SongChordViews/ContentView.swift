@@ -21,6 +21,8 @@ struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
 
     var body: some View {
+//        let _ = Self._printChanges()
+
         NavigationSplitView(columnVisibility: $visibility) {
 
             PlayListView(selectedPlaylistID: $selectedPlaylistID, visibility: $visibility)

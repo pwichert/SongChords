@@ -37,6 +37,8 @@ struct SongView: View {
     @State private var lastID: PersistentIdentifier?
 
     var body: some View {
+//        let _ = Self._printChanges()
+
         GeometryReader { viewSize in    // Größe des umgebenden Containers
             ScrollView(userSettings.hidechords ? .vertical : [.horizontal, .vertical], showsIndicators: false) {
                 ZStack(alignment: .topLeading) {
@@ -145,6 +147,7 @@ struct SongView: View {
                 lastID = song.persistentModelID
             }
         }
+        .onChange(of: userSettings.hidechords, initial: false) { print("hidechords changed"); updateSongRepresentation() }
         .onChange(of: userSettings.chordsize, initial: false) { print("chordsize changed"); updateSongRepresentation() }
         .onChange(of: userSettings.txtsize, initial: false) { print("txtsize changed"); updateSongRepresentation() }
         .onChange(of: userSettings.headersize, initial: false) { print("headersize changed"); updateSongRepresentation() }
@@ -153,7 +156,7 @@ struct SongView: View {
     }
     
     private func updateSongRepresentation() {
-        SongTaskManager.shared.processSongInBackground(representationHolder: song.representationHolder, srcText: song.srcText, transpose: song.transpose, userSettings: userSettings)
+        SongTaskManager.shared.processSongInBackground(representationHolder: song.representationHolder, srcText: song.srcText, transpose: song.transpose, showHeader: song.showHeader, showText: song.showText, userSettings: userSettings)
     }
     
     private func songChangedAction() {
@@ -201,16 +204,9 @@ struct SongView: View {
             pdfUrl = delegate.createPDF(paperSize: defaultPaper)
         }
     }
-    
-    private func onPrint() async {
-        let delegate = await PrintSongDelegate(songID: song.persistentModelID, modelContainer: modelContext.container)
-        if let delegate = delegate {
-            PrintController.onPrint(title: song.title, delegate: delegate)
-        }
-    }
 }
 
-#if true
+#if false
 struct DetailContent: View {
     let song: Song
     let representationHolder: RepresentationHolder
@@ -240,6 +236,7 @@ struct DetailContent: View {
                         EmptyView()
                     } else {
                         VStack(alignment: .leading, spacing: 0) {
+                            let _ = print(line.id)
                             if line.chords.isEmpty && line.textsIsWhithespaceOrEmpty() {
                                 // Leerzeile
                                 Text(" ").font(Font(userSettings.txtUIFont))
@@ -265,97 +262,178 @@ struct DetailContent: View {
 struct DetailContent: View {
     let song: Song
     let representationHolder: RepresentationHolder
-    
-    @Environment(UserSettings.self) private var userSettings
-    
-    @State private var darkColor = Color(red: 0.25, green: 0.25, blue: 0.25)
-    @State private var lightColor = Color(red: 0.90, green: 0.90, blue: 0.90)
-    
+        
+    private let darkColor = Color(red: 0.25, green: 0.25, blue: 0.25)
+    private let lightColor = Color(red: 0.90, green: 0.90, blue: 0.90)
+
     var body: some View {
+//        let _ = Self._printChanges()
+        let _ = representationHolder.upd
+        
+        let rows = representationHolder.rows
+        
         VStack(alignment: .leading) {
-            
-#if os(macOS)
-            Text(song.title)
-                .font(.title)
-                .fontWeight(.bold)
-                .padding(.bottom, 10)
-#endif
-            
-            ForEach(representationHolder.renderChunks) { chunk in
-                render(chunk)
+            #if os(macOS)
+            Text(song.title).font(.title).fontWeight(.bold).padding(.bottom, 10)
+            #endif
+
+            ForEach(rows) { row in
+                RowView(id: row.id, darkColor: darkColor, lightColor: lightColor, model: row, rowEvent: nil, forPrinting: false)
             }
         }
         .padding()
     }
+}
+
+struct RowView: View, Identifiable {
+    let id: Int
+    let darkColor: Color
+    let lightColor: Color
+    let model: RenderRowModel
+    let rowEvent: (() -> Void)?
+    let forPrinting: Bool
     
+    @Environment(UserSettings.self) private var userSettings
     
-    @ViewBuilder
-    private func render(_ chunk: SongRenderChunk) -> some View {
-        switch chunk {
-        case .sectionStarted(let title):
-            Text(title)
-//            SectionHeaderView(
-//                sectionTitle: title,
-//                lightColor: lightColor,
-//                darkColor: darkColor
-//            )
-            .font(Font(userSettings.headerUIFont))
-            .padding(.bottom, 2)
+    var body: some View {
+//        let _ = Self._printChanges()
+//        let _ = print("rendert \(model.id)")
+        
+        VStack(alignment: .leading, spacing: 0) {
+//            let _ = print(model.content)
             
-        case .line(let line):
-            renderLine(line)
-            
-        case .sectionEnded:
-            EmptyView()
-        default:
-            EmptyView()
+            switch model.content {
+            case .sectionStarted(let str):
+                SectionHeaderViewII(header: str, lightColor: lightColor, darkColor: darkColor).font(Font(forPrinting ? userSettings.headerPDFUIFont : userSettings.headerUIFont))
+                
+            case .chordline(let line):
+                ChordsLineViewII(line: line, lightColor: lightColor, darkColor: darkColor).font(Font(forPrinting ? userSettings.chordPDFUIFont : userSettings.chordUIFont))
+                
+            case .chordplainline(let line):
+                ChordsPlainViewII(line: line, lightColor: lightColor, darkColor: darkColor).font(Font(forPrinting ? userSettings.chordPDFUIFont : userSettings.chordUIFont))
+                
+            case .textline(let line, _):
+                TextsLineViewII(line: line).font(Font(forPrinting ? userSettings.txtPDFUIFont : userSettings.txtUIFont))
+                
+            case .textplainline(let line):
+                Text(line).font(Font(forPrinting ? userSettings.txtPDFUIFont : userSettings.txtUIFont))
+                
+            case .comment(let comment):
+                TextsLineViewII(line: comment).font(Font(forPrinting ? userSettings.txtPDFUIFont : userSettings.txtUIFont))
+                
+            case .splittedline(chords: let chords, texts: let texts, _):
+                ChordsLineViewII(line: chords, lightColor: lightColor, darkColor: darkColor).font(Font(forPrinting ? userSettings.chordPDFUIFont : userSettings.chordUIFont))
+                TextsLineViewII(line: texts).font(Font(forPrinting ? userSettings.txtPDFUIFont : userSettings.txtUIFont))
+                
+            case .emptyline:
+                Text(" ").font(Font(forPrinting ? userSettings.txtPDFUIFont : userSettings.txtUIFont))
+                
+            case .sectionEnded, .newpage, .columnbreak:
+                // da keine View zur Darstellung gebraucht wird: kommt hier nicht an, wird im ViewFilter entfernt
+                let _ = print("Fehler in RowView")
+                Color.clear.frame(width: 1, height: 1, alignment: .center)
+            }
+        }.padding(EdgeInsets(top: 0, leading: 0, bottom: forPrinting ? userSettings.linespacingpdf : userSettings.linespacing, trailing: 0))
+        .onAppear {
+            if let f = rowEvent { f() }
         }
     }
+}
+
+struct TextsLineViewII: View {
+    let line: [TextElement]
     
-    @ViewBuilder
-    private func renderLine(_ line: SplittedLine) -> some View {
-        
-        if (userSettings.hidechords && line.textsIsWhithespaceOrEmpty() && !line.chords.isEmpty) ||
-            (!song.showText && !line.textsIsWhithespaceOrEmpty() && line.chords.isEmpty) ||
-            (!song.showText && userSettings.hidechords && !line.textsIsWhithespaceOrEmpty() && !line.chords.isEmpty) {
-            
-            EmptyView()
-            
-        } else {
-            VStack(alignment: .leading, spacing: 0) {
-                
-                if line.chords.isEmpty && line.textsIsWhithespaceOrEmpty() {
-                    Text(" ")
-                        .font(Font(userSettings.txtUIFont))
-                    
-                } else if userSettings.hidechords {
-                    if song.showText {
-                        Text(line.plainText)
-                            .font(Font(userSettings.txtUIFont))
-                    }
-                    
-                } else {
-                    if song.showText {
-                        ChordsLineView(
-                            line: line,
-                            lightColor: lightColor,
-                            darkColor: darkColor
-                        )
-                        .font(Font(userSettings.chordUIFont))
+    var body: some View {
+        ZStack(alignment: .topLeading) {
+            ForEach(line) { text in
+                HStack(alignment: .center, spacing: 0) {
+                    if line.last == text {
+                        Color.clear.frame(width: text.fontOffset, height: 0.1, alignment: .leading)
                         
-                        TextsLineView(line: line)
-                            .font(Font(userSettings.txtUIFont))
+                        Text(text.txt)
+                            .lineLimit(1)
                     } else {
-                        ChordsPlainView(
-                            line: line,
-                            lightColor: lightColor,
-                            darkColor: darkColor
-                        )
-                        .font(Font(userSettings.chordUIFont))
+                        Text(text.txt)
+                            .lineLimit(1)
+                            .offset(CGSize(width: text.fontOffset, height: 0))
                     }
                 }
             }
-            .padding(.bottom, userSettings.linespacing)
+        }
+    }
+}
+
+struct ChordsLineViewII: View {
+    let line: [TextElement]
+    let lightColor: Color
+    let darkColor: Color
+    
+    @Environment(\.colorScheme) var colorScheme
+    
+    var body: some View {
+        ZStack(alignment: .topLeading) {
+            ForEach(line) { chordTxt in
+                HStack(alignment: .center, spacing: 0) {
+                    if line.last == chordTxt {
+                        Color.clear.frame(width: chordTxt.fontOffset, height: 0.1, alignment: .leading)
+                        
+                        PopoverButtonView(chordTxt: chordTxt)
+                            .lineLimit(1)
+                            .padding(.horizontal, 0.8)
+                            .background(chordTxt.background ? (colorScheme == .dark ? darkColor : lightColor) : Color.clear)
+                            .clipShape(RoundedRectangle(cornerRadius: 4, style: .circular))
+                    } else {
+                        PopoverButtonView(chordTxt: chordTxt)
+                            .lineLimit(1)
+                            .padding(.horizontal, 0.8)
+                            .background(chordTxt.background ? (colorScheme == .dark ? darkColor : lightColor) : Color.clear)
+                            .clipShape(RoundedRectangle(cornerRadius: 4, style: .circular))
+                            .offset(CGSize(width: chordTxt.fontOffset, height: 0))
+                    }
+                }.buttonStyle(PlainButtonStyle())
+            }
+        }
+    }
+}
+
+struct SectionHeaderViewII: View {
+    let header: String
+    let lightColor: Color
+    let darkColor: Color
+    
+    @Environment(\.colorScheme) var colorScheme
+    
+    var body: some View {
+        HStack(alignment: .center) {
+            Text(header)
+                .padding(.leading, 3)
+            Spacer()
+        }
+        .padding(1)
+        .background(colorScheme == .dark ? darkColor : lightColor)
+        .cornerRadius(5)
+    }
+}
+
+struct ChordsPlainViewII: View {
+    let line: [TextElement]
+    let lightColor: Color
+    let darkColor: Color
+    
+    @Environment(\.colorScheme) var colorScheme
+    
+    var body: some View {
+        HStack(alignment: .center, spacing: 0) {
+            ForEach(line) { chord in
+                if chord != line.first { Text(" ").lineLimit(1) }
+                
+                PopoverButtonView(chordTxt: chord)
+                    .lineLimit(1)
+                    .padding(.horizontal, 0.8)
+                    .background(chord.background ? (colorScheme == .dark ? darkColor : lightColor) : Color.clear)
+                    .clipShape(RoundedRectangle(cornerRadius: 4, style: .circular))
+                    .buttonStyle(PlainButtonStyle())
+            }
         }
     }
 }

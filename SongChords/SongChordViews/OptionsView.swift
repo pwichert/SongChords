@@ -42,6 +42,7 @@ struct OptionsView: View {
     @State private var textFollowsChords: Bool = false
     @State private var hideChords: Bool = false
     @State private var displayMode: DisplayMode = .automatic
+    @State private var lineSpacing: Double = 0
         
     var body: some View {
         OptionsContentView {
@@ -136,6 +137,27 @@ struct OptionsView: View {
                     Text("Textsize [\(Int(txtSize))]")
                 }
             }
+            #if os(macOS)
+                .padding(.bottom, 4)
+            #endif
+
+            HStack {
+                #if os(iOS)
+                Text("Linespacing [\(Int(lineSpacing))]")
+                Spacer()
+                #endif
+                Slider(
+                    value: $lineSpacing,
+                    in: 4...20,
+                    step: 1,
+                    minimumValueLabel:
+                        Text("-"),
+                    maximumValueLabel:
+                        Text("+")
+                ) {
+                    Text("Linespacing [\(Int(lineSpacing))]")
+                }
+            }
         }
         .onChange(of: hideChords) { _, newValue in
             if newValue {
@@ -153,7 +175,8 @@ struct OptionsView: View {
                     if hideChords != userSettings.hidechords { userSettings.hidechords = hideChords }
                     if textFollowsChords != userSettings.textfollowschords { userSettings.textfollowschords = textFollowsChords }
                     if displayMode != userSettings.displayMode { userSettings.displayMode = displayMode }
-                    
+                    if Int(lineSpacing) != Int(userSettings.linespacing) { userSettings.linespacing = lineSpacing }
+
                     dismiss()
                 }.labelStyle(.iconOnly)
             }
@@ -171,6 +194,7 @@ struct OptionsView: View {
             hideChords = userSettings.hidechords
             textFollowsChords = userSettings.textfollowschords
             displayMode = userSettings.displayMode
+            lineSpacing = userSettings.linespacing
         }
     }
 }
@@ -182,6 +206,7 @@ struct PrintOptionsView: View {
     @State private var chordSize: Double = 0
     @State private var txtSize: Double = 0
     @State private var headerSize: Double = 0
+    @State private var lineSpacing: Double = 0
     
     var body: some View {
         OptionsContentView {
@@ -244,6 +269,27 @@ struct PrintOptionsView: View {
                     Text("Textsize [\(Int(txtSize))]")
                 }
             }
+            #if os(macOS)
+                .padding(.bottom, 4)
+            #endif
+
+            HStack {
+                #if os(iOS)
+                Text("Linespacing [\(Int(lineSpacing))]")
+                Spacer()
+                #endif
+                Slider(
+                    value: $lineSpacing,
+                    in: 4...20,
+                    step: 1,
+                    minimumValueLabel:
+                        Text("-"),
+                    maximumValueLabel:
+                        Text("+")
+                ) {
+                    Text("Linespacing [\(Int(lineSpacing))]")
+                }
+            }
         }
         .navigationTitle("PDF Options")
         .toolbar {
@@ -252,6 +298,7 @@ struct PrintOptionsView: View {
                     if Int(chordSize) != Int(userSettings.chordsizepdf) { userSettings.chordsizepdf = chordSize }
                     if Int(txtSize) != Int(userSettings.txtsizepdf) { userSettings.txtsizepdf = txtSize }
                     if Int(headerSize) != Int(userSettings.headersizepdf) { userSettings.headersizepdf = headerSize }
+                    if Int(lineSpacing) != Int(userSettings.linespacingpdf) { userSettings.linespacingpdf = lineSpacing }
                     
                     dismiss()
                 }.labelStyle(.iconOnly)
@@ -266,6 +313,7 @@ struct PrintOptionsView: View {
             chordSize = userSettings.chordsizepdf
             txtSize = userSettings.txtsizepdf
             headerSize = userSettings.headersizepdf
+            lineSpacing = userSettings.linespacingpdf
         }
     }
 }
