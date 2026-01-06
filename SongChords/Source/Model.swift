@@ -117,76 +117,6 @@ final class PlayList: Identifiable {
     }
 }
 
-enum RowEvent {
-    case newpage
-    case columnbreak
-}
-
-@MainActor
-//@Observable   // ??
-final class RenderRowModel: Identifiable {
-    let id: Int
-    let content: SongRenderChunk.chunkContent
-    let rowEvent: RowEvent?
-    
-    init(id: Int, content: SongRenderChunk.chunkContent, rowEvent: RowEvent? = nil) {
-        self.id = id
-        self.content = content
-        self.rowEvent = rowEvent
-    }
-}
-
-@MainActor
-@Observable
-class RepresentationHolder {
-    @ObservationIgnored
-    var directiveManager = DirectiveManager()
-    
-    // TODO: ohne @ObservationIgnored und upd-Abhängigkeit ergibt sich ein dynamischer, zeilenweiser View-Aufbau.
-    // Allerdings flackert die View dann mehrmals, wg. mehrerer unerklärlicher Changed-Ereignisse
-    
-    @ObservationIgnored
-    private(set) var rows: [RenderRowModel] = []
-
-    var upd: Int = 0
-    
-    func append(_ chunks: [SongRenderChunk]) {
-        // parser-token in entsprechenden rowEvent für RenderRowModel umsetzen
-        for chunk in chunks {
-            let event: RowEvent? = switch chunk.content {
-                case .newpage: .newpage
-                case .columnbreak: .columnbreak
-                default:  nil
-            }
-            rows.append(RenderRowModel(id: chunk.id, content: chunk.content, rowEvent: event))
-        }
-    }
-    
-    func reset() {
-        rows = []
-    }
-    
-    func update() {
-        upd += 1
-    }
-        
-    // nonisolated wegen Default-Initialisierung in Song
-    nonisolated init() {}
-}
-
-@Observable
-@MainActor
-class RepresentationHolder_ {
-    private(set) var songRepresentation: SongRepresentation = SongRepresentation(sections: [], directiveManager: DirectiveManagerSendable(directiveManager: DirectiveManager()))
-
-    func updateSongRepresentation(_ newRepresentation: SongRepresentation) {
-        songRepresentation = newRepresentation
-    }
-    
-    // nonisolated wegen Default-Initialisierung in Song
-    nonisolated init() {}
-}
-
 @Model
 final public class Song: Identifiable {
     var seq: Int = 0
@@ -203,7 +133,7 @@ final public class Song: Identifiable {
 
     var playlist: PlayList?
     
-    @Transient let representationHolder = RepresentationHolder()
+//    @Transient let representationHolder = RepresentationHolder()
     @Transient static let invalidTitleCharacters = CharacterSet(charactersIn: "\t\\\0").union(.illegalCharacters).union(.controlCharacters).union(.newlines)
     @Transient static let invalidFilenameCharacters = CharacterSet(charactersIn: "\t\\\0/").union(.illegalCharacters).union(.symbols).union(.controlCharacters).union(.newlines)
         
@@ -254,10 +184,18 @@ final public class Song: Identifiable {
     @MainActor
     static func titleFromDirective(srcText: String) async throws -> String? {
         let lexer = ChordProLexer(input: srcText)
-        let tokens = try lexer.tokensAsStream()
-        let songRepresentation = try await ChordProParser(userSettings: UserSettings(), songTranspose: 0, tokens: tokens, forPrinting: false).parse()
+        let tokenStream = try await lexer.tokensAsStream()
         
-        if let titleDirective = songRepresentation.directiveManager.getDirective(DirectiveType.title.rawValue) {
+        let parser = ChordProParser(userSettings: UserSettings().makeSendable(), songTranspose: 0, forPrinting: false)
+        let chunkStream = await parser.chunksAsStream(tokens: tokenStream)
+        
+        // einmal durchlaufen lassen
+        for try await _ in chunkStream {
+            try Task.checkCancellation()
+        }
+
+        let mgr = parser.getDirectiveManager()
+        if let titleDirective = mgr.getDirective(DirectiveType.title.rawValue) {
             return titleDirective
         }
         
@@ -291,13 +229,13 @@ final public class Song: Identifiable {
         return id.SCpersistentModel(from: context)
     }
 
-    @MainActor
-    static func fetchSongProcessing(with id: PersistentIdentifier, in context: ModelContext, userSettings: UserSettings, forPrinting: Bool) -> Song? {
-        guard let song = Song.fetchSong(with: id, in: context) else { return nil }
-        SongTaskManager.shared.processSongInBackground(representationHolder: song.representationHolder, srcText: song.srcText, transpose: song.transpose, showHeader: song.showHeader, showText: song.showText, userSettings: userSettings)
-        
-        return song
-    }
+//    @MainActor
+//    static func fetchSongProcessing(with id: PersistentIdentifier, in context: ModelContext, userSettings: UserSettings, forPrinting: Bool) async -> Song? {
+//        guard let song = Song.fetchSong(with: id, in: context) else { return nil }
+//        await SongTaskManagerII.shared.processSongInBackground(representationHolder: song.representationHolder, srcText: song.srcText, transpose: song.transpose, showHeader: song.showHeader, showText: song.showText, userSettings: userSettings)
+//        
+//        return song
+//    }
 
     static func isValidTitle(_ title: String) -> Bool {
         // Überprüfen, ob der title leer ist oder ungültige Zeichen enthält

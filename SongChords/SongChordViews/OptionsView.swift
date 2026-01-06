@@ -20,7 +20,7 @@ struct OptionsContentView<Content: View>: View {
             Form {
                 content
             }
-            .frame(idealHeight: 300)
+            .frame(width: 400, height: 300)     // sonst -LayoutIfNeeded-Fehler
             .padding()
         }
         #else
@@ -29,6 +29,7 @@ struct OptionsContentView<Content: View>: View {
         }
         #endif
     }
+
 }
 
 struct OptionsView: View {
@@ -174,8 +175,8 @@ struct OptionsView: View {
                     if isGermanNotation != userSettings.isGermanNotation { userSettings.isGermanNotation = isGermanNotation }
                     if hideChords != userSettings.hidechords { userSettings.hidechords = hideChords }
                     if textFollowsChords != userSettings.textfollowschords { userSettings.textfollowschords = textFollowsChords }
-                    if displayMode != userSettings.displayMode { userSettings.displayMode = displayMode }
                     if Int(lineSpacing) != Int(userSettings.linespacing) { userSettings.linespacing = lineSpacing }
+                    if displayMode != userSettings.displayMode { userSettings.displayMode = displayMode }
 
                     dismiss()
                 }.labelStyle(.iconOnly)

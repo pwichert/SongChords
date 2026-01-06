@@ -42,6 +42,7 @@ enum DirectiveType: String, CaseIterable, Sendable {
 }
 
 // Abkürzungen für die verschiedenen Direktiven
+nonisolated
 private let abbreviations: [String: DirectiveType] = [
     "t": .title,
     "st": .subtitle,
@@ -68,6 +69,7 @@ enum DirectiveNamesSpecial: String, CaseIterable, Sendable {
     case key_from
 }
 
+nonisolated
 final class DirectiveManagerSendable: Sendable {
     let directives: [DirectiveType: String]
     
@@ -103,6 +105,7 @@ final class DirectiveManagerSendable: Sendable {
 }
 
 // Verwaltungsklasse für Direktiven
+nonisolated
 class DirectiveManager {
     // Dictionary zur Speicherung der Direktiven und ihrer Werte
     private(set) var directives: [DirectiveType: String] = [:]
@@ -193,35 +196,61 @@ class DirectiveManager {
     
     // Beim ersten Vorkommen von ":" oder " " trennen und zwei Strings liefern. Optional noch ein "label"
     private func delimitedStringToArray(str: String) -> (arr: [String], label: String?) {
-        let posColon = str.firstIndex(of: ":")
-        let posBlank = str.firstIndex(of: " ")
-                
-        let pos = min(posColon ?? str.endIndex, posBlank ?? str.endIndex)
-        if pos == str.endIndex { return ([str], nil) }
-        let pos1 = str.index(after: pos)
-        if pos1 == str.endIndex { return ([str], nil) }
-        
-        let dir = String(str[str.startIndex..<pos])
-        let arg = String(str[pos1..<str.endIndex])
-        var labelVal: String?
-        
-        // testen auf {start_of_verse: Verse 1} oder {start_of_verse: label="Verse 1"}
-        if let eqpos = arg.firstIndex(of: "=") {
-            let label = String(arg[..<eqpos]).trimmingCharacters(in: .whitespaces)
+        if let (dir, arg) = splitInTwo(str) {
+            var labelVal: String?
             
-            if label.lowercased() == "label" {
-                let valStart = arg.index(after: eqpos)
-                if valStart != arg.endIndex {
-                    labelVal = String(arg[valStart..<arg.endIndex]).trimmingCharacters(in: .whitespaces)
-                    if labelVal!.count > 1 && labelVal!.first == "\"" && labelVal!.last == "\"" {
-                        labelVal!.removeLast()
-                        labelVal!.removeFirst()
+            // testen auf {start_of_verse: Verse 1} oder {start_of_verse: label="Verse 1"}
+            if let eqpos = arg.firstIndex(of: "=") {
+                let label = String(arg[..<eqpos]).trimmingCharacters(in: .whitespaces)
+                
+                if label.lowercased() == "label" {
+                    let valStart = arg.index(after: eqpos)
+                    if valStart != arg.endIndex {
+                        labelVal = String(arg[valStart..<arg.endIndex]).trimmingCharacters(in: .whitespaces)
+                        if labelVal!.count > 1 && labelVal!.first == "\"" && labelVal!.last == "\"" {
+                            labelVal!.removeLast()
+                            labelVal!.removeFirst()
+                        }
                     }
                 }
             }
+            
+            return ([dir, arg], labelVal)
+
+        } else {
+            return ([str], nil)
         }
-        
-        return ([dir, arg], labelVal)
+    }
+    
+    private func splitInTwo(_ input: String) -> (String, String)? {
+        if let (first, second) = splitBy(input, by: ":") {
+            return (
+                first.trimmingCharacters(in: .whitespaces),
+                second.trimmingCharacters(in: .whitespaces)
+            )
+        }
+
+        if let (first, second) = splitBy(input, by: " ") {
+            return (
+                first.trimmingCharacters(in: .whitespaces),
+                second.trimmingCharacters(in: .whitespaces)
+            )
+        }
+
+        return nil
+    }
+
+    private func splitBy(_ input: String, by: String) -> (first: String, second: String)? {
+        if let range = input.range(of: by) {
+            let first = input[..<range.lowerBound]
+            let second = input[input.index(after: range.lowerBound)...]
+            return (
+                first.trimmingCharacters(in: .whitespaces),
+                second.trimmingCharacters(in: .whitespaces)
+            )
+        }
+
+        return nil
     }
     
     private func robustStringToInt(_ input: String?) -> Int? {

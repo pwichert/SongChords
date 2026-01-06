@@ -6,26 +6,32 @@
 //
 
 public class ChordProReverseParser {
+    private(set) var chunks: [SongRenderChunk] = []
+    
     public init() {}
     
-    public func toString(sections: [CPPSection]) -> String {
+    public func toString() -> String {
         var res: String = ""
 
-        for section in sections {
-            res.append("[\(section.name)]\n")
-            
-            for spl in section.splittedLines {
-                var split = spl
+        for chunk in chunks {
+            switch chunk.content {
+                
+            case .sectionStarted(let section):
+                res.append("[" + section + "]\n")
+                
+            case .splittedline(chords: let chords, texts: let texts, plaintext: let plaintext):
+                var split = SplittedLine(chords: chords, texts: texts, plainText: plaintext)
                 res.append(mixSplittedLine(splittedLine: &split) + "\n")
+                
+            default:
+                break
             }
         }
         
         return res
     }
-    
-    public func parse(input: String, rootSystem: inout ChordRoot) -> [CPPSection] {
-        var sections: [CPPSection] = []
         
+    public func parse(input: String, rootSystem: inout ChordRoot) {
         var lines = [String]()
         input.enumerateLines{ (line, _) -> () in
             let cleanLine = line.replacingOccurrences(of: "\r", with: "")
@@ -34,7 +40,6 @@ public class ChordProReverseParser {
         
         var lastLine: (textElement: [TextElement], isChord: Bool)?
 
-        var lastSection: CPPSection?
         var sectionName: String = ""
         var cnt = lines.count
         
@@ -49,10 +54,8 @@ public class ChordProReverseParser {
                 let s = line.index(after: line.startIndex)
                 let e = line.index(before: line.endIndex)
                 
-                if let lastSection = lastSection { sections.append(lastSection) }
                 sectionName = String(line[s..<e])
-                lastSection = CPPSection(name: sectionName)
-                
+                chunks.append(SongRenderChunk(id: 0,content: .sectionStarted(sectionName)))
                 continue
             }
             
@@ -60,35 +63,28 @@ public class ChordProReverseParser {
                 // aktuelle Zeile sind Chords
                 if let last = lastLine, last.isChord {
                     // letzte Zeile waren auch Chords, also eine einzelne Chordzeile ohne Text
-                    if lastSection == nil { lastSection = CPPSection(name: sectionName) }
-                    lastSection!.splittedLines.append(SplittedLine(chords: last.textElement))
+                    chunks.append(SongRenderChunk(id: 0, content: .splittedline(chords: last.textElement, texts: [], plaintext: "")))
                 }
                 // für nächste Zeile merken
                 lastLine = curLine
-                if cnt == 0 { lastSection!.splittedLines.append(SplittedLine(chords: curLine.textElement)) }
+                if cnt == 0 { chunks.append(SongRenderChunk(id: 0, content: .splittedline(chords: curLine.textElement, texts: [], plaintext: ""))) }
             } else {
                 // aktuelle Zeile keine Chords
                 if let last = lastLine, last.isChord {
                     // letzte Zeile waren Chords, also komplette Chord/Text-Zeile
-                    if lastSection == nil { lastSection = CPPSection(name: sectionName) }
-                    lastSection!.splittedLines.append(SplittedLine(chords: last.textElement, texts: curLine.textElement))
+                    chunks.append(SongRenderChunk(id: 0, content: .splittedline(chords: last.textElement, texts: curLine.textElement, plaintext: "")))
 
                     // Text als erledigt merken
                     lastLine = nil
                 } else  {
                     // letzte Zeile waren keine Chords, also eine einzelne Textzeile ohne Chord
-                    if lastSection == nil { lastSection = CPPSection(name: sectionName) }
-                    lastSection!.splittedLines.append(SplittedLine(chords: [], texts: curLine.textElement))
-                 
+                    chunks.append(SongRenderChunk(id: 0, content: .splittedline(chords: [], texts: curLine.textElement, plaintext: "")))
+
                     // Text als erledigt merken
                     lastLine = nil
                 }
             }
         }
-        
-        if let lastSection = lastSection { sections.append(lastSection) }
-        
-        return sections
     }
     
     private func isChordline(line: String, rootSystem: inout ChordRoot) -> (textElement: [TextElement], isChord: Bool) {

@@ -6,9 +6,12 @@
 //
 
 import SwiftUI
+import SwiftData
 
 nonisolated
 public class GlobalFunctions {
+    @MainActor public static var lastid: PersistentIdentifier?
+    
     public static func formatTimeInterval(_ timeInterval: TimeInterval) -> String {
         let formatter = DateComponentsFormatter()
         formatter.allowedUnits = [.minute, .second]

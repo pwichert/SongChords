@@ -57,7 +57,40 @@ struct ModifiedBG: ViewModifier {
 }
 
 struct SongListView: View {
-    let playlist: PlayList  // Übergebene Playlist
+    let playlistID: PersistentIdentifier
+    @Binding var visibility: NavigationSplitViewVisibility
+    @Binding var selectedSongIDs: Set<PersistentIdentifier>
+        
+    @Query private var songs: [Song]
+    @Query private var playlists: [PlayList]
+    
+    init(playlistID: PersistentIdentifier, visibility: Binding<NavigationSplitViewVisibility>, selectedSongIDs: Binding<Set<PersistentIdentifier>>) {
+        self.playlistID = playlistID
+        self._visibility = visibility
+        self._selectedSongIDs = selectedSongIDs
+                
+        _playlists = Query(
+            filter: #Predicate<PlayList> {
+                $0.persistentModelID == playlistID
+            }
+        )
+    }
+    
+    var body: some View {
+        if let playlist = playlists.first {
+            SongListViewX(
+                playlist: playlist,
+                visibility: $visibility,
+                selectedSongIDs: $selectedSongIDs
+            )
+        } else {
+            ContentUnavailableView("Select a playlist", systemImage: "doc.text.image.fill")
+        }
+    }
+}
+
+internal struct SongListViewX: View {
+    let playlist: PlayList
     @Binding var visibility: NavigationSplitViewVisibility
     @Binding var selectedSongIDs: Set<PersistentIdentifier>
 
@@ -83,13 +116,14 @@ struct SongListView: View {
         self.playlist = playlist
         self._visibility = visibility
         self._selectedSongIDs = selectedSongIDs
+        let playlistID = playlist.persistentModelID
         
-        let id = playlist.persistentModelID
-        let pred = #Predicate<Song> { song in
-            song.playlist?.persistentModelID == id
-        }
-            
-        _songs = Query(filter: pred, sort: \.seq, order: .forward)
+        _songs = Query(
+            filter: #Predicate<Song> {
+                $0.playlist?.persistentModelID == playlistID
+            },
+            sort: \.seq, order: .forward
+        )
     }
     
     var body: some View {
@@ -257,11 +291,11 @@ struct SongListView: View {
         }
         .sheet(item: $songIDsToCopy) { ids in
             NavigationStack {
-            #if os(macOS)
+                #if os(macOS)
                 CopyToPlaylistView(songIDs: ids.identifiers, fromPlaylist: playlist)
-            #else
+                #else
                 CopyToPlaylistView(songIDs: ids.identifiers, fromPlaylist: playlist, editMode: $editMode)
-            #endif
+                #endif
             }
         }
         .fileExporter(isPresented: $showFileExport, item: PlayListTransferable(from: playlist, includeCodable: true, includePDF: true), contentTypes: [], defaultFilename: Song.makeValidFilename(playlist.title)) { result in
@@ -391,12 +425,11 @@ struct SongListView: View {
         #endif
         
         if !(cb ?? "").isEmpty {
-            let chordProReverseParser = ChordProReverseParser()
-            
             var root: ChordRoot = userSettings.isGermanNotation ? EnglishGermanRoot() : EnglishDutchRoot()
             
-            let sections = chordProReverseParser.parse(input: cb!, rootSystem: &root)
-            let txt = chordProReverseParser.toString(sections: sections)
+            let chordProReverseParser = ChordProReverseParser()
+            chordProReverseParser.parse(input: cb!, rootSystem: &root)
+            let txt = chordProReverseParser.toString()
             
             do {
                 let song = try Song(title: "Import", srcText: txt, modelContext: modelContext)

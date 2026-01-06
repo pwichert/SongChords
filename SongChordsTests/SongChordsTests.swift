@@ -10,10 +10,33 @@ import SongChords
 
 struct SongChordsTests {
     
+    func chordPro(srcText: String) async -> String {
+        var res: String = ""
+        
+        do {
+            let lexer = ChordProLexer(input: srcText)
+            let tokenStream = try await lexer.tokensAsStream()
+            
+            let parser = ChordProParser(userSettings: UserSettings().makeSendable(), songTranspose: 0, forPrinting: false)
+            let chunkStream = await parser.chunksAsStream(tokens: tokenStream)
+                     
+            let chunkFilter = ViewFilter(userSettings: UserSettings(), showHeader: true, showText: true)
+            let filteredStream = await chunkFilter.chunksAsStream(chunks: chunkStream)
+
+            for try await chunk in filteredStream {
+                try Task.checkCancellation()
+                for ch in chunk {
+//                    print(ch.content)
+                    res.append(ch.toChordProString())
+                }
+            }
+        } catch (let error) { print("\(error)") }
+        
+        return res
+    }
+    
     @Test func testParser() async throws {
         // Write your test here and use APIs like `#expect(...)` to check expected conditions.
-
-        let userSettings = UserSettings()
 
         var inputText: String = """
         { title: Simple Song}
@@ -25,34 +48,16 @@ struct SongChordsTests {
         """
         
         var expectedResult: String = """
-        ''
         Artist: The Example Band
-        [G]This is a [C]simple [D]song.
-        'Verse'
+        G C D
+        This is a  simple  song.
+        [Verse]
         This is Verse
         
         """
         
-        var tokens = try ChordProLexer(input: inputText).tokensAsStream()
-        var songRepresentation = try await ChordProParser(userSettings: userSettings, songTranspose: 0, tokens: tokens, forPrinting: false).parse()
-        #expect(songRepresentation.toChordProString() == expectedResult)
-
-        
-        inputText = """
-        {title: Simple Song}
-
-        [G]This is a [C]simple [D]song.
-        """
-        expectedResult = """
-        ''
-
-        [G]This is a [C]simple [D]song.
-        
-        """
-        tokens = try ChordProLexer(input: inputText).tokensAsStream()
-        songRepresentation = try await ChordProParser(userSettings: userSettings, songTranspose: 0, tokens: tokens, forPrinting: false).parse()
-        #expect(songRepresentation.toChordProString() == expectedResult)
-
+        var res = await chordPro(srcText: inputText)
+        #expect(res == expectedResult)
         
         inputText = """
         {title: Simple Song}
@@ -60,14 +65,12 @@ struct SongChordsTests {
         [G]This is a [C]simple [D]song.
         """
         expectedResult = """
-        ''
-        [G]This is a [C]simple [D]song.
+        G C D
+        This is a  simple  song.
         
         """
-        tokens = try ChordProLexer(input: inputText).tokensAsStream()
-        songRepresentation = try await ChordProParser(userSettings: userSettings, songTranspose: 0, tokens: tokens, forPrinting: false).parse()
-        #expect(songRepresentation.toChordProString() == expectedResult)
-
+        res = await chordPro(srcText: inputText)
+        #expect(res == expectedResult)
         
         inputText = """
         {title: Simple Song}
@@ -75,14 +78,12 @@ struct SongChordsTests {
         [G]This is a [C]simple [D]song.
         """
         expectedResult = """
-        ''
-        [G]This is a [C]simple [D]song.
+        G C D
+        This is a  simple  song.
         
         """
-        tokens = try ChordProLexer(input: inputText).tokensAsStream()
-        songRepresentation = try await ChordProParser(userSettings: userSettings, songTranspose: 0, tokens: tokens, forPrinting: false).parse()
-        #expect(songRepresentation.toChordProString() == expectedResult)
-
+        res = await chordPro(srcText: inputText)
+        #expect(res == expectedResult)
         
         inputText = """
         {title: Simple Song}
@@ -90,15 +91,14 @@ struct SongChordsTests {
         [G]This is a [C]simple [D]song.
         """
         expectedResult = """
-        ''
-            d
-        [G]This is a [C]simple [D]song.
+        
+             d
+        G C D
+        This is a  simple  song.
         
         """
-        tokens = try ChordProLexer(input: inputText).tokensAsStream()
-        songRepresentation = try await ChordProParser(userSettings: userSettings, songTranspose: 0, tokens: tokens, forPrinting: false).parse()
-        #expect(songRepresentation.toChordProString() == expectedResult)
-
+        res = await chordPro(srcText: inputText)
+        #expect(res == expectedResult)
         
         inputText = """
         {title: Simple Song}
@@ -106,15 +106,13 @@ struct SongChordsTests {
         [Test]
         """
         expectedResult = """
-        ''
-        [G]This is a [C]simple [D]song.
-        'Test'
+        G C D
+        This is a  simple  song.
+        [Test]
         
         """
-        tokens = try ChordProLexer(input: inputText).tokensAsStream()
-        songRepresentation = try await ChordProParser(userSettings: userSettings, songTranspose: 0, tokens: tokens, forPrinting: false).parse()
-        #expect(songRepresentation.toChordProString() == expectedResult)
-
+        res = await chordPro(srcText: inputText)
+        #expect(res == expectedResult)
 
         inputText = """
         {title: Simple Song}
@@ -122,15 +120,14 @@ struct SongChordsTests {
         [Test] aa
         """
         expectedResult = """
-        ''
-        [G]This is a [C]simple [D]song.
-        Test aa
+        G C D
+        This is a  simple  song.
+        Test
+         aa
         
         """
-        tokens = try ChordProLexer(input: inputText).tokensAsStream()
-        songRepresentation = try await ChordProParser(userSettings: userSettings, songTranspose: 0, tokens: tokens, forPrinting: false).parse()
-        #expect(songRepresentation.toChordProString() == expectedResult)
-
+        res = await chordPro(srcText: inputText)
+        #expect(res == expectedResult)
         
         inputText = """
         {title: Simple Song}
@@ -138,14 +135,13 @@ struct SongChordsTests {
         [G]This is a [C]simple [D]song.
         """
         expectedResult = """
-        'vers'
-        [G]This is a [C]simple [D]song.
+        [vers]
+        G C D
+        This is a  simple  song.
         
         """
-        tokens = try ChordProLexer(input: inputText).tokensAsStream()
-        songRepresentation = try await ChordProParser(userSettings: userSettings, songTranspose: 0, tokens: tokens, forPrinting: false).parse()
-        #expect(songRepresentation.toChordProString() == expectedResult)
-
+        res = await chordPro(srcText: inputText)
+        #expect(res == expectedResult)
         
         inputText = """
         {title: Simple Song}
@@ -154,15 +150,13 @@ struct SongChordsTests {
         [G]This is a [C]simple [D]song.
         """
         expectedResult = """
-        'vers'
-        ''
-        [G]This is a [C]simple [D]song.
+        [vers]
+        G C D
+        This is a  simple  song.
         
         """
-        tokens = try ChordProLexer(input: inputText).tokensAsStream()
-        songRepresentation = try await ChordProParser(userSettings: userSettings, songTranspose: 0, tokens: tokens, forPrinting: false).parse()
-        #expect(songRepresentation.toChordProString() == expectedResult)
-
+        res = await chordPro(srcText: inputText)
+        #expect(res == expectedResult)
         
         inputText = """
         {title: Simple Song}
@@ -172,15 +166,14 @@ struct SongChordsTests {
         [G]This is a [C]simple [D]song.
         """
         expectedResult = """
-        'vers'
-        'abc'
-        ''
-        [G]This is a [C]simple [D]song.
+        [vers]
+        [abc]
+        G C D
+        This is a  simple  song.
         
         """
-        tokens = try ChordProLexer(input: inputText).tokensAsStream()
-        songRepresentation = try await ChordProParser(userSettings: userSettings, songTranspose: 0, tokens: tokens, forPrinting: false).parse()
-        #expect(songRepresentation.toChordProString() == expectedResult)
+        res = await chordPro(srcText: inputText)
+        #expect(res == expectedResult)
     }
     
     @Test func testChords() async throws {
@@ -234,7 +227,6 @@ struct SongChordsTests {
     }
     
     @Test func testReverse() async throws {
-        let chordProReverseParser = ChordProReverseParser()
         var englishDutchRoot: any ChordRoot = EnglishDutchRoot()
 
         var inputText = """
@@ -242,13 +234,13 @@ struct SongChordsTests {
         I get up, and nothing gets me down.
         """
         var expectedResult = """
-        []
         I get [C]up, and nothing gets me down.[F]    [Gsus4]
         
         """
         
-        var sections = chordProReverseParser.parse(input: inputText, rootSystem: &englishDutchRoot)
-        #expect(chordProReverseParser.toString(sections: sections) == expectedResult)
+        var chordProReverseParser = ChordProReverseParser()
+        let _ = chordProReverseParser.parse(input: inputText, rootSystem: &englishDutchRoot)
+        #expect(chordProReverseParser.toString() == expectedResult)
         
         inputText = """
         [Verse]
@@ -261,9 +253,10 @@ struct SongChordsTests {
         
         """
         
-        sections = chordProReverseParser.parse(input: inputText, rootSystem: &englishDutchRoot)
-        #expect(chordProReverseParser.toString(sections: sections) == expectedResult)
-        
+        chordProReverseParser = ChordProReverseParser()
+        let _ = chordProReverseParser.parse(input: inputText, rootSystem: &englishDutchRoot)
+        #expect(chordProReverseParser.toString() == expectedResult)
+
         inputText = """
         C                            F   Gsus4
         I get up, and nothing gets me down.
@@ -276,16 +269,16 @@ struct SongChordsTests {
         """
         
         expectedResult = """
-        []
         [C]I get up, and nothing gets me[F] dow[Gsus4]n.
         You go[C]t it tough, I've seen the toughest [F]aroun[Gsus4]d.
         A[C]nd I know, baby, just how you [F]feel.[Gsus4]
         You've g[C]ot to roll with the punches to get to what'[F]s real [Gsus4]
         
         """
-        sections = chordProReverseParser.parse(input: inputText, rootSystem: &englishDutchRoot)
-        #expect(chordProReverseParser.toString(sections: sections) == expectedResult)
-        
+        chordProReverseParser = ChordProReverseParser()
+        let _ = chordProReverseParser.parse(input: inputText, rootSystem: &englishDutchRoot)
+        #expect(chordProReverseParser.toString() == expectedResult)
+
         inputText = """
         
         (Guitar Solo)
@@ -293,16 +286,16 @@ struct SongChordsTests {
         (Keyboard Solo)
         """
         expectedResult = """
-        []
         
         (Guitar Solo)
         
         (Keyboard Solo)
         
         """
-        sections = chordProReverseParser.parse(input: inputText, rootSystem: &englishDutchRoot)
-        #expect(chordProReverseParser.toString(sections: sections) == expectedResult)
-        
+        chordProReverseParser = ChordProReverseParser()
+        let _ = chordProReverseParser.parse(input: inputText, rootSystem: &englishDutchRoot)
+        #expect(chordProReverseParser.toString() == expectedResult)
+
         inputText = """
         
         (Guitar Solo)
@@ -310,16 +303,16 @@ struct SongChordsTests {
         C#m
         """
         expectedResult = """
-        []
         
         (Guitar Solo)
         
         [C#m]
         
         """
-        sections = chordProReverseParser.parse(input: inputText, rootSystem: &englishDutchRoot)
-        #expect(chordProReverseParser.toString(sections: sections) == expectedResult)
-        
+        chordProReverseParser = ChordProReverseParser()
+        let _ = chordProReverseParser.parse(input: inputText, rootSystem: &englishDutchRoot)
+        #expect(chordProReverseParser.toString() == expectedResult)
+
         inputText = """
         [Verse]
              Cm7               F
@@ -339,7 +332,8 @@ struct SongChordsTests {
         [Cm7]More than a feeling, [F]that's the power of love
         
         """
-        sections = chordProReverseParser.parse(input: inputText, rootSystem: &englishDutchRoot)
-        #expect(chordProReverseParser.toString(sections: sections) == expectedResult)
+        chordProReverseParser = ChordProReverseParser()
+        let _ = chordProReverseParser.parse(input: inputText, rootSystem: &englishDutchRoot)
+        #expect(chordProReverseParser.toString() == expectedResult)
     }
 }

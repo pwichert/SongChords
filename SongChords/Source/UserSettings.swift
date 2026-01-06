@@ -13,6 +13,7 @@ enum DisplayMode: Int, Codable {
     case automatic
 }
 
+nonisolated
 public struct UserSettingsSendable: Sendable {
 #if os(macOS)
     typealias UIFont = NSFont
@@ -55,29 +56,29 @@ public struct UserSettingsSendable: Sendable {
 public final class UserSettings {
     public init() {}
     
-//    public func makeSendable() -> UserSettingsSendable {
-//        return .init(
-//            isGermanNotation: isGermanNotation,
-//            hidechords: hidechords,
-//            textfollowschords: textfollowschords,
-//            headersize: headersize,
-//            headersizepdf: headersizepdf,
-//            txtsize: txtsize,
-//            txtsizepdf: txtsizepdf,
-//            chordsize: chordsize,
-//            chordsizepdf: chordsizepdf,
-//            linespacing: linespacing,
-//            linespacingpdf: linespacingpdf,
-//            displayMode: displayMode,
-//            mediabox: mediabox,
-//            printingscale: printingscale,
-//            marginleft: marginleft,
-//            margintop: margintop,
-//            marginright: marginright,
-//            marginbottom: marginbottom,
-//            getVersion_: getVersion()
-//        )
-//    }
+    public func makeSendable() -> UserSettingsSendable {
+        return .init(
+            isGermanNotation: isGermanNotation,
+            hidechords: hidechords,
+            textfollowschords: textfollowschords,
+            headersize: headersize,
+            headersizepdf: headersizepdf,
+            txtsize: txtsize,
+            txtsizepdf: txtsizepdf,
+            chordsize: chordsize,
+            chordsizepdf: chordsizepdf,
+            linespacing: linespacing,
+            linespacingpdf: linespacingpdf,
+            displayMode: displayMode,
+            mediabox: mediabox,
+            printingscale: printingscale,
+            marginleft: marginleft,
+            margintop: margintop,
+            marginright: marginright,
+            marginbottom: marginbottom,
+            getVersion_: getVersion()
+        )
+    }
     
 #if os(macOS)
     typealias UIFont = NSFont

@@ -7,6 +7,7 @@
 
 import Foundation
 
+nonisolated
 private enum LexerSymbol: Equatable {
     case BracketOpen        // [
     case BracketClose       // ]
@@ -28,7 +29,14 @@ public enum Token: Equatable {
     case newLine                    // \n -> newLine
 }
 
-public class ChordProLexer {
+nonisolated
+private enum LexerMode: Equatable {
+    case normal
+    case raw
+}
+
+nonisolated
+public class ChordProLexer: @unchecked Sendable {
     private let input: String
     private var position: String.Index
         
@@ -43,18 +51,19 @@ public class ChordProLexer {
         advance()
     }
     
-    public func tokensAsStream() throws -> AsyncThrowingStream<Token, Error> {
+    @concurrent
+    public func tokensAsStream() async throws -> AsyncThrowingStream<Token, Error> {
         
-        AsyncThrowingStream { continuation in
-            let lexer = ChordProLexer(input: input)
-            
+        AsyncThrowingStream { continuation in            
             continuation.onTermination = { termination in
 //                print("token stream terminated:", termination)
             }
             
             Task {
+//                print("tokensAsStream:", Thread.currentThread)
+
                 do {
-                    while let token = lexer.nextToken() {
+                    while let token = nextToken() {
                         try Task.checkCancellation()
                         continuation.yield(token)
                     }
@@ -69,13 +78,15 @@ public class ChordProLexer {
     private func nextToken() -> Token? {
         let token = nextToken_()
         
+//        if let token = token { print(token) } else { print("nil") }
+        
         #if false
         switch token {
         case .bracketEnclosed(let str): line.append("[" + str + "]")
         case .curlyEnclosed(let str): line.append("{" + str + "}")
         case .text(let str): line.append(str)
-        case .comment(let str): line.append("#" + str)
-        case .commentHidden(let str): line.append("#:" + str)
+        case .comment(let str): line.append(str)
+        case .commentHidden(let str): line.append(str)
         case .newLine: print(line); line = ""
         case .none: if line.count > 0 { print(line) }
         }
@@ -100,14 +111,16 @@ public class ChordProLexer {
             
         case .CurlyOpen:
             advance()
-            let tok = Token.curlyEnclosed(textToSymbol(stopSym: .CurlyClose))
+            let tok = Token.curlyEnclosed(textToSymbol(stopSym: .CurlyClose, raw: true))     // \ und %{ soll hier erhalten bleiben für processReplace()
             advance()
             return tok
-            
+
         case .Comment:
             if commentAllowed {
                 advance()
-                return .comment(restOfLine())
+                let tok = Token.comment(restOfLine())
+                advance()
+                return tok
             } else {
                 return .text(textToNewline())
             }
@@ -130,7 +143,8 @@ public class ChordProLexer {
         // Text und sinnlos im Text erscheinende schließende Klammern bleiben Text
         // %{ bleiben Text, weil sie im Parser verarbeitet werden
         case .Char(_), .BracketClose, .CurlyClose, .CurlyOpenPercent:
-            return .text(textToNewline())
+            let tok = Token.text(textToNewline())
+            return tok
         }
     }
     
@@ -177,21 +191,36 @@ public class ChordProLexer {
     
     // Text bis Stoppsymbol
     // Rückkehr mit Symbol
-    private func textToSymbol(stopSym: LexerSymbol) -> String {
+    private func textToSymbol(stopSym: LexerSymbol, raw: Bool = false) -> String {
         var res: String = ""
+        var level: Int = 0
+        let startIndex = input.index(before: position)
+        
+        // im raw-Modus wird der unescaped-Text, also mit "\", geliefert
         
         while let symbol = sym {
-            if symbol == stopSym { return res }
-            
+            if level <= 0 && symbol == stopSym { if raw { return String(input[startIndex..<input.index(before: position)]) } else { return res }}
+            if stopSym == .CurlyClose && symbol == .CurlyOpenPercent { level += 1 }
+            if symbol == .CurlyClose { level -= 1 }
+
             res.append(symbolLiteral(symbol))
             advance()
         }
         
-        return res
+        if raw { return String(input[startIndex..<input.index(before: position)]) } else { return res }
     }
     
     private func advance() {
         sym = getSymbol_()
+        #if false
+        if let sym = sym {
+            if case .Char(let ch) = sym {
+                print(ch, terminator:  " ")
+            } else {
+                print("SYM(" + symbolLiteral(sym) + ")", terminator: " ")
+            }
+        } else { print("nil") }
+        #endif
     }
     
     private func getSymbol_() -> LexerSymbol? {
@@ -204,11 +233,8 @@ public class ChordProLexer {
             switch current {
             case "\\":
                 guard let escaped = getChar() else { return .Char(current) }
-                
-                switch escaped {
-                case "\n": continue
-                default: return .Char(escaped)
-                }
+                if escaped == "\n" { continue }
+                return .Char(escaped)
                 
             case "%":
                 guard let curlyopen = getChar() else { return .Char(current) }
@@ -220,7 +246,7 @@ public class ChordProLexer {
                 guard let commenthidden = getChar() else { return .Char(current) }
                 if commenthidden == ":" { return .CommentHidden}
                 pushChar()
-                return .Char(current)
+                return .Comment
 
             case "[": return .BracketOpen
             case "]": return .BracketClose
@@ -265,18 +291,21 @@ public class ChordProLexer {
 }
 
 extension Character {
+    nonisolated
     var isControlCharacter: Bool {
         unicodeScalars.allSatisfy {
             $0.properties.generalCategory == .control
         }
     }
 
+    nonisolated
     var isFormatCharacter: Bool {
         unicodeScalars.allSatisfy {
             $0.properties.generalCategory == .format
         }
     }
 
+    nonisolated
     var isNonBreakingSpace: Bool {
         unicodeScalars.contains {
             $0.value == 0x00A0 || $0.value == 0x202F

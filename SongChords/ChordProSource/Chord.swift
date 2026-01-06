@@ -95,35 +95,41 @@ public enum ChordExt: String, CaseIterable, Sendable {
     case e2 = "2"
 }
 
+nonisolated
 public protocol ChordRoot {
     var sharps: [ [ String ] ] { get }
     var flats: [ [ String ] ] { get }
 }
 
+nonisolated
 private struct EnglishRoot: ChordRoot {
     public init() {}
     public let sharps = [ ["c"], ["c#"], ["d"], ["d#"], ["e"], ["f"], ["f#"], ["g"], ["g#"], ["a"], ["a#"], ["b"] ]
     public let flats = [ ["c"], ["db"], ["d"], ["eb"], ["e"], ["f"], ["gb"], ["g"], ["ab"], ["a"], ["bb"], ["b", "cb"] ]
 }
 
+nonisolated
 private struct DutchRoot: ChordRoot {
     public init() {}
     public let sharps = [ ["c", "bis"], ["cis"], ["d"], ["dis"], ["e"], ["f", "eis"], ["fis"], ["g"], ["gis"], ["a"], ["ais"], ["b"] ]
     public let flats = [ ["c"], ["des"], ["d"], ["es", "ees"], ["e", "fes"], ["f"], ["ges"], ["g"], ["as", "aes"], ["a"], ["bes"], ["b", "ces"] ]
 }
 
+nonisolated
 public struct EnglishDutchRoot: ChordRoot {
     public init() {}
     public let sharps = [ ["c", "bis"], ["c#", "cis"], ["d"], ["d#", "dis"], ["e"], ["f", "eis"], ["f#", "fis"], ["g"], ["g#", "gis"], ["a"], ["a#", "ais"], ["b", "h"] ]
     public let flats = [ ["c"], ["db", "des"], ["d"], ["eb", "es", "ees"], ["e", "fes"], ["f"], ["gb", "ges"], ["g"], ["ab", "as", "aes"], ["a"], ["bb", "bes"], ["b", "cb", "ces", "h"] ]
 }
 
+nonisolated
 private struct GermanRoot: ChordRoot {
     public init() {}
     public let sharps = [ ["c", "his"], ["cis"], ["d"], ["dis"], ["e"], ["f", "eis"], ["fis"], ["g"], ["gis"], ["a"], ["ais"], ["h"] ]
     public let flats = [ ["c"], ["des"], ["d"], ["es", "ees"], ["e", "fes"], ["f"], ["ges"], ["g"], ["as", "aes"], ["a"], ["b"], ["h", "ces"] ]
 }
 
+nonisolated
 public struct EnglishGermanRoot: ChordRoot {
     public init() {}
     public let sharps = [ ["c", "his"], ["cis", "c#"], ["d"], ["dis", "d#"], ["e"], ["f", "eis"], ["fis", "f#"], ["g"], ["gis", "g#"], ["a"], ["ais", "a#"], ["h"] ]
@@ -150,6 +156,7 @@ public struct ChordFretVariant: Hashable, Equatable, Sendable {
     let fingers: [Int?]  // Finger, die die Saiten greifen (optional)
 }
 
+nonisolated
 public struct ParsedChord: Identifiable, Equatable, Sendable {
     public let id = UUID()
     
