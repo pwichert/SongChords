@@ -86,16 +86,19 @@ class RepresentationHolder {
         self.directiveManager = directiveManager
     }
     
-    private(set) var rows: [RenderRowModel] = []
+    private(set) var rows: [RowContent] = []
 
     @ObservationIgnored
-    private(set) var rowsForPrinting: [RenderRowModel] = []
+    private(set) var rowsForPrinting: [RowContent] = []
 
     @ObservationIgnored
-    private(set) var silentRows: [RenderRowModel] = []
-
+    private(set) var silentRows: [RowContent] = []
+    
+    @ObservationIgnored
+    private var rowID: Int = 0
+    
     func append(_ chunks: [SongRenderChunk]) {
-        // parser-token in entsprechenden rowEvent für RenderRowModel umsetzen
+        // parser-token in entsprechenden event für RowContent umsetzen
         for chunk in chunks {
             let event: RowEvent? = switch chunk.content {
                 case .newpage: .newpage
@@ -103,12 +106,17 @@ class RepresentationHolder {
                 default:  nil
             }
             
-            silentRows.append(RenderRowModel(id: chunk.id, content: chunk.content, rowEvent: event))
+            silentRows.append(RowContent(id: rowID, content: chunk.content, event: event))
+            rowID += 1
         }
     }
     
     func reset() {
         silentRows = []
+    }
+    
+    func resetRowContent() {
+        rows = []
     }
     
     func isFinished (forPrinting: Bool = false) {
@@ -124,14 +132,14 @@ enum RowEvent {
     case columnbreak
 }
 
-final class RenderRowModel: Identifiable {
+final class RowContent: Identifiable {
     let id: Int
     let content: SongRenderChunk.chunkContent
-    let rowEvent: RowEvent?
+    let event: RowEvent?
     
-    init(id: Int, content: SongRenderChunk.chunkContent, rowEvent: RowEvent? = nil) {
+    init(id: Int, content: SongRenderChunk.chunkContent, event: RowEvent? = nil) {
         self.id = id
         self.content = content
-        self.rowEvent = rowEvent
+        self.event = event
     }
 }

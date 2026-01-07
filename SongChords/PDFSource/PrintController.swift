@@ -75,11 +75,11 @@ class PrintSongDelegate: NSObject, PrintDelegateBase {
             for row in SongTaskManager.shared.representationHolder.rowsForPrinting {
                 // function je nach row.rowEvent sammeln und bei nächster zeile ablegen
                 // die Rows mit newpage/columnbreak erscheinen nicht mehr, wie in DetailView()
-                switch row.rowEvent {
+                switch row.event {
                 case .newpage: f.append(gen.setNewPage)
                 case .columnbreak: f.append(gen.setColumnBreak)
                 case .none:
-                    gen.draw(view: RowView(id: row.id, darkColor: darkColor, lightColor: lightColor, model: row, rowEvents: f, forPrinting: true))
+                    gen.draw(view: RowView(id: row.id, darkColor: darkColor, lightColor: lightColor, content: row, events: f, forPrinting: true))
                     f = []
                 }
             }

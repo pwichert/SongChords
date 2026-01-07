@@ -74,11 +74,10 @@ public struct TextElement: Sendable, Identifiable, Equatable {
 /// Ein inkrementell darstellbares Render-Fragment (z. B. eine fertige Zeile)
 nonisolated
 public struct SongRenderChunk: Sendable, Identifiable {
-    public let id: Int
+    public let id: UUID = UUID()
     public let content: chunkContent
     
-    init(id: Int, content: chunkContent) {
-        self.id = id
+    init(content: chunkContent) {
         self.content = content
     }
     
@@ -184,13 +183,6 @@ public class ViewFilter {
             Task {
 //                print("viewfilter: chunksAsStream:", Thread.currentThread)
 
-                var chunkId: Int = 0
-
-                func getId() -> Int {
-                    chunkId += 1
-                    return chunkId
-                }
-                
                 do {
                     let hideChords = await userSettings.hidechords
                     
@@ -203,36 +195,36 @@ public class ViewFilter {
                                 
                             case .sectionStarted(let section):
                                 if showHeader && section.trimmingCharacters(in: .whitespaces).count > 0 {
-                                    res.append(SongRenderChunk(id: getId(), content: .sectionStarted(section)))
+                                    res.append(SongRenderChunk(content: .sectionStarted(section)))
                                 }
                                 
                             case .chordline(let chords):
                                 if !hideChords {
                                     if showText {
-                                        res.append(SongRenderChunk(id: getId(), content: .chordline(chords)))
+                                        res.append(SongRenderChunk(content: .chordline(chords)))
                                     } else {
-                                        res.append(SongRenderChunk(id: getId(), content: .chordplainline(chords)))
+                                        res.append(SongRenderChunk(content: .chordplainline(chords)))
                                     }
                                 }
 
                             case .textline(let texts, let plaintext):
                                 if showText {
                                     if !hideChords {
-                                        res.append(SongRenderChunk(id: getId(), content: .textline(texts, plaintext: plaintext)))
+                                        res.append(SongRenderChunk(content: .textline(texts, plaintext: plaintext)))
                                     } else {
-                                        res.append(SongRenderChunk(id: getId(), content: .textplainline(plaintext)))
+                                        res.append(SongRenderChunk(content: .textplainline(plaintext)))
                                     }
                                 }
                                 
                             case .splittedline(chords: let chords, texts: _, let plaintext):
                                 // chords und texts sind gefüllt
                                 if hideChords {
-                                    if showText { res.append(SongRenderChunk(id: getId(), content: .textplainline(plaintext))) }
+                                    if showText { res.append(SongRenderChunk(content: .textplainline(plaintext))) }
                                 } else {
                                     if showText {
-                                        res.append(SongRenderChunk(id: getId(), content: c.content))
+                                        res.append(SongRenderChunk(content: c.content))
                                     } else {
-                                        res.append(SongRenderChunk(id: getId(), content: .chordplainline(chords)))
+                                        res.append(SongRenderChunk(content: .chordplainline(chords)))
                                     }
                                 }
 
@@ -241,7 +233,7 @@ public class ViewFilter {
                                 break
                                 
                             default:
-                                res.append(SongRenderChunk(id: getId(), content: c.content))
+                                res.append(SongRenderChunk(content: c.content))
                             }
                         }
                         continuation.yield(res)
@@ -267,8 +259,6 @@ internal class ParserHelper {
 
 nonisolated
 public class ChordProParser: @unchecked Sendable {
-    private var chunkId: Int = 0
-    
     private let directiveManager = DirectiveManager()
     private let userSettings: UserSettingsSendable
     private let songTranspose: Int
@@ -408,17 +398,17 @@ public class ChordProParser: @unchecked Sendable {
 
                 switch d {
                 case .column_break:
-                    return [SongRenderChunk(id: getId(), content: .columnbreak)]
+                    return [SongRenderChunk(content: .columnbreak)]
 
                 case .new_page:
-                    return [SongRenderChunk(id: getId(), content: .newpage)]
+                    return [SongRenderChunk(content: .newpage)]
 
                 case .start_of_verse, .start_of_bridge, .start_of_chorus:
                     let val = directiveManager.getDirective(d.rawValue) ?? ""
-                    return [SongRenderChunk(id: getId(), content: .sectionStarted(val))]
+                    return [SongRenderChunk(content: .sectionStarted(val))]
                     
                 case .end_of_verse, .end_of_bridge, .end_of_chorus:
-                    return [SongRenderChunk(id: getId(), content: .sectionEnded)]
+                    return [SongRenderChunk(content: .sectionEnded)]
                     
                 case .comment, .comment_box, .comment_italic:
                     let val = directiveManager.getDirective(d.rawValue) ?? ""
@@ -481,23 +471,23 @@ public class ChordProParser: @unchecked Sendable {
             
             if chords.count == 1 && ParserHelper.allWhitespace(elements: texts), let chord = chords.first, chord.chord == nil, !chord.isChordcomment {
                 // Sectionstart
-                res.append(SongRenderChunk(id: getId(), content: .sectionStarted(chord.txt)))
+                res.append(SongRenderChunk(content: .sectionStarted(chord.txt)))
             } else {
                 // Zeilen nur aus Directiven bestehend werden ignoriert, ansonsten Leerzeile
                 if chords.isEmpty && ParserHelper.allWhitespace(elements: texts) {
                     if numDirectives == 0 {
-                        res.append(SongRenderChunk(id: getId(), content: .emptyline))
+                        res.append(SongRenderChunk(content: .emptyline))
                     }
                 } else {
                     if ParserHelper.allWhitespace(elements: texts) {
                         // kein Text -> .chordline
-                        res.append(SongRenderChunk(id: getId(), content: .chordline(chords)))
+                        res.append(SongRenderChunk(content: .chordline(chords)))
                     } else if chords.isEmpty {
                         // keine chords -> .textline
-                        res.append(SongRenderChunk(id: getId(), content: .textline(texts, plaintext: plainText)))
+                        res.append(SongRenderChunk(content: .textline(texts, plaintext: plainText)))
                     } else {
                         // beides -> .splittedline
-                        res.append(SongRenderChunk(id: getId(), content: .splittedline(chords: chords, texts: texts, plaintext: plainText)))
+                        res.append(SongRenderChunk(content: .splittedline(chords: chords, texts: texts, plaintext: plainText)))
                     }
                 }
             }
@@ -578,10 +568,5 @@ public class ChordProParser: @unchecked Sendable {
     private func sizeOfString(string: String, font: UIFont) -> Double {
         let fontAttributes = [NSAttributedString.Key.font: font]
         return string.size(withAttributes: fontAttributes).width
-    }
-    
-    private func getId() -> Int {
-        chunkId += 1
-        return chunkId
     }
 }

@@ -179,6 +179,11 @@ internal struct SongViewX: View {
         .onChange(of: settingsChangeTick) {
             updateSongRepresentation()
         }
+        .onDisappear {
+            // Wenn die Playlist gewechselt und ein anderer Song selektiert wird,
+            // kann man sonst noch kurz den alten Song sehen
+            SongTaskManager.shared.representationHolder.resetRowContent()
+        }
     }
     
     private func updateSongRepresentation() {
@@ -251,8 +256,11 @@ struct DetailContent: View {
             Text(songTitle).font(.title).fontWeight(.bold).padding(.bottom, 10)
             #endif
 
+            // sinnlose rows (wie .sectionEnded) werden in ViewFilter entfernt
+            // PDF-Events (.newpage, .columnbreak) werden hier entfernt
+            
             ForEach(rows.filter({ return $0.content != SongRenderChunk.chunkContent.newpage && $0.content != SongRenderChunk.chunkContent.columnbreak })) { row in
-                RowView(id: row.id, darkColor: darkColor, lightColor: lightColor, model: row, rowEvents: [], forPrinting: false)
+                RowView(id: row.id, darkColor: darkColor, lightColor: lightColor, content: row, events: [], forPrinting: false)
             }
         }
         .padding()
@@ -263,8 +271,8 @@ struct RowView: View, Identifiable {
     let id: Int
     let darkColor: Color
     let lightColor: Color
-    let model: RenderRowModel
-    let rowEvents: [() -> Void]
+    let content: RowContent
+    let events: [() -> Void]
     let forPrinting: Bool
     
     @Environment(UserSettings.self) private var userSettings
@@ -276,7 +284,7 @@ struct RowView: View, Identifiable {
         VStack(alignment: .leading, spacing: 0) {
 //            let _ = print(model.content.toString())
             
-            switch model.content {
+            switch content.content {
             case .sectionStarted(let str):
                 SectionHeaderView(header: str, lightColor: lightColor, darkColor: darkColor).font(Font(forPrinting ? userSettings.headerPDFUIFont : userSettings.headerUIFont))
                 
@@ -302,7 +310,7 @@ struct RowView: View, Identifiable {
             case .columnbreak, .newpage:
                 // in DetailView entfernt
                 // Color.clear.frame(width: 1, height: 1, alignment: .center)
-                EmptyView()
+                 EmptyView()
 
             case .sectionEnded:
                 // in ViewFilter entfernt
@@ -311,7 +319,7 @@ struct RowView: View, Identifiable {
             }
         }.padding(EdgeInsets(top: 0, leading: 0, bottom: forPrinting ? userSettings.linespacingpdf : userSettings.linespacing, trailing: 0))
         .onAppear {
-            for f in rowEvents { f() }
+            for f in events { f() }
         }
     }
 }

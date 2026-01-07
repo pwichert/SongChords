@@ -55,7 +55,7 @@ public class ChordProReverseParser {
                 let e = line.index(before: line.endIndex)
                 
                 sectionName = String(line[s..<e])
-                chunks.append(SongRenderChunk(id: 0,content: .sectionStarted(sectionName)))
+                chunks.append(SongRenderChunk(content: .sectionStarted(sectionName)))
                 continue
             }
             
@@ -63,22 +63,22 @@ public class ChordProReverseParser {
                 // aktuelle Zeile sind Chords
                 if let last = lastLine, last.isChord {
                     // letzte Zeile waren auch Chords, also eine einzelne Chordzeile ohne Text
-                    chunks.append(SongRenderChunk(id: 0, content: .splittedline(chords: last.textElement, texts: [], plaintext: "")))
+                    chunks.append(SongRenderChunk(content: .splittedline(chords: last.textElement, texts: [], plaintext: "")))
                 }
                 // für nächste Zeile merken
                 lastLine = curLine
-                if cnt == 0 { chunks.append(SongRenderChunk(id: 0, content: .splittedline(chords: curLine.textElement, texts: [], plaintext: ""))) }
+                if cnt == 0 { chunks.append(SongRenderChunk(content: .splittedline(chords: curLine.textElement, texts: [], plaintext: ""))) }
             } else {
                 // aktuelle Zeile keine Chords
                 if let last = lastLine, last.isChord {
                     // letzte Zeile waren Chords, also komplette Chord/Text-Zeile
-                    chunks.append(SongRenderChunk(id: 0, content: .splittedline(chords: last.textElement, texts: curLine.textElement, plaintext: "")))
+                    chunks.append(SongRenderChunk(content: .splittedline(chords: last.textElement, texts: curLine.textElement, plaintext: "")))
 
                     // Text als erledigt merken
                     lastLine = nil
                 } else  {
                     // letzte Zeile waren keine Chords, also eine einzelne Textzeile ohne Chord
-                    chunks.append(SongRenderChunk(id: 0, content: .splittedline(chords: [], texts: curLine.textElement, plaintext: "")))
+                    chunks.append(SongRenderChunk(content: .splittedline(chords: [], texts: curLine.textElement, plaintext: "")))
 
                     // Text als erledigt merken
                     lastLine = nil
