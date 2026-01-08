@@ -120,20 +120,20 @@ public final class UserSettings {
     var headersizepdf: Double = UserDefaults.standard.double(forKey: "set_headersizepdf") == 0.0 ? 14.0 : UserDefaults.standard.double(forKey: "set_headersizepdf")
     { didSet { UserDefaults.standard.set(headersizepdf, forKey: "set_headersizepdf") }}
 
-    var headersize: Double = UserDefaults.standard.double(forKey: "set_headersize") == 0.0 ? 14.0 : UserDefaults.standard.double(forKey: "set_headersize")
-    { didSet { UserDefaults.standard.set(headersize, forKey: "set_headersize") }}
-
-    var txtsize: Double = UserDefaults.standard.double(forKey: "set_textsize") == 0.0 ? 14.0 : UserDefaults.standard.double(forKey: "set_textsize")
-    { didSet { UserDefaults.standard.set(txtsize, forKey: "set_textsize") }}
+    var chordsizepdf: Double = UserDefaults.standard.double(forKey: "set_chordsizepdf") == 0.0 ? 14.0 : UserDefaults.standard.double(forKey: "set_chordsizepdf")
+    { didSet { UserDefaults.standard.set(chordsizepdf, forKey: "set_chordsizepdf") }}
     
     var txtsizepdf: Double = UserDefaults.standard.double(forKey: "set_textsizepdf") == 0.0 ? 14.0 : UserDefaults.standard.double(forKey: "set_textsizepdf")
     { didSet { UserDefaults.standard.set(txtsizepdf, forKey: "set_textsizepdf") }}
     
-    var chordsize: Double = UserDefaults.standard.double(forKey: "set_chordsize") == 0.0 ? 14.0 : UserDefaults.standard.double(forKey: "set_chordsize")
+    var headersize: Double = UserDefaults.standard.double(forKey: "set_headersize") == 0.0 ? 16.0 : UserDefaults.standard.double(forKey: "set_headersize")
+    { didSet { UserDefaults.standard.set(headersize, forKey: "set_headersize") }}
+
+    var chordsize: Double = UserDefaults.standard.double(forKey: "set_chordsize") == 0.0 ? 16.0 : UserDefaults.standard.double(forKey: "set_chordsize")
     { didSet { UserDefaults.standard.set(chordsize, forKey: "set_chordsize") }}
     
-    var chordsizepdf: Double = UserDefaults.standard.double(forKey: "set_chordsizepdf") == 0.0 ? 14.0 : UserDefaults.standard.double(forKey: "set_chordsizepdf")
-    { didSet { UserDefaults.standard.set(chordsizepdf, forKey: "set_chordsizepdf") }}
+    var txtsize: Double = UserDefaults.standard.double(forKey: "set_textsize") == 0.0 ? 16.0 : UserDefaults.standard.double(forKey: "set_textsize")
+    { didSet { UserDefaults.standard.set(txtsize, forKey: "set_textsize") }}
     
     var linespacing: Double = UserDefaults.standard.double(forKey: "set_linespacing") == 0.0 ? 10.0 : UserDefaults.standard.double(forKey: "set_linespacing")
     { didSet { UserDefaults.standard.set(linespacing, forKey: "set_linespacing") }}
