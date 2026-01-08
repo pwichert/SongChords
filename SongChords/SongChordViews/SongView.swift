@@ -253,7 +253,7 @@ struct DetailContent: View {
 
         let rows = SongTaskManager.shared.representationHolder.rows
         
-        VStack(alignment: .leading) {
+        VStack(alignment: .leading, spacing: 0) {
             #if os(macOS)
             Text(songTitle).font(.title).fontWeight(.bold).padding(.bottom, 10)
             #endif
@@ -390,7 +390,7 @@ struct SectionHeaderView: View {
     @Environment(\.colorScheme) var colorScheme
     
     var body: some View {
-        HStack(alignment: .center) {
+        HStack(alignment: .center, spacing: 0) {
             Text(header)
                 .padding(.leading, 3)
             Spacer()

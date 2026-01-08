@@ -123,19 +123,19 @@ public final class UserSettings {
     var headersize: Double = UserDefaults.standard.double(forKey: "set_headersize") == 0.0 ? 14.0 : UserDefaults.standard.double(forKey: "set_headersize")
     { didSet { UserDefaults.standard.set(headersize, forKey: "set_headersize") }}
 
-    var txtsize: Double = UserDefaults.standard.double(forKey: "set_textsize") == 0.0 ? 15.0 : UserDefaults.standard.double(forKey: "set_textsize")
+    var txtsize: Double = UserDefaults.standard.double(forKey: "set_textsize") == 0.0 ? 14.0 : UserDefaults.standard.double(forKey: "set_textsize")
     { didSet { UserDefaults.standard.set(txtsize, forKey: "set_textsize") }}
     
     var txtsizepdf: Double = UserDefaults.standard.double(forKey: "set_textsizepdf") == 0.0 ? 14.0 : UserDefaults.standard.double(forKey: "set_textsizepdf")
     { didSet { UserDefaults.standard.set(txtsizepdf, forKey: "set_textsizepdf") }}
     
-    var chordsize: Double = UserDefaults.standard.double(forKey: "set_chordsize") == 0.0 ? 15.0 : UserDefaults.standard.double(forKey: "set_chordsize")
+    var chordsize: Double = UserDefaults.standard.double(forKey: "set_chordsize") == 0.0 ? 14.0 : UserDefaults.standard.double(forKey: "set_chordsize")
     { didSet { UserDefaults.standard.set(chordsize, forKey: "set_chordsize") }}
     
     var chordsizepdf: Double = UserDefaults.standard.double(forKey: "set_chordsizepdf") == 0.0 ? 14.0 : UserDefaults.standard.double(forKey: "set_chordsizepdf")
     { didSet { UserDefaults.standard.set(chordsizepdf, forKey: "set_chordsizepdf") }}
     
-    var linespacing: Double = UserDefaults.standard.double(forKey: "set_linespacing") == 0.0 ? 4.0 : UserDefaults.standard.double(forKey: "set_linespacing")
+    var linespacing: Double = UserDefaults.standard.double(forKey: "set_linespacing") == 0.0 ? 10.0 : UserDefaults.standard.double(forKey: "set_linespacing")
     { didSet { UserDefaults.standard.set(linespacing, forKey: "set_linespacing") }}
     
     var linespacingpdf: Double = UserDefaults.standard.double(forKey: "set_linespacingpdf") == 0.0 ? 10.0 : UserDefaults.standard.double(forKey: "set_linespacingpdf")
