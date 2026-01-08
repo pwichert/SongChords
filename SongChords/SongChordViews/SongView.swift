@@ -304,6 +304,7 @@ struct RowView: View, Identifiable {
                                 
             case .splittedline(chords: let chords, texts: let texts, _):
                 ChordsLineView(line: chords, lightColor: lightColor, darkColor: darkColor).font(Font(forPrinting ? userSettings.chordPDFUIFont : userSettings.chordUIFont))
+                    .padding(EdgeInsets(top: 0, leading: 0, bottom: 1, trailing: 0))
                 TextsLineView(line: texts).font(Font(forPrinting ? userSettings.txtPDFUIFont : userSettings.txtUIFont))
                 
             case .emptyline:
