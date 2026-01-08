@@ -70,17 +70,17 @@ class PrintSongDelegate: NSObject, PrintDelegateBase {
             gen.setColumnTop()
             
             // Funktionssammler
-            var f: [() -> Void] = []
+            var rowEvents: [() -> Void] = []
             
-            for row in SongTaskManager.shared.representationHolder.rowsForPrinting {
+            for rowContent in SongTaskManager.shared.representationHolder.rowsForPrinting {
                 // function je nach row.rowEvent sammeln und bei nächster zeile ablegen
                 // die Rows mit newpage/columnbreak erscheinen nicht mehr, wie in DetailView()
-                switch row.event {
-                case .newpage: f.append(gen.setNewPage)
-                case .columnbreak: f.append(gen.setColumnBreak)
+                switch rowContent.rowEvent {
+                case .newpage: rowEvents.append(gen.setNewPage)
+                case .columnbreak: rowEvents.append(gen.setColumnBreak)
                 case .none:
-                    gen.draw(view: RowView(darkColor: darkColor, lightColor: lightColor, content: row, events: f, forPrinting: true))
-                    f = []
+                    gen.draw(view: RowView(darkColor: darkColor, lightColor: lightColor, rowContent: rowContent, rowEvents: rowEvents, forPrinting: true))
+                    rowEvents = []
                 }
             }
             

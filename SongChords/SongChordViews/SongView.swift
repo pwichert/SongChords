@@ -261,8 +261,8 @@ struct DetailContent: View {
             // sinnlose rows (wie .sectionEnded) werden in ViewFilter entfernt
             // PDF-Events (.newpage, .columnbreak) werden hier entfernt
             
-            ForEach(rows.filter({ return $0.content != SongRenderChunk.chunkContent.newpage && $0.content != SongRenderChunk.chunkContent.columnbreak })) { row in
-                RowView(darkColor: darkColor, lightColor: lightColor, content: row, events: [], forPrinting: false)
+            ForEach(rows.filter({ return $0.chunkContent != .newpage && $0.chunkContent != .columnbreak })) { rowContent in
+                RowView(darkColor: darkColor, lightColor: lightColor, rowContent: rowContent, rowEvents: [], forPrinting: false)
             }
         }
         .padding()
@@ -273,8 +273,8 @@ struct RowView: View, Identifiable {
     let id: UUID = UUID()
     let darkColor: Color
     let lightColor: Color
-    let content: RowContent
-    let events: [() -> Void]
+    let rowContent: RowContent
+    let rowEvents: [() -> Void]
     let forPrinting: Bool
     
     @Environment(UserSettings.self) private var userSettings
@@ -286,7 +286,7 @@ struct RowView: View, Identifiable {
         VStack(alignment: .leading, spacing: 0) {
 //            let _ = print(model.content.toString())
             
-            switch content.content {
+            switch rowContent.chunkContent {
             case .sectionStarted(let str):
                 SectionHeaderView(header: str, lightColor: lightColor, darkColor: darkColor).font(Font(forPrinting ? userSettings.headerPDFUIFont : userSettings.headerUIFont))
                 
@@ -322,7 +322,7 @@ struct RowView: View, Identifiable {
             }
         }.padding(EdgeInsets(top: 0, leading: 0, bottom: forPrinting ? userSettings.linespacingpdf : userSettings.linespacing, trailing: 0))
         .onAppear {
-            for f in events { f() }
+            for rowEvent in rowEvents { rowEvent() }
         }
     }
 }

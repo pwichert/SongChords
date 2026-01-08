@@ -97,13 +97,13 @@ class RepresentationHolder {
     func append(_ chunks: [SongRenderChunk]) {
         // parser-token in entsprechenden event für RowContent umsetzen
         for chunk in chunks {
-            let event: RowEvent? = switch chunk.content {
+            let rowEvent: RowEvent? = switch chunk.content {
                 case .newpage: .newpage
                 case .columnbreak: .columnbreak
                 default:  nil
             }
             
-            silentRows.append(RowContent(content: chunk.content, event: event))
+            silentRows.append(RowContent(chunkContent: chunk.content, rowEvent: rowEvent))
         }
     }
     
@@ -130,11 +130,11 @@ enum RowEvent {
 
 final class RowContent: Identifiable {
     let id: UUID = UUID()
-    let content: SongRenderChunk.chunkContent
-    let event: RowEvent?
+    let chunkContent: SongRenderChunk.chunkContent
+    let rowEvent: RowEvent?
     
-    init(content: SongRenderChunk.chunkContent, event: RowEvent? = nil) {
-        self.content = content
-        self.event = event
+    init(chunkContent: SongRenderChunk.chunkContent, rowEvent: RowEvent? = nil) {
+        self.chunkContent = chunkContent
+        self.rowEvent = rowEvent
     }
 }
