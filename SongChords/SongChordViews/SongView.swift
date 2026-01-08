@@ -260,7 +260,7 @@ struct DetailContent: View {
             // PDF-Events (.newpage, .columnbreak) werden hier entfernt
             
             ForEach(rows.filter({ return $0.content != SongRenderChunk.chunkContent.newpage && $0.content != SongRenderChunk.chunkContent.columnbreak })) { row in
-                RowView(id: row.id, darkColor: darkColor, lightColor: lightColor, content: row, events: [], forPrinting: false)
+                RowView(darkColor: darkColor, lightColor: lightColor, content: row, events: [], forPrinting: false)
             }
         }
         .padding()
@@ -268,7 +268,7 @@ struct DetailContent: View {
 }
 
 struct RowView: View, Identifiable {
-    let id: Int
+    let id: UUID = UUID()
     let darkColor: Color
     let lightColor: Color
     let content: RowContent

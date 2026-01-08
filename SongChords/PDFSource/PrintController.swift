@@ -79,7 +79,7 @@ class PrintSongDelegate: NSObject, PrintDelegateBase {
                 case .newpage: f.append(gen.setNewPage)
                 case .columnbreak: f.append(gen.setColumnBreak)
                 case .none:
-                    gen.draw(view: RowView(id: row.id, darkColor: darkColor, lightColor: lightColor, content: row, events: f, forPrinting: true))
+                    gen.draw(view: RowView(darkColor: darkColor, lightColor: lightColor, content: row, events: f, forPrinting: true))
                     f = []
                 }
             }
