@@ -59,7 +59,7 @@ public final class UserSettings {
     #if os(macOS)
     static let fontSize: CGFloat = 14
     #else
-    static let fontSize: CGFloat = 16
+    static let fontSize: CGFloat = 18
     #endif
     
     public func makeSendable() -> UserSettingsSendable {
