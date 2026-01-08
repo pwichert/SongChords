@@ -56,6 +56,12 @@ public struct UserSettingsSendable: Sendable {
 public final class UserSettings {
     public init() {}
     
+    #if os(macOS)
+    static let fontSize: CGFloat = 14
+    #else
+    static let fontSize: CGFloat = 16
+    #endif
+    
     public func makeSendable() -> UserSettingsSendable {
         return .init(
             isGermanNotation: isGermanNotation,
@@ -126,13 +132,13 @@ public final class UserSettings {
     var txtsizepdf: Double = UserDefaults.standard.double(forKey: "set_textsizepdf") == 0.0 ? 14.0 : UserDefaults.standard.double(forKey: "set_textsizepdf")
     { didSet { UserDefaults.standard.set(txtsizepdf, forKey: "set_textsizepdf") }}
     
-    var headersize: Double = UserDefaults.standard.double(forKey: "set_headersize") == 0.0 ? 16.0 : UserDefaults.standard.double(forKey: "set_headersize")
+    var headersize: Double = UserDefaults.standard.double(forKey: "set_headersize") == 0.0 ? fontSize : UserDefaults.standard.double(forKey: "set_headersize")
     { didSet { UserDefaults.standard.set(headersize, forKey: "set_headersize") }}
 
-    var chordsize: Double = UserDefaults.standard.double(forKey: "set_chordsize") == 0.0 ? 16.0 : UserDefaults.standard.double(forKey: "set_chordsize")
+    var chordsize: Double = UserDefaults.standard.double(forKey: "set_chordsize") == 0.0 ? fontSize : UserDefaults.standard.double(forKey: "set_chordsize")
     { didSet { UserDefaults.standard.set(chordsize, forKey: "set_chordsize") }}
     
-    var txtsize: Double = UserDefaults.standard.double(forKey: "set_textsize") == 0.0 ? 16.0 : UserDefaults.standard.double(forKey: "set_textsize")
+    var txtsize: Double = UserDefaults.standard.double(forKey: "set_textsize") == 0.0 ? fontSize : UserDefaults.standard.double(forKey: "set_textsize")
     { didSet { UserDefaults.standard.set(txtsize, forKey: "set_textsize") }}
     
     var linespacing: Double = UserDefaults.standard.double(forKey: "set_linespacing") == 0.0 ? 10.0 : UserDefaults.standard.double(forKey: "set_linespacing")
