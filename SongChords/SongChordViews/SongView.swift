@@ -244,7 +244,7 @@ internal struct SongViewX: View {
 struct DetailContent: View {
     let songTitle: String
         
-    private let darkColor = Color(red: 0.25, green: 0.25, blue: 0.25)
+    private let darkColor = Color(red: 0.20, green: 0.20, blue: 0.20)
     private let lightColor = Color(red: 0.90, green: 0.90, blue: 0.90)
 
     var body: some View {
