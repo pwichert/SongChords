@@ -61,7 +61,6 @@ struct SongListView: View {
     @Binding var visibility: NavigationSplitViewVisibility
     @Binding var selectedSongIDs: Set<PersistentIdentifier>
         
-    @Query private var songs: [Song]
     @Query private var playlists: [PlayList]
     
     init(playlistID: PersistentIdentifier, visibility: Binding<NavigationSplitViewVisibility>, selectedSongIDs: Binding<Set<PersistentIdentifier>>) {
@@ -479,14 +478,7 @@ internal struct SongListViewX: View {
                 globals.setSongChordsError(error: error)
             }
         }
-    }
-    
-//    func printSetlist() async {
-//        let modelContainer = modelContext.container
-//        if let delegate = PrintSetlistDelegate(playlistID: playlist.persistentModelID, modelContainer: modelContainer) {
-//            PrintController.onPrint(title: playlist.title, delegate: delegate)
-//        }
-//    }
+    }    
 }
 
 struct CopyToPlaylistView: View {

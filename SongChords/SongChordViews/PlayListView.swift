@@ -517,31 +517,3 @@ struct PrivacyView: View {
         }
     }
 }
-
-//#if os(iOS)
-//struct CustomEditButton: View {
-//    @Binding var editMode: EditMode
-//    
-//    var body: some View {
-//        Button(action: {
-//            toggleEditMode()
-//        }) {
-//            if $editMode.wrappedValue == .active {
-//                Label("Done", systemImage: "checkmark").labelStyle(.iconOnly)
-//            } else {
-//                Label("Done", systemImage: "list.dash").labelStyle(.iconOnly)
-//            }
-//        }
-//    }
-//    
-//    private func toggleEditMode() {
-//        withAnimation {
-//            if $editMode.wrappedValue == .active {
-//                $editMode.wrappedValue = .inactive
-//            } else {
-//                $editMode.wrappedValue = .active
-//            }
-//        }
-//    }
-//}
-//#endif

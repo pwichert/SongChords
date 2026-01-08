@@ -60,29 +60,30 @@ internal struct SongViewX: View {
     @State private var songMP3Uuid: String = ""
     @State private var songPosition: TimeInterval = 0.0
 
+    @State private var scrollPosition = ScrollPosition(edge: .top)
     @State private var settingsChangeTick = 0
 
     var body: some View {
-        GeometryReader { viewSize in    // Größe des umgebenden Containers
-            ScrollView(userSettings.hidechords ? .vertical : [.horizontal, .vertical], showsIndicators: false) {
-                ZStack(alignment: .topLeading) {
-                    if let pdfUrl = pdfUrl {
-                        PDFKitView(url: pdfUrl)
-                        #if os(iOS)
-                            .navigationBarTitleDisplayMode(.inline)
-                        #endif
-                    } else {
-                        DetailContent(songTitle: song.title)
-                        #if os(iOS)
-                            .navigationBarTitleDisplayMode(.large)
-                        #endif
-                    }
-                    
-                    Color.clear.frame(width: 1, height: viewSize.size.height, alignment: .center)
-                    Color.clear.frame(width: viewSize.size.width, height: 1, alignment: .center)
-                }.padding(0)
+        ScrollView(userSettings.hidechords ? .vertical : [.horizontal, .vertical], showsIndicators: false) {
+            ZStack(alignment: .topLeading) {
+                Spacer()
+                    .containerRelativeFrame([.horizontal, .vertical])
+                
+                if let pdfUrl = pdfUrl {
+                    PDFKitView(url: pdfUrl)
+                    #if os(iOS)
+                        .navigationBarTitleDisplayMode(.inline)
+                    #endif
+                } else {
+                    DetailContent(songTitle: song.title)
+                    #if os(iOS)
+                        .navigationBarTitleDisplayMode(.large)
+                    #endif
+                }
             }
+            .padding(0)
         }
+        .scrollPosition($scrollPosition)
         .navigationTitle(song.title)
         #if os(iOS)
         .navigationBarTitleDisplayMode(.large)
@@ -167,6 +168,7 @@ internal struct SongViewX: View {
         }
         .onChange(of: song.persistentModelID, initial: true) {
             settingsChangeTick += 1
+            scrollPosition = ScrollPosition(edge: .top)
             songChangedAction()
         }
         .onChange(of: song.showText, initial: false) { print("showtext changed"); settingsChangeTick += 1 }
