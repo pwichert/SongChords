@@ -43,11 +43,13 @@ internal struct SongViewX: View {
     @Environment(\.horizontalSizeClass) var horizontalSizeClass
     @Environment(\.modelContext) private var modelContext
     @Environment(Globals.self) private var globals
-    @Environment(AudioPlayer.self) private var audioPlayer
+    @Environment(AudioPlayerII.self) private var audioPlayer
     @Environment(TimerManager.self) private var timerManager
 
     @State private var showAudioPlayer: Bool = false
     @State private var showSongEditView: Bool = false
+    @State private var showRemoveAllAnchors: Bool = false
+    @State private var showHowtoAutoscroll: Bool = false
     @State private var pdfUrl: URL?
     
     @State private var showFileExport: Bool = false
@@ -63,27 +65,55 @@ internal struct SongViewX: View {
     @State private var scrollPosition = ScrollPosition(edge: .top)
     @State private var settingsChangeTick = 0
 
+    @State private var autoScrollEnabled = false
+    @State private var currentSectionID: Int?
+    
+    private let darkColor = Color(red: 0.20, green: 0.20, blue: 0.20)
+    private let lightColor = Color(red: 0.90, green: 0.90, blue: 0.90)
+
     var body: some View {
-        ScrollView(userSettings.hidechords ? .vertical : [.horizontal, .vertical], showsIndicators: false) {
-            ZStack(alignment: .topLeading) {
-                Spacer()
-                    .containerRelativeFrame([.horizontal, .vertical])
-                
-                if let pdfUrl = pdfUrl {
-                    PDFKitView(url: pdfUrl)
-                    #if os(iOS)
-                        .navigationBarTitleDisplayMode(.inline)
-                    #endif
-                } else {
-                    DetailContent(songTitle: song.title)
-                    #if os(iOS)
-                        .navigationBarTitleDisplayMode(.large)
-                    #endif
+        ScrollViewReader { proxy in
+            ScrollView(userSettings.hidechords ? .vertical : [.horizontal, .vertical], showsIndicators: false) {
+                ZStack(alignment: .topLeading) {
+                    Spacer()
+                        .containerRelativeFrame([.horizontal, .vertical])
+                    
+                    if let pdfUrl = pdfUrl {
+                        PDFKitView(url: pdfUrl)
+                        #if os(iOS)
+                            .navigationBarTitleDisplayMode(.inline)
+                        #endif
+                    } else {
+                        DetailContent(song: song, darkColor: darkColor, lightColor: lightColor, autoScroll: autoScrollEnabled)
+                        #if os(iOS)
+                            .navigationBarTitleDisplayMode(.large)
+                        #endif
+                            .onChange(of: MarkerTimer.shared.time) {
+                                let duration = SongTaskManager.shared.representationHolder.directiveManager.duration
+                                if duration > 0 && MarkerTimer.shared.time >= TimeInterval(duration) {
+                                    print("duration \(duration)")
+                                    MarkerTimer.shared.stop()
+                                } else {
+                                    scrollEvent(proxy: proxy, time: MarkerTimer.shared.time)
+                                }
+                            }
+                            .onChange(of: audioPlayer.position) {
+                                scrollEvent(proxy: proxy, time: songPosition)
+                            }
+                    }
+                }
+                .padding(0)
+            }
+            .overlay(alignment: .topTrailing) {
+                if MarkerTimer.shared.isRunning {
+                    VStack(alignment: .trailing) {
+                        TimerOverlayView(time: MarkerTimer.shared.time, darkColor: darkColor, lightColor: lightColor)
+                            .offset(x: -5, y: 5)
+                    }
                 }
             }
-            .padding(0)
+            .scrollPosition($scrollPosition)
         }
-        .scrollPosition($scrollPosition)
         .navigationTitle(song.title)
         #if os(iOS)
         .navigationBarTitleDisplayMode(.large)
@@ -98,17 +128,21 @@ internal struct SongViewX: View {
             
             ToolbarItem(placement: .bottomBar) {
                 ShareLink (
-                    item: SongTransferable(from: song, includeCodable: true), preview: SharePreview(Text(song.title), image: Image("AppIconInternal"))
+                    item: SongTransferable(from: song, includeCodable: true, autoScroll: false), preview: SharePreview(Text(song.title), image: Image("AppIconInternal"))
                 )
             }
             
             ToolbarItem(placement: .bottomBar) {
-                ShareLink(item: SongTransferable(from: song, includePDF: true), preview: SharePreview(song.title, image: Image("AppIconInternal"))) {
+                ShareLink(item: SongTransferable(from: song, includePDF: true, autoScroll: autoScrollEnabled), preview: SharePreview(song.title, image: Image("AppIconInternal"))) {
                     Label("Export PDF File", systemImage: "arrow.up.document.fill")
                 }
             }
             
             ToolbarSpacer(placement: .bottomBar)
+            
+            ToolbarItem(placement: .bottomBar) {
+                autoScrollMenu
+            }
             
             ToolbarItem(placement: .bottomBar) {
                 Button(action: {
@@ -127,11 +161,16 @@ internal struct SongViewX: View {
             ToolbarItem {
                 Button("Export Song", systemImage: "arrow.up.document", action: { showFileExport.toggle() }).help("Export Song")
             }
+            
+            ToolbarItem {
+                autoScrollMenu
+            }
+            
             ToolbarItem {
                 Button(action: {
                     withAnimation(.easeInOut(duration: 0.3)) {
                         showAudioPlayer.toggle()
-                    }}) { Label("Audio Player", systemImage: "music.note.list") }
+                    }}) { Label("Audio Player", systemImage: "music.note.list").help("Audioplayer") }
             }
             #endif
         }
@@ -139,6 +178,7 @@ internal struct SongViewX: View {
             Group {
                 if showAudioPlayer {
                     AudioPlayerView(song: song, currentLoop: $currentLoop, selectedLoop: $selectedLoop, loopActive: $loopActive, songSpeed: $songSpeed, songPosition: $songPosition, songPitch: $songPitch, songMP3Uuid: $songMP3Uuid)
+//                    AudioPlayerViewII(song: song)
                     .padding()
                     .background(.regularMaterial)
                     .cornerRadius(12)
@@ -150,6 +190,11 @@ internal struct SongViewX: View {
                 }
             }, alignment: .bottom
         )
+        .sheet(isPresented: $showHowtoAutoscroll) {
+            NavigationStack {
+                InfoAutoscrollView()
+            }
+        }
         .sheet(isPresented: $showSongEditView) {
             NavigationStack {
                 if let playlist = song.playlist {
@@ -158,7 +203,11 @@ internal struct SongViewX: View {
             }
             .interactiveDismissDisabled()
         }
-        .fileExporter(isPresented: $showFileExport, item: SongTransferable(from: song, includeCodable: true, includePDF: true), contentTypes: [], defaultFilename: Song.makeValidFilename(song.title)) { result in
+        .alert("Remove all timestamps?", isPresented: $showRemoveAllAnchors) {
+            Button("Cancel", role: .cancel) { }
+            Button("Ok", role: .destructive) { removeAllAnchors() }
+        }
+        .fileExporter(isPresented: $showFileExport, item: SongTransferable(from: song, includeCodable: true, includePDF: true, autoScroll: autoScrollEnabled), contentTypes: [], defaultFilename: Song.makeValidFilename(song.title)) { result in
             switch result {
             case .success(let url):
                 print("Gespeichert: \(url)")
@@ -188,6 +237,103 @@ internal struct SongViewX: View {
         }
     }
     
+    var autoScrollMenu: some View {
+        Menu {
+            if autoScrollEnabled {
+                HStack {
+                    Button(MarkerTimer.shared.isRunning ? "Stop timer" : "Start timer", systemImage: MarkerTimer.shared.isRunning ? "autostartstop.slash" : "autostartstop", action: {
+                        if MarkerTimer.shared.isRunning {
+                            MarkerTimer.shared.stop()
+                            currentSectionID = nil
+                        } else {
+                            audioPlayer.stop()
+                            MarkerTimer.shared.start()
+                        }
+                    })
+                }
+                Button("Autoscroll mode off", systemImage: "rectangle.stack.slash", action: { autoScrollEnabled = false; MarkerTimer.shared.stop() })
+                Divider()
+                Button("Remove all timestamps", systemImage: "x.square", action: { showRemoveAllAnchors.toggle() }).disabled(song.sectionAnchors.isEmpty)
+                
+            } else {
+                Button("Autoscroll mode on", systemImage: "rectangle.stack", action: {
+                    autoScrollEnabled = true
+                    syncAnchors()
+//                    for s in song.sectionAnchors {
+//                        print("\(s.id) \(s.time)")
+//                    }
+                }).help("Set autoscroll mode on")
+            }
+            
+            Button("How to autoscroll", systemImage: "questionmark.circle", action: { showHowtoAutoscroll.toggle() })
+        } label: {
+            Label(title: { Text("Autoscroll") },
+                  icon: { if autoScrollEnabled { Image(systemName: "rectangle.stack").symbolVariant(.fill) } else { Image(systemName: "rectangle.stack") }}
+            )
+        }
+    }
+    
+    private func scrollEvent(proxy: ScrollViewProxy, time: TimeInterval) {
+        guard autoScrollEnabled else { return }
+        
+        //print(time)
+        if let section = sectionForTime(time, anchors: song.sectionAnchors) {
+            if section.id != currentSectionID {
+                currentSectionID = section.id
+                
+                if let rowID = section.headerRowID {
+                    withAnimation(.linear(duration: 0.25)) {
+                        print("scrollTo \(section.id)")
+                        proxy.scrollTo(rowID, anchor: .topLeading)
+                    }
+                }// else { print("section hat keine headerRowID") }
+                
+                // bei letzter Section den Timer stoppen, falls die einen anchor hat
+                let last = SongTaskManager.shared.representationHolder.sections.sorted(by: { $0.key < $1.key }).last
+                if section.id == last?.key {
+                    MarkerTimer.shared.stop()
+                }
+            } //else { print("section nicht geändert") }
+        } //else { print("section nicht gefunden") }
+    }
+        
+    private func sectionForTime(_ time: TimeInterval, anchors: [SectionAnchor]) -> SectionModel? {
+        if let secId = anchors.sorted(by: { $0.time < $1.time }).last(where: { $0.time <= time })?.id {
+            return SongTaskManager.shared.representationHolder.sections[secId]
+        }
+        
+        return nil
+    }
+    
+    private func syncAnchors() {
+        print("syncAnchors")
+        guard !SongTaskManager.shared.representationHolder.rows.isEmpty else { return }
+        
+        let anchors = song.sectionAnchors
+        for anchor in anchors {
+            let section = SongTaskManager.shared.representationHolder.sections[anchor.id]
+            if section == nil {
+                print("remove anchor \(anchor.id)")
+                song.sectionAnchors.removeAll(where: { $0.id == anchor.id })
+            }
+        }
+        do {
+            try modelContext.save()
+        } catch (let error) {
+            globals.setSongChordsError(error: error)
+        }
+    }
+
+    private func removeAllAnchors() {
+        song.sectionAnchors.removeAll()
+        
+        do {
+            try modelContext.save()
+        } catch (let error) {
+            globals.setSongChordsError(error: error)
+        }
+    }
+    
     private func updateSongRepresentation() {
         Task {
             await SongTaskManager.shared.processSongInBackground(srcText: song.srcText, transpose: song.transpose, showHeader: song.showHeader, showText: song.showText, userSettings: userSettings)
@@ -196,6 +342,9 @@ internal struct SongViewX: View {
     
     private func songChangedAction() {
         print("songChangedAction")
+        
+        MarkerTimer.shared.stop()
+        currentSectionID = nil
         
         // bei Songwechsel auf Livedarstellung schalten
         if pdfUrl != nil {
@@ -209,31 +358,33 @@ internal struct SongViewX: View {
     private func initAudio() {
         Task { await timerManager.stopTimer() }
         
-        if audioPlayer.someIsLoaded { audioPlayer.stopAll() }
+        audioPlayer.stop()
 
         songPitch = 0
 
         if song.musicItemId.starts(with: "local@") {
-            audioPlayer.isMP3Player = true
+//            audioPlayer.isMP3Player = true
             do {
                 let (uuid, pitch) = try song.getMP3Info()
-                songPitch = pitch / 10.0
+                songPitch = pitch// / 10.0
+                audioPlayer.setPitch(pitch: Double(songPitch))
                 songMP3Uuid = uuid
             } catch (let error) {
                 print(error.localizedDescription)
             }
-        } else {
-            audioPlayer.isMP3Player = false
         }
+//        else {
+//            audioPlayer.isMP3Engine = false
+//        }
 
-        audioPlayer.songSpeed = Float(songSpeed)
+
         loopActive = false
         currentLoop = PlayerLoop(start: 0, stop: 0, title: "")
         selectedLoop = nil
     }
     
     private func showPdf() async {
-        let delegate = await PrintSongDelegate(songID: song.persistentModelID, modelContainer: modelContext.container)
+        let delegate = await PrintSongDelegate(songID: song.persistentModelID, modelContainer: modelContext.container, autoScroll: autoScrollEnabled)
         if let delegate = delegate {
             let defaultPaper = MediaBoxes.getBox(name: userSettings.mediabox)
             pdfUrl = delegate.createPDF(paperSize: defaultPaper)
@@ -242,10 +393,14 @@ internal struct SongViewX: View {
 }
 
 struct DetailContent: View {
-    let songTitle: String
-        
-    private let darkColor = Color(red: 0.20, green: 0.20, blue: 0.20)
-    private let lightColor = Color(red: 0.90, green: 0.90, blue: 0.90)
+    let song: Song
+    let darkColor: Color
+    let lightColor: Color
+    let autoScroll: Bool
+    
+    @Environment(\.modelContext) private var modelContext
+    @Environment(Globals.self) private var globals
+    @Environment(AudioPlayer.self) private var audioPlayer
 
     var body: some View {
 //        let _ = Self._printChanges()
@@ -255,14 +410,15 @@ struct DetailContent: View {
         
         VStack(alignment: .leading, spacing: 0) {
             #if os(macOS)
-            Text(songTitle).font(.title).fontWeight(.bold).padding(.bottom, 10)
+            Text(song.title).font(.title).fontWeight(.bold).padding(.bottom, 10)
             #endif
 
             // sinnlose rows (wie .sectionEnded) werden in ViewFilter entfernt
             // PDF-Events (.newpage, .columnbreak) werden hier entfernt
             
             ForEach(rows.filter({ return $0.chunkContent != .newpage && $0.chunkContent != .columnbreak })) { rowContent in
-                RowView(darkColor: darkColor, lightColor: lightColor, rowContent: rowContent, rowEvents: [], forPrinting: false)
+                RowView(song: song, modelContext: modelContext, globals: globals, audioPlayer: audioPlayer,
+                        darkColor: darkColor, lightColor: lightColor, rowContent: rowContent, rowEvents: [], forPrinting: false, autoScroll: autoScroll)
             }
         }
         .padding()
@@ -271,11 +427,16 @@ struct DetailContent: View {
 
 struct RowView: View, Identifiable {
     let id: UUID = UUID()
+    let song: Song
+    let modelContext: ModelContext?
+    let globals: Globals?
+    let audioPlayer: AudioPlayer?
     let darkColor: Color
     let lightColor: Color
     let rowContent: RowContent
     let rowEvents: [() -> Void]
     let forPrinting: Bool
+    let autoScroll: Bool
     
     @Environment(UserSettings.self) private var userSettings
     
@@ -287,8 +448,8 @@ struct RowView: View, Identifiable {
 //            let _ = print(model.content.toString())
             
             switch rowContent.chunkContent {
-            case .sectionStarted(let str):
-                SectionHeaderView(header: str, lightColor: lightColor, darkColor: darkColor).font(Font(forPrinting ? userSettings.headerPDFUIFont : userSettings.headerUIFont))
+            case .sectionStarted(let str, let sectionId):
+                SectionHeaderView(song: song, modelContext: modelContext, globals: globals, audioPlayer: audioPlayer, autoScroll: autoScroll, sectionId: sectionId, header: str, lightColor: lightColor, darkColor: darkColor).font(Font(forPrinting ? userSettings.headerPDFUIFont : userSettings.headerUIFont))
                 
             case .chordline(let line):
                 ChordsLineView(line: line, lightColor: lightColor, darkColor: darkColor).font(Font(forPrinting ? userSettings.chordPDFUIFont : userSettings.chordUIFont))
@@ -327,7 +488,8 @@ struct RowView: View, Identifiable {
     }
 }
 
-struct TextsLineView: View {
+struct TextsLineView: View, Identifiable {
+    let id: UUID = UUID()
     let line: [TextElement]
     
     var body: some View {
@@ -350,7 +512,8 @@ struct TextsLineView: View {
     }
 }
 
-struct ChordsLineView: View {
+struct ChordsLineView: View, Identifiable {
+    let id: UUID = UUID()
     let line: [TextElement]
     let lightColor: Color
     let darkColor: Color
@@ -383,26 +546,88 @@ struct ChordsLineView: View {
     }
 }
 
-struct SectionHeaderView: View {
+struct SectionHeaderView: View, Identifiable {
+    let id: UUID = UUID()
+    let song: Song
+    let modelContext: ModelContext?
+    let globals: Globals?
+    let audioPlayer: AudioPlayer?
+    let autoScroll: Bool
+    let sectionId: Int
     let header: String
     let lightColor: Color
     let darkColor: Color
     
     @Environment(\.colorScheme) var colorScheme
-    
+
     var body: some View {
         HStack(alignment: .center, spacing: 0) {
-            Text(header)
+            Text(header + ((autoScroll && sectionInAnchors()) ? (" [" + sectionTime()) + "]" : ""))
                 .padding(.leading, 3)
             Spacer()
         }
         .padding(1)
         .background(colorScheme == .dark ? darkColor : lightColor)
         .cornerRadius(5)
+        .contextMenu {
+            if let modelContext, let globals, autoScroll {
+                Button("Set section timestamp") {
+                    do {
+                        var tm: TimeInterval?
+                        if MarkerTimer.shared.isRunning {
+                            tm = MarkerTimer.shared.time
+                        }
+                        else if let audioPlayer {
+                            tm = audioPlayer.songPosition
+                        }
+                        if let tm {
+                            saveAnchor(songPosition: tm)
+                            try modelContext.save()
+                        }
+                    } catch (let error) {
+                        globals.setSongChordsError(error: error)
+                    }
+                }
+                Divider()
+                Button("Remove section timestamp") {
+                    do {
+                        removeAnchor()
+                        try modelContext.save()
+                    } catch (let error) {
+                        globals.setSongChordsError(error: error)
+                    }
+                }.disabled(!sectionInAnchors())
+            }
+        }
+    }
+    
+    func sectionTime() -> String {
+        if let anchor = song.sectionAnchors.first(where: { $0.id == sectionId } ) {
+            return GlobalFunctions.formatTimeInterval(anchor.time)
+        }
+        return ""
+    }
+    
+    func sectionInAnchors() -> Bool {
+        song.sectionAnchors.first(where: { $0.id == sectionId } ) != nil
+    }
+    
+    func saveAnchor(songPosition: Double) {
+        removeAnchor()
+        print("hinzugefügt section \(sectionId) an position \(Int(songPosition))")
+        song.sectionAnchors.append(SectionAnchor(id: sectionId, time: songPosition))
+    }
+
+    func removeAnchor() {
+        if sectionInAnchors() {
+            print("entferne section \(sectionId)")
+            song.sectionAnchors.removeAll(where: { $0.id == sectionId })
+        }
     }
 }
 
-struct ChordsPlainView: View {
+struct ChordsPlainView: View, Identifiable {
+    let id: UUID = UUID()
     let line: [TextElement]
     let lightColor: Color
     let darkColor: Color
@@ -425,7 +650,8 @@ struct ChordsPlainView: View {
     }
 }
 
-struct PopoverButtonView: View {
+struct PopoverButtonView: View, Identifiable {
+    let id: UUID = UUID()
     let chordTxt: TextElement
     
     @State private var showChordShape: Bool = false
@@ -461,6 +687,33 @@ struct PopoverButtonView: View {
                 }
             }
             #endif
+        }
+    }
+}
+
+struct TimerOverlayView: View {
+    let time: TimeInterval
+    let darkColor: Color
+    let lightColor: Color
+
+    @Environment(\.colorScheme) var colorScheme
+
+    var body: some View {
+        Text(String(GlobalFunctions.formatTimeInterval(time)))
+            .font(.headline)
+            .monospacedDigit()
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+            .background(colorScheme == .dark ? darkColor : lightColor)
+            .clipShape(RoundedRectangle(cornerRadius: 6))
+            .shadow(radius: 3)
+    }
+}
+
+struct InfoAutoscrollView: View {
+    var body: some View {
+        InfoContentView("Autoscroll") {
+            Text("How To Autoscroll")
         }
     }
 }

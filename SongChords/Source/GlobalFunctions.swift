@@ -10,8 +10,6 @@ import SwiftData
 
 nonisolated
 public class GlobalFunctions {
-    @MainActor public static var lastid: PersistentIdentifier?
-    
     public static func formatTimeInterval(_ timeInterval: TimeInterval) -> String {
         let formatter = DateComponentsFormatter()
         formatter.allowedUnits = [.minute, .second]
@@ -19,7 +17,7 @@ public class GlobalFunctions {
         formatter.zeroFormattingBehavior = [.pad]
         return formatter.string(from: round(timeInterval)) ?? "00:00"
     }
-    
+
     public static func mp3Path() throws -> URL {
         let fileManager = FileManager.default
         let dest = try fileManager.url(for: .documentDirectory, in: .userDomainMask, appropriateFor: nil, create: true)

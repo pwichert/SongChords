@@ -16,7 +16,7 @@ public class ChordProReverseParser {
         for chunk in chunks {
             switch chunk.content {
                 
-            case .sectionStarted(let section):
+            case .sectionStarted(let section, _):
                 res.append("[" + section + "]\n")
                 
             case .splittedline(chords: let chords, texts: let texts, plaintext: let plaintext):
@@ -55,7 +55,7 @@ public class ChordProReverseParser {
                 let e = line.index(before: line.endIndex)
                 
                 sectionName = String(line[s..<e])
-                chunks.append(SongRenderChunk(content: .sectionStarted(sectionName)))
+                chunks.append(SongRenderChunk(content: .sectionStarted(sectionName, 0)))
                 continue
             }
             

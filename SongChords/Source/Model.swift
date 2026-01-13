@@ -117,6 +117,16 @@ final class PlayList: Identifiable {
     }
 }
 
+class SectionAnchor: Identifiable, Codable {
+    let id: Int          // sectionID
+    let time: TimeInterval
+    
+    init(id: Int, time: TimeInterval) {
+        self.id = id
+        self.time = time
+    }
+}
+
 @Model
 final public class Song: Identifiable {
     var seq: Int = 0
@@ -127,17 +137,17 @@ final public class Song: Identifiable {
     var showText: Bool = true
     var showHeader: Bool = true
     var transpose: Int = 0
-    var duration: Double = 200
+    var duration: Double = 0      // unbenutzt
     var playerLoops: [PlayerLoop] = []
     var backgroundColor: Int = 0
+    var sectionAnchors: [SectionAnchor] = []
 
     var playlist: PlayList?
     
-//    @Transient let representationHolder = RepresentationHolder()
     @Transient static let invalidTitleCharacters = CharacterSet(charactersIn: "\t\\\0").union(.illegalCharacters).union(.controlCharacters).union(.newlines)
     @Transient static let invalidFilenameCharacters = CharacterSet(charactersIn: "\t\\\0/").union(.illegalCharacters).union(.symbols).union(.controlCharacters).union(.newlines)
-        
-    init(title: String, srcText: String, transpose: Int = 0, showChords: Bool = true, showText: Bool = true, showHeader: Bool = true, duration: Double = 200, musicItemId: String = "", playerLoops: [PlayerLoop] = [], backgroundColor: Int = 0, modelContext: ModelContext) throws {
+    
+    init(title: String, srcText: String, transpose: Int = 0, showChords: Bool = true, showText: Bool = true, showHeader: Bool = true, duration: Double = 0, musicItemId: String = "", playerLoops: [PlayerLoop] = [], backgroundColor: Int = 0, sectionAnchors: [SectionAnchor] = [], modelContext: ModelContext) throws {
         if !Song.isValidTitle(title) {
             throw SongChordsError.invalidSongtitle
         }
@@ -151,6 +161,7 @@ final public class Song: Identifiable {
         self.duration = duration
         self.playerLoops = playerLoops
         self.backgroundColor = backgroundColor
+        self.sectionAnchors = sectionAnchors
 
         // Keine mehrfachen Verweise auf MP3 zulassen:
         // MP3 nicht kopieren, da sonst mehrere Songs auf das gleiche MP3 zeigen.
@@ -160,11 +171,11 @@ final public class Song: Identifiable {
     }
 
     convenience init(copying other: Song, modelContext: ModelContext) throws {
-        try self.init(title: other.title, srcText: other.srcText, transpose: other.transpose, showChords: other.showChords, showText: other.showText, showHeader: other.showHeader, duration: other.duration, musicItemId: other.musicItemId, playerLoops: other.playerLoops, backgroundColor: other.backgroundColor, modelContext: modelContext)
+        try self.init(title: other.title, srcText: other.srcText, transpose: other.transpose, showChords: other.showChords, showText: other.showText, showHeader: other.showHeader, duration: other.duration, musicItemId: other.musicItemId, playerLoops: other.playerLoops, backgroundColor: other.backgroundColor, sectionAnchors: other.sectionAnchors, modelContext: modelContext)
     }
     
     convenience init(from snapshot: SongTransferable, modelContext: ModelContext) throws {
-        try self.init(title: snapshot.title, srcText: snapshot.srcText, transpose: snapshot.transpose, showChords: snapshot.showChords, showText: snapshot.showText, showHeader: snapshot.showHeader, duration: snapshot.duration, musicItemId: snapshot.musicItemId, playerLoops: snapshot.playerLoops, backgroundColor: snapshot.backgroundColor, modelContext: modelContext)
+        try self.init(title: snapshot.title, srcText: snapshot.srcText, transpose: snapshot.transpose, showChords: snapshot.showChords, showText: snapshot.showText, showHeader: snapshot.showHeader, duration: snapshot.duration, musicItemId: snapshot.musicItemId, playerLoops: snapshot.playerLoops, backgroundColor: snapshot.backgroundColor, sectionAnchors: snapshot.sectionAnchors, modelContext: modelContext)
     }
 
     func toPlaylist(playlist: PlayList, after: Song? = nil) {
@@ -187,14 +198,14 @@ final public class Song: Identifiable {
         let tokenStream = try await lexer.tokensAsStream()
         
         let parser = ChordProParser(userSettings: UserSettings().makeSendable(), songTranspose: 0, forPrinting: false)
-        let chunkStream = await parser.chunksAsStream(tokens: tokenStream)
+        let parserResult = await parser.chunksAsStream(tokens: tokenStream)
         
         // einmal durchlaufen lassen
-        for try await _ in chunkStream {
+        for try await _ in parserResult.stream {
             try Task.checkCancellation()
         }
 
-        let mgr = parser.getDirectiveManager()
+        let mgr = try await parserResult.directiveManager.value
         if let titleDirective = mgr.getDirective(DirectiveType.title.rawValue) {
             return titleDirective
         }
@@ -229,14 +240,6 @@ final public class Song: Identifiable {
         return id.SCpersistentModel(from: context)
     }
 
-//    @MainActor
-//    static func fetchSongProcessing(with id: PersistentIdentifier, in context: ModelContext, userSettings: UserSettings, forPrinting: Bool) async -> Song? {
-//        guard let song = Song.fetchSong(with: id, in: context) else { return nil }
-//        await SongTaskManagerII.shared.processSongInBackground(representationHolder: song.representationHolder, srcText: song.srcText, transpose: song.transpose, showHeader: song.showHeader, showText: song.showText, userSettings: userSettings)
-//        
-//        return song
-//    }
-
     static func isValidTitle(_ title: String) -> Bool {
         // Überprüfen, ob der title leer ist oder ungültige Zeichen enthält
         if title.trimmingCharacters(in: .whitespaces).isEmpty || title.rangeOfCharacter(from: invalidTitleCharacters) != nil || title.count > 300 {
@@ -268,7 +271,7 @@ final public class Song: Identifiable {
         return try modelContext.fetchCount(desc)
     }
     
-    func getMP3Info() throws -> (url: String, pitch: Float) {        
+    func getMP3Info() throws -> (url: String, pitch: Float) {
         let substr = musicItemId.split(separator: "@", omittingEmptySubsequences: false)
         if substr.count != 3 || substr[0] != "local" || substr[1].isEmpty || substr[2].isEmpty {
             throw SongChordsError.invalidMP3reference
@@ -278,13 +281,13 @@ final public class Song: Identifiable {
         return (String(substr[1]), pitch)
     }
     
-    func getMP3FileInfo() -> String? {
-        do {
-            let (url, _) = try getMP3Info()
-            return url
-        } catch {}
-       
-        return nil
+    func getMP3FileInfo() throws -> String {
+        let (url, _) = try getMP3Info()
+        return url
+    }
+    
+    func isLocalMP3() -> Bool {
+        return musicItemId.starts(with: "local@")
     }
     
     func setMP3Info(uuid: String, pitch: Float) {

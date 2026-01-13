@@ -103,7 +103,7 @@ struct SongEditView: View {
                             }
                             if modelContext.hasChanges { try modelContext.save() }
                         } else {
-                            let song = try Song(title: title, srcText: srcText, transpose: Int(transpose), showChords: true, showText: showText, showHeader: true, duration: 200, musicItemId: "", playerLoops: [], backgroundColor: 0, modelContext: modelContext)
+                            let song = try Song(title: title, srcText: srcText, transpose: Int(transpose), showChords: true, showText: showText, showHeader: true, duration: 0, musicItemId: "", playerLoops: [], backgroundColor: 0, modelContext: modelContext)
                             modelContext.insert(song)
                             song.toPlaylist(playlist: playlist)
                             

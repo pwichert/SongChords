@@ -49,25 +49,28 @@ final class SongTaskManager {
             print("processSongInBackground:", Thread.currentThread)
             do {
                 // Streaming-Pipeline:
-                // Lexer [Token] -> Parser [SongRenderChunk] -> Filter [SongRenderChunk] -> RepresentationHolder.rows [RenderRowModel] -> DetailContent [RowView]
+                // Lexer [Token] -> Parser [SongRenderChunk] -> Filter [SongRenderChunk] -> RepresentationHolder.rows [RowContent] -> DetailContent [RowView]
+                //                                                                       -> RepresentationHolder.rowsForPrinting [RowContent] -> PrintSongDelegate [RowView]
                 
                 let lexer = ChordProLexer(input: srcText)
                 let tokenStream = try await lexer.tokensAsStream()
                 
                 let parser = await ChordProParser(userSettings: userSettings.makeSendable(), songTranspose: transpose, forPrinting: forPrinting)
-                let chunkStream = await parser.chunksAsStream(tokens: tokenStream)
+                let parserResult = await parser.chunksAsStream(tokens: tokenStream)     // liefert neben stream auch noch Taskresult mit dem DirectiveManagerSendable
                 
                 let chunkFilter = ViewFilter(userSettings: userSettings, showHeader: showHeader, showText: showText)
-                let filteredStream = await chunkFilter.chunksAsStream(chunks: chunkStream)
+                let filteredStream = await chunkFilter.chunksAsStream(chunks: parserResult.stream)
                 
                 await self.representationHolder.reset()
                 for try await chunk in filteredStream {
                     try Task.checkCancellation()
                     await self.representationHolder.append(chunk)
                 }
-                await self.representationHolder.isFinished(forPrinting: forPrinting)
+                await self.representationHolder.isFinished()
                 
-                await self.representationHolder.setDirectiveManager(parser.getDirectiveManager())
+                let directiveManager = try await parserResult.directiveManager.value
+                await self.representationHolder.setDirectiveManager(directiveManager)
+
             } catch is CancellationError {
                 print("processSongInBackground cancelled")
             } catch {
@@ -89,10 +92,13 @@ class RepresentationHolder {
     private(set) var rows: [RowContent] = []
 
     @ObservationIgnored
-    private(set) var rowsForPrinting: [RowContent] = []
+    private(set) var sections: [Int:SectionModel] = [:]
 
     @ObservationIgnored
-    private(set) var silentRows: [RowContent] = []
+    private var silentRows: [RowContent] = []
+    
+    @ObservationIgnored
+    private var currentSectionId: Int?
     
     func append(_ chunks: [SongRenderChunk]) {
         // parser-token in entsprechenden event für RowContent umsetzen
@@ -103,21 +109,42 @@ class RepresentationHolder {
                 default:  nil
             }
             
-            silentRows.append(RowContent(chunkContent: chunk.content, rowEvent: rowEvent))
+            if let secId = chunk.sectionId {
+                currentSectionId = secId
+                if sections[secId] == nil {
+                    sections[secId] = SectionModel(id: secId)
+                }
+            }
+            
+            // row für DetailView hinzufügen
+            let row = RowContent(sectionId: currentSectionId, chunkContent: chunk.content, rowEvent: rowEvent)
+            silentRows.append(row)
+
+            // Section suchen und row der Section-Struktur hinzufügen
+            if let currentSectionId, let section = sections[currentSectionId] {
+                section.rows.append(row)
+                
+                // Header-UUID der Section-Struktur hinzufügen
+                if section.headerRowID == nil {
+                    section.headerRowID = row.id
+                }
+            }
         }
     }
     
     func reset() {
         silentRows = []
+        currentSectionId = nil
+        sections = [:]
     }
     
     func resetRowContent() {
         rows = []
     }
     
-    func isFinished (forPrinting: Bool = false) {
+    func isFinished() {
         if !silentRows.isEmpty {
-            if forPrinting { rowsForPrinting = silentRows } else { rows = silentRows }
+            rows = silentRows
             silentRows = []
         }
     }
@@ -130,11 +157,23 @@ enum RowEvent {
 
 final class RowContent: Identifiable {
     let id: UUID = UUID()
+    let sectionId: Int?
     let chunkContent: SongRenderChunk.chunkContent
     let rowEvent: RowEvent?
     
-    init(chunkContent: SongRenderChunk.chunkContent, rowEvent: RowEvent? = nil) {
+    init(sectionId: Int?, chunkContent: SongRenderChunk.chunkContent, rowEvent: RowEvent? = nil) {
         self.chunkContent = chunkContent
         self.rowEvent = rowEvent
+        self.sectionId = sectionId
+    }
+}
+
+final class SectionModel: Identifiable {
+    let id: Int          // die Parser-Section-ID
+    var headerRowID: UUID?  // UUID der Header-Zeile
+    var rows: [RowContent] = [] // zur Section zugehörige Rows
+
+    init(id: Int) {
+        self.id = id
     }
 }

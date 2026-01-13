@@ -18,10 +18,10 @@ struct SongChordsTests {
             let tokenStream = try await lexer.tokensAsStream()
             
             let parser = ChordProParser(userSettings: UserSettings().makeSendable(), songTranspose: 0, forPrinting: false)
-            let chunkStream = await parser.chunksAsStream(tokens: tokenStream)
+            let parserResult = await parser.chunksAsStream(tokens: tokenStream)
                      
             let chunkFilter = ViewFilter(userSettings: UserSettings(), showHeader: true, showText: true)
-            let filteredStream = await chunkFilter.chunksAsStream(chunks: chunkStream)
+            let filteredStream = await chunkFilter.chunksAsStream(chunks: parserResult.stream)
 
             for try await chunk in filteredStream {
                 try Task.checkCancellation()

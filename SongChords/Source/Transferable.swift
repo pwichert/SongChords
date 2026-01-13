@@ -45,7 +45,7 @@ struct PlayListTransferable: Transferable, Codable, Identifiable {
         self.persistentId = playlist.id
         self.seq = playlist.seq
         self.title = playlist.title
-        self.songs = (playlist.songs ?? []).compactMap { SongTransferable(from: $0, includeCodable: includeCodable, includeData: includeData, includePDF: includePDF) }
+        self.songs = (playlist.songs ?? []).compactMap { SongTransferable(from: $0, includeCodable: includeCodable, includeData: includeData, includePDF: includePDF, autoScroll: false) }
     }
     
     public init(from decoder: Decoder) throws {
@@ -139,12 +139,15 @@ struct SongTransferable: Transferable, Codable, Identifiable {
     let musicItemId: String
     let playerLoops: [PlayerLoop]
     let backgroundColor: Int
+    let sectionAnchors: [SectionAnchor]
 
     let includeCodable: Bool
     let includeData: Bool
     let includePDF: Bool
 
-    init(from song: Song, includeCodable: Bool = false, includeData: Bool = false, includePDF: Bool = false) {
+    let autoScroll: Bool
+    
+    init(from song: Song, includeCodable: Bool = false, includeData: Bool = false, includePDF: Bool = false, autoScroll: Bool) {
         self.persistentId = song.id
         self.seq = song.seq
         self.title = song.title
@@ -157,10 +160,13 @@ struct SongTransferable: Transferable, Codable, Identifiable {
         self.musicItemId = song.musicItemId
         self.playerLoops = song.playerLoops
         self.backgroundColor = song.backgroundColor
+        self.sectionAnchors = song.sectionAnchors
         
         self.includePDF = includePDF
         self.includeData = includeData
         self.includeCodable = includeCodable
+        
+        self.autoScroll = autoScroll
     }
     
     enum CodingKeys: CodingKey {
@@ -176,12 +182,14 @@ struct SongTransferable: Transferable, Codable, Identifiable {
         case musicitemid
         case playerloops
         case backgroundcolor
+        case sectionanchors
     }
     
     public init(from decoder: Decoder) throws {
         self.includeCodable = false
         self.includeData = false
         self.includePDF = false
+        self.autoScroll = false
 
         let container = try decoder.container(keyedBy: CodingKeys.self)
         persistentId = try container.decode(PersistentIdentifier.self, forKey: .persistentid)
@@ -202,6 +210,7 @@ struct SongTransferable: Transferable, Codable, Identifiable {
         if container.contains(.playerloops) { playerLoops = try container.decode([PlayerLoop].self, forKey: .playerloops) } else { playerLoops = [] }
         if container.contains(.showtext) { showText = try container.decode(Bool.self, forKey: .showtext) } else { showText = false }
         if container.contains(.backgroundcolor) { backgroundColor = try container.decode(Int.self, forKey: .backgroundcolor) } else { backgroundColor = 0 }
+        if container.contains(.sectionanchors) { sectionAnchors = try container.decode([SectionAnchor].self, forKey: .sectionanchors) } else { sectionAnchors = [] }
     }
     
     public func encode(to encoder: Encoder) throws {
@@ -218,6 +227,7 @@ struct SongTransferable: Transferable, Codable, Identifiable {
         try container.encode(musicItemId, forKey: .musicitemid)
         try container.encode(playerLoops, forKey: .playerloops)
         try container.encode(backgroundColor, forKey: .backgroundcolor)
+        try container.encode(sectionAnchors, forKey: .sectionanchors)
     }
 
     func toUrl(url: URL) throws {
@@ -324,7 +334,7 @@ struct PDFHelper {
             let defaultPaper = MediaBoxes.getBox(name: userSettings.mediabox)
             let modelContainer: ModelContainer? = GlobalModelContainer.shared
             guard let modelContainer else { throw NSError(domain: "PDFCreationError", code: 5, userInfo: ["reason": "Missing ModelContainer for PDF export"]) }
-            let delegate = await PrintSongDelegate(songID: id, modelContainer: modelContainer)
+            let delegate = await PrintSongDelegate(songID: id, modelContainer: modelContainer, autoScroll: false)
             guard let delegate = delegate, let pdfUrl = delegate.createPDF(paperSize: defaultPaper) else {
                 throw NSError(domain: "PDFCreationError", code: 4, userInfo: ["reason": "Failed to create PDF"])
             }

@@ -30,6 +30,7 @@ struct SongChordsApp: App {
     @State private var userSettings: UserSettings = UserSettings()
     @State private var globals: Globals = Globals()
     @State private var audioPlayer = AudioPlayer()
+    let audioPlayerII = AudioPlayerII()
     @State private var timerManager = TimerManager()
     
     var body: some Scene {
@@ -39,6 +40,7 @@ struct SongChordsApp: App {
                 .environment(userSettings)
                 .environment(globals)
                 .environment(audioPlayer)
+                .environment(audioPlayerII)
                 .environment(timerManager)
                 .task(id: scenePhase) {
                     await scenePhaseChanged(scenePhase)
@@ -51,6 +53,7 @@ struct SongChordsApp: App {
                 .environment(userSettings)
                 .environment(globals)
                 .environment(audioPlayer)
+                .environment(audioPlayerII)
                 .environment(timerManager)
                 .task(id: scenePhase) {
                     await scenePhaseChanged(scenePhase)
@@ -67,6 +70,7 @@ struct SongChordsApp: App {
             if scenePhase == .background { print("-> background")
                 if audioPlayer.someIsLoaded { audioPlayer.stopAll() }
                 await timerManager.stopTimer()
+                MarkerTimer.shared.stop()
             }
         }
     }

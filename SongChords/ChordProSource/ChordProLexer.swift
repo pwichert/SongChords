@@ -36,7 +36,7 @@ private enum LexerMode: Equatable {
 }
 
 nonisolated
-public class ChordProLexer: @unchecked Sendable {
+public class ChordProLexer {
     private let input: String
     private var position: String.Index
         
@@ -59,11 +59,15 @@ public class ChordProLexer: @unchecked Sendable {
 //                print("token stream terminated:", termination)
             }
             
+            let input = self.input
+
             Task {
 //                print("tokensAsStream:", Thread.currentThread)
 
+                let lexer = ChordProLexer(input: input)
+    
                 do {
-                    while let token = nextToken() {
+                    while let token = lexer.nextToken() {
                         try Task.checkCancellation()
                         continuation.yield(token)
                     }

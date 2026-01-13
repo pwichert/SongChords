@@ -16,9 +16,11 @@ protocol PrintDelegateBase {
 class PrintSongDelegate: NSObject, PrintDelegateBase {
     let userSettings = UserSettings()
     let song: Song
+    let autoScroll: Bool
     
-    init?(songID: PersistentIdentifier, modelContainer: ModelContainer) async {
+    init?(songID: PersistentIdentifier, modelContainer: ModelContainer, autoScroll: Bool) async {
         let modelContext = ModelContext(modelContainer)
+        self.autoScroll = autoScroll
         
         // bei fetchSong() nicht die Task-Variante, weil asynchron evtl. zu spät fertig ist und songRepresentation überschreibt
         guard let song = Song.fetchSong(with: songID, in: modelContext) else { return nil }
@@ -72,14 +74,14 @@ class PrintSongDelegate: NSObject, PrintDelegateBase {
             // Funktionssammler
             var rowEvents: [() -> Void] = []
             
-            for rowContent in SongTaskManager.shared.representationHolder.rowsForPrinting {
+            for rowContent in SongTaskManager.shared.representationHolder.rows {
                 // function je nach row.rowEvent sammeln und bei nächster zeile ablegen
                 // die Rows mit newpage/columnbreak erscheinen nicht mehr, wie in DetailView()
                 switch rowContent.rowEvent {
                 case .newpage: rowEvents.append(gen.setNewPage)
                 case .columnbreak: rowEvents.append(gen.setColumnBreak)
                 case .none:
-                    gen.draw(view: RowView(darkColor: darkColor, lightColor: lightColor, rowContent: rowContent, rowEvents: rowEvents, forPrinting: true))
+                    gen.draw(view: RowView(song: song, modelContext: nil, globals: nil, audioPlayer: nil, darkColor: darkColor, lightColor: lightColor, rowContent: rowContent, rowEvents: rowEvents, forPrinting: true, autoScroll: autoScroll))
                     rowEvents = []
                 }
             }

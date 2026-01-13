@@ -8,7 +8,6 @@
 import SwiftUI
 
 @Observable
-@MainActor
 class TimerManager {
     private var loopTimer: Timer? = nil
     private var isRunning: Bool = false

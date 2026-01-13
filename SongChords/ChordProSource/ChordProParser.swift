@@ -75,10 +75,15 @@ public struct TextElement: Sendable, Identifiable, Equatable {
 nonisolated
 public struct SongRenderChunk: Sendable, Identifiable {
     public let id: UUID = UUID()
+    public let sectionId: Int?
     public let content: chunkContent
     
     init(content: chunkContent) {
         self.content = content
+        
+        if case .sectionStarted( _, let sectionId) = content {
+            self.sectionId = sectionId
+        } else { self.sectionId = nil }
     }
     
     public func toChordProString() -> String {
@@ -86,7 +91,7 @@ public struct SongRenderChunk: Sendable, Identifiable {
         
         switch content {
             
-        case .sectionStarted(let section):
+        case .sectionStarted(let section, _):
             res += "[" + section + "]"
                         
         case .chordline(let chords):
@@ -110,7 +115,7 @@ public struct SongRenderChunk: Sendable, Identifiable {
     }
     
     public enum chunkContent: Sendable, Equatable {
-        case sectionStarted(String)
+        case sectionStarted(String, Int)
         case sectionEnded
         case chordline([TextElement])
         case textline([TextElement], plaintext: String)
@@ -123,8 +128,8 @@ public struct SongRenderChunk: Sendable, Identifiable {
         
         func toString() -> String {
             switch self {
-            case .sectionStarted(let str):
-                return "sectionStarted \(str)"
+            case .sectionStarted(let str, let sectionId):
+                return "sectionStarted \(str) \(sectionId)"
                 
             case .sectionEnded:
                 return "sectionEnded"
@@ -193,9 +198,9 @@ public class ViewFilter {
                         for c in chunk {
                             switch c.content {
                                 
-                            case .sectionStarted(let section):
+                            case .sectionStarted(let section, let sectionId):
                                 if showHeader && section.trimmingCharacters(in: .whitespaces).count > 0 {
-                                    res.append(SongRenderChunk(content: .sectionStarted(section)))
+                                    res.append(SongRenderChunk(content: .sectionStarted(section, sectionId)))
                                 }
                                 
                             case .chordline(let chords):
@@ -257,11 +262,17 @@ internal class ParserHelper {
     }
 }
 
+public struct ParserResult {
+    public let stream: AsyncThrowingStream<[SongRenderChunk], Error>
+    let directiveManager: Task<DirectiveManagerSendable, Error>
+}
+
 nonisolated
-public class ChordProParser: @unchecked Sendable {
+public class ChordProParser {
     private let directiveManager = DirectiveManager()
     private let userSettings: UserSettingsSendable
     private let songTranspose: Int
+    private let forPrinting: Bool
     private let showChords: Bool
     private let textFollowsChords: Bool
     
@@ -278,12 +289,14 @@ public class ChordProParser: @unchecked Sendable {
     private var nextChordPosition: Double = 0
     private var nextTextPosition: Double = 0
     private var minNextChordPosition: Double = 0
+    private var currentSection: Int = 0
 
     private let chordPadding: Double = 3
         
     public init(userSettings: UserSettingsSendable, songTranspose: Int, forPrinting: Bool = false) {
         self.userSettings = userSettings
         self.songTranspose = songTranspose
+        self.forPrinting = forPrinting
         self.rootSystem = userSettings.isGermanNotation ? EnglishGermanRoot() : EnglishDutchRoot()
         self.txtf = forPrinting ? userSettings.txtPDFUIFont : userSettings.txtUIFont
         self.chordf = forPrinting ? userSettings.chordPDFUIFont : userSettings.chordUIFont
@@ -297,52 +310,50 @@ public class ChordProParser: @unchecked Sendable {
     }
     
     @concurrent
-    public func chunksAsStream(tokens: AsyncThrowingStream<Token, Error>) async -> AsyncThrowingStream<[SongRenderChunk], Error> {
+    public func chunksAsStream(tokens: AsyncThrowingStream<Token, Error>) async -> ParserResult {
 
-        AsyncThrowingStream { continuation in
-            continuation.onTermination = { termination in
-//                print("chunk stream terminated:", termination)
-            }
+        let (stream, continuation) = AsyncThrowingStream<[SongRenderChunk], Error>.makeStream()
 
-            Task {
-//                print("chunksAsStream:", Thread.currentThread)
-//                var buffer: [SongRenderChunk] = []
+        let userSettings = userSettings
+        let songTranspose = songTranspose
+        let forPrinting = forPrinting
 
-                do {
-                    for try await token in tokens {
-                        try Task.checkCancellation()
+        let resultTask = Task {
+            // print("chunksAsStream:", Thread.currentThread)
+            
+            let parser = ChordProParser(userSettings: userSettings, songTranspose: songTranspose, forPrinting: forPrinting)
 
-                        let chunk = try consume(token)
-                        if chunk.isEmpty { continue }
-//                        buffer.append(contentsOf: chunk)
-                        
-                        // 🔥 Batch-Größe (tunen!)
-//                        if buffer.count >= 100 {
-                            continuation.yield(chunk)
-//                            buffer.removeAll()
-//                        }
-                    }
+            do {
+                for try await token in tokens {
+                    try Task.checkCancellation()
 
-                    // Ende flushen
-                    let chunk = try consume(nil)
+                    let chunk = try parser.consume(token)
                     if !chunk.isEmpty {
-                        // buffer.append(contentsOf: chunk)
                         continuation.yield(chunk)
                     }
-                    
-                    // if !buffer.isEmpty {
-                    //     continuation.yield(buffer)
-                    // }
-
-                    continuation.finish()
-
-                } catch is CancellationError {
-                    continuation.finish()
-                } catch {
-                    continuation.finish(throwing: error)
                 }
+
+                let final = try parser.consume(nil)
+                if !final.isEmpty {
+                    continuation.yield(final)
+                }
+
+                continuation.finish()
+                return parser.getDirectiveManager()
+                
+            } catch is CancellationError {
+                continuation.finish()
+                return parser.getDirectiveManager()
+            } catch {
+                continuation.finish(throwing: error)
+                throw error
             }
         }
+
+        return ParserResult(
+            stream: stream,
+            directiveManager: resultTask
+        )
     }
     
     private func consume(_ token: Token?) throws -> [SongRenderChunk] {
@@ -404,8 +415,9 @@ public class ChordProParser: @unchecked Sendable {
                     return [SongRenderChunk(content: .newpage)]
 
                 case .start_of_verse, .start_of_bridge, .start_of_chorus:
+                    currentSection += 1
                     let val = directiveManager.getDirective(d.rawValue) ?? ""
-                    return [SongRenderChunk(content: .sectionStarted(val))]
+                    return [SongRenderChunk(content: .sectionStarted(val, currentSection - 1))]
                     
                 case .end_of_verse, .end_of_bridge, .end_of_chorus:
                     return [SongRenderChunk(content: .sectionEnded)]
@@ -471,7 +483,8 @@ public class ChordProParser: @unchecked Sendable {
             
             if chords.count == 1 && ParserHelper.allWhitespace(elements: texts), let chord = chords.first, chord.chord == nil, !chord.isChordcomment {
                 // Sectionstart
-                res.append(SongRenderChunk(content: .sectionStarted(chord.txt)))
+                currentSection += 1
+                res.append(SongRenderChunk(content: .sectionStarted(chord.txt, currentSection - 1)))
             } else {
                 // Zeilen nur aus Directiven bestehend werden ignoriert, ansonsten Leerzeile
                 if chords.isEmpty && ParserHelper.allWhitespace(elements: texts) {

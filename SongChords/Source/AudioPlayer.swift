@@ -55,6 +55,7 @@ class AudioPlayer {
     }}
     
     var playerState: MusicKit.MusicPlayer.PlaybackStatus { get { return player.playerState }}
+//    var playerState: MusicKit.MusicPlayer.PlaybackStatus = .stopped
     
     var isAllowed: Bool { get { return applicationPlayer.isAllowed }}
     
@@ -69,7 +70,9 @@ class AudioPlayer {
 
     func loadAndPlay(song: Song) async -> Bool {
         isMP3Player = song.musicItemId.starts(with: "local@")
-        return await player.loadAndPlay(song: song)
+        let ok = await player.loadAndPlay(song: song)
+//        syncFromPlayer()
+        return ok
     }
 
     func unLoadMP3() {
@@ -77,20 +80,32 @@ class AudioPlayer {
     }
     
     func play() async -> Bool {
-        return await player.play()
+        let ok = await player.play()
+//        syncFromPlayer()
+        return ok
     }
     
     func stopAll() {
         localPlayer.stop()
         applicationPlayer.stop()
+//        syncFromPlayer()
     }
     
     func pause() {
         player.pause()
+//        syncFromPlayer()
     }
     
     func handleAuthorizationStatus() {
         return applicationPlayer.handleAuthorizationStatus()
+    }
+    
+    private func syncFromPlayer() {
+//        let p = player
+//        playerState = p.playerState
+//        songPosition = p.songPosition
+//        songDuration = p.songDuration
+//        isLoaded = p.isLoaded
     }
 }
 
@@ -375,7 +390,7 @@ class MP3AudioPlayer: AudioPlayerProtocol {
     func loadAndPlay(song: Song) async -> Bool {
         print("MP3AudioPlayer loadAndPlay")
         
-        let uuid = song.getMP3FileInfo() ?? ""
+        let uuid = try? song.getMP3FileInfo()
         if uuid == loadedId { return play() }
         
         loadedId = nil
