@@ -16,32 +16,29 @@ struct MusicItem: Identifiable, Sendable, Hashable {
 }
 
 struct AudioPlayerView: View {
-    @Bindable var song: Song
-    @Binding var currentLoop: PlayerLoop
-    @Binding var selectedLoop: PlayerLoop?
-    @Binding var loopActive: Bool
-    @Binding var songSpeed: Double
-    @Binding var songPosition: TimeInterval
-    @Binding var songPitch: Float
-    @Binding var songMP3Uuid: String
-    
-    //    @Environment(AudioPlayer.self) private var audioPlayer
-    @Environment(AudioPlayerII.self) private var audioPlayer
-    @Environment(Globals.self) private var globals
-    @Environment(\.modelContext) private var modelContext
-    @Environment(TimerManager.self) private var loopTimerManager
+    let song: Song
     
     @State private var showSongSearch: Bool = false
     @State private var showMP3Import: Bool = false
     @State private var showNoAppleMusic: Bool = false
+    @State private var showSmallView: Bool = false
+
+    @State private var currentLoop = PlayerLoop(start: 0, stop: 0, title: "")
+    @State private var selectedLoop: PlayerLoop?
+    @State private var loopActive: Bool = false
+    
+    @State private var songSpeed: Float = 1
+    @State private var songPosition: TimeInterval = 0
+    @State private var songPitch: Float = 0
+    @State private var songPitchText: String = ""
+    
     @State private var inPositionEditing: Bool = false
     @State private var inPitchEditing: Bool = false
-    @State private var buttonBusy: Bool = false
-    @State private var showSmallView: Bool = false
-    @State private var songPitchText: String = ""
-
-    // aktualisiert den Status des AudioPlayers, insb. die Position
-//    let statusTimer = Timer.publish(every: 1, tolerance: 0.3, on: .main, in: .common)//.autoconnect()
+    @State private var inRateEditing: Bool = false
+    
+    @Environment(AudioPlayer.self) private var audioPlayer
+    @Environment(Globals.self) private var globals
+    @Environment(\.modelContext) private var modelContext
     
     var body: some View {
         VStack {
@@ -57,11 +54,11 @@ struct AudioPlayerView: View {
                                 Spacer()
                                 Text(GlobalFunctions.formatTimeInterval(playerLoop.stop - playerLoop.start))
                             }
-#if os(iOS)
+                            #if os(iOS)
                             .font(.footnote).listRowInsets(.init(top: 8, leading: 8, bottom: 8, trailing: 8))
-#else
+                            #else
                             .font(.subheadline)
-#endif
+                            #endif
                             .foregroundStyle(validLoop(loop: playerLoop) ? Color.primary : Color.red)
                         }
                         .onDelete(perform: { indices in
@@ -76,9 +73,9 @@ struct AudioPlayerView: View {
                             }
                         } )
                     }
-#if os(iOS)
+                    #if os(iOS)
                     .environment(\.defaultMinListRowHeight, 10)
-#endif
+                    #endif
                     .frame(maxHeight: 150).cornerRadius(10)
                     .overlay( /// apply a rounded border
                         RoundedRectangle(cornerRadius: 10)
@@ -88,7 +85,7 @@ struct AudioPlayerView: View {
             }
             
             playbackButtonsView
-
+            
             if !showSmallView {
                 Grid(alignment: .trailing) {
                     GridRow {
@@ -100,7 +97,7 @@ struct AudioPlayerView: View {
                                 if editing {
                                     inPositionEditing = true
                                 } else {
-                                    audioPlayer.setPosition(position: songPosition)
+                                    audioPlayer.position = songPosition
                                     inPositionEditing = false
                                 }
                             }
@@ -110,37 +107,42 @@ struct AudioPlayerView: View {
                     GridRow {
                         Text("Speed")
                         Slider(
-                            value: Binding(
-                                get: { audioPlayer.rate },
-                                set: { audioPlayer.setRate(rate: Double($0)) }
-                            ),
-                            in: 0.3...1.0
+                            value: $songSpeed,       // durch Schattenvariable Scrubbing verhindern
+                            in: 0.3...1,
+                            onEditingChanged: { editing in
+                                if editing {
+                                    inRateEditing = true
+                                } else {
+                                    audioPlayer.rate = songSpeed
+                                    inRateEditing = false
+                                }
+                            }
                         ).disabled(GlobalFunctions.isDisabled(song: song))
                         Text("\(Int(round(audioPlayer.rate * 100.0)))%").font(.footnote).frame(width: 50).lineLimit(1)
                     }
-
+                    
                     if song.isLocalMP3() {
                         GridRow {
                             Text("Pitch")
                             HStack {
                                 Slider(
-                                    value: $songPitch,
+                                    value: $songPitch,      // durch Schattenvariable Scrubbing verhindern
                                     in: -110...110,
                                     onEditingChanged: { editing in
                                         if editing {
                                             inPitchEditing = true
                                         } else {
-                                            audioPlayer.setPitch(pitch: Double(songPitch))
+                                            audioPlayer.pitch = songPitch
                                             setSongPitch(songPitch)
                                             inPitchEditing = false
                                         }
                                     }
                                 ).disabled(!song.isLocalMP3() || GlobalFunctions.isDisabled(song: song))
                                 HStack {
-                                    Button(action: { songPitch = nextDown(val: songPitch); audioPlayer.setPitch(pitch: Double(songPitch)); setSongPitch(songPitch) }) {
+                                    Button(action: { songPitch = nextDown(val: songPitch); audioPlayer.pitch = songPitch; setSongPitch(songPitch) }) {
                                         Image(systemName: "minus.circle").font(.subheadline)
                                     }.disabled(GlobalFunctions.isDisabled(song: song))
-                                    Button(action: { songPitch = nextUp(val: songPitch); audioPlayer.setPitch(pitch: Double(songPitch)); setSongPitch(songPitch) }) {
+                                    Button(action: { songPitch = nextUp(val: songPitch); audioPlayer.pitch = songPitch; setSongPitch(songPitch) }) {
                                         Image(systemName: "plus.circle").font(.subheadline)
                                     }.disabled(GlobalFunctions.isDisabled(song: song))
                                 }
@@ -153,33 +155,36 @@ struct AudioPlayerView: View {
                 .font(.footnote)
             }
             
-//            if shouldOfferSubscription {
-//                subscriptionOfferButton
-//            } else {
-                ZStack {
-                    if !showSmallView {
-                        HStack {
-                            Spacer()
-                            Button(action: { showSongSearch.toggle() } ) {
-                                Label("Search Apple Music", systemImage: "music.note.list")
-                            }.buttonStyle(BorderedButtonStyle()).font(.footnote)
-                            
-                            Button(action: { showMP3Import.toggle() } ) {
-                                Label("Import MPEG File", systemImage: "document")
-                            }.buttonStyle(BorderedButtonStyle()).font(.footnote)
-                            
-                            Spacer()
-                            Button(action: { showSmallView.toggle() }) {
-                                Image(systemName: showSmallView ? "chevron.up.circle" : "chevron.down.circle").font(.body).bold().labelStyle(.iconOnly)
-                            }.buttonStyle(BorderedButtonStyle())
-                        }
+            ZStack {
+                if !showSmallView {
+                    HStack {
+                        Spacer()
+                        Button(action: {
+                            Task {
+                                do {
+                                    try await checkAppleMusicAvailability()
+                                    showSongSearch.toggle()
+                                } catch {
+                                    globals.setSongChordsError(error: error)
+                                }
+                            }
+                        } ) {
+                            Label("Search Apple Music", systemImage: "music.note.list")
+                        }.buttonStyle(BorderedButtonStyle()).font(.footnote)
+                        
+                        Button(action: { showMP3Import.toggle() } ) {
+                            Label("Import MPEG File", systemImage: "document")
+                        }.buttonStyle(BorderedButtonStyle()).font(.footnote)
+                        
+                        Spacer()
+                        Button(action: { showSmallView.toggle() }) {
+                            Image(systemName: showSmallView ? "chevron.up.circle" : "chevron.down.circle").font(.body).bold().labelStyle(.iconOnly)
+                        }.buttonStyle(BorderedButtonStyle())
                     }
-//                }
+                }
             }
         }
         .frame(maxWidth: 500)
-        // Display the subscription offer when appropriate.
-//        .musicSubscriptionOffer(isPresented: $isShowingSubscriptionOffer, options: subscriptionOfferOptions)
         .sheet(isPresented: $showSongSearch) {
             NavigationStack {
                 MusicContentView(song: song)
@@ -198,8 +203,22 @@ struct AudioPlayerView: View {
                 globals.setSongChordsError(error: error)
             }
         }
-        /* *********************** */
-        // meine neuen
+        .onChange(of: song.persistentModelID) {
+            audioPlayer.stop()
+            audioPlayer.setDefaults()
+            currentLoop = PlayerLoop(start: 0, stop: 0, title: "")
+            loopActive = false
+            selectedLoop = nil
+            
+            if song.musicItemId.starts(with: "local@") {
+                do {
+                    let (_, pitch) = try song.getMP3Info()
+                    audioPlayer.pitch = pitch
+                } catch (let error) {
+                    print(error.localizedDescription)
+                }
+            }
+        }
         .onChange(of: audioPlayer.pitch) { _, newValue in
             // zu häufiges Speichern des Pitch in DB verhindern durch Kopie für Slider in $songPitch
             songPitchText = String(format: "%.2f", newValue / 10.0)
@@ -209,46 +228,27 @@ struct AudioPlayerView: View {
             // Scrubbing verhindern durch Kopie für Slider in $songPosition
             if !inPositionEditing { songPosition = newValue }
         }
-        /* *********************** */
-//        .onChange(of: songPitch, initial: true) { old, newValue in
-//            songPitchText = String(format: "%.2f", newValue / 10.0)
-//        }
-        .onChange(of: loopActive, initial: false) {
-            if audioPlayer.state == .playing { setCurrentLoopTimer() }
+        .onChange(of: audioPlayer.rate) { _, newValue in
+            // Scrubbing verhindern durch Kopie für Slider in $songSpeed
+            if !inRateEditing { songSpeed = newValue }
         }
-        .onChange(of: selectedLoop, initial: false) {
+        .onChange(of: selectedLoop) {
+            print("change selectedLoop")
             if let selectedLoop {
-                // currentLoop übernimmt die Werte der Auswahl in neuem Objekt, nicht das Objekt selbst
                 currentLoop = PlayerLoop(start: selectedLoop.start, stop: selectedLoop.stop, title: selectedLoop.title)
-                if audioPlayer.state == .playing { setCurrentLoopTimer() }
+                if loopActive { audioPlayer.loop = currentLoop }
             }
         }
-        .onChange(of: currentLoop.start, initial: false) {
-            if audioPlayer.state == .playing { setCurrentLoopTimer() }
+        .onChange(of: loopActive) { _, active in
+            print("change loopActive \(active)")
+            if active {
+                audioPlayer.loop = currentLoop
+            } else {
+                audioPlayer.loop = nil
+            }
         }
-        .onChange(of: currentLoop.stop, initial: false) {
-            if audioPlayer.state == .playing { setCurrentLoopTimer() }
-        }
-//        .onReceive(statusTimer) { time in
-            // Songfortschritt anzeigen
-//             print("statusTimer: time \(time) state \(audioPlayer.playerState) position \(audioPlayer.songPosition)")
-//            if !inPositionEditing {
-//                songPosition = audioPlayer.duration == 0 ? 0 : audioPlayer.position / audioPlayer.duration
-//            }
-//        }
-//        .onChange(of: audioPlayer.state, initial: false) {
-//            buttonBusy = false
-//        }
-        // Start observing changes to the music subscription.
-//        .task {
-//            print("subscription observer gestartet")
-//            for await subscription in MusicSubscription.subscriptionUpdates {
-//                musicSubscription = subscription
-//            }
-//            print("subscription observer gestoppt")
-//        }
     }
-
+    
     var playbackButtonsView: some View {
         HStack {
             Spacer()
@@ -260,11 +260,11 @@ struct AudioPlayerView: View {
             }.disabled(GlobalFunctions.isDisabled(song: song))
             
             Button(action: { Task {
-                                do {
-                                    try await startPlayback()
-                                } catch (let error) { globals.setSongChordsError(error: error) }
-                            }}
-                ){
+                do {
+                    try await startPlayback()
+                } catch (let error) { globals.setSongChordsError(error: error) }
+            }}
+            ){
                 HStack(alignment: .center, spacing: nil) {
                     if audioPlayer.state == .loading {
                         ProgressView().progressViewStyle(.circular).controlSize(.mini)
@@ -296,6 +296,14 @@ struct AudioPlayerView: View {
         }
     }
     
+    private func checkAppleMusicAvailability() async throws {
+        let auth = await MusicAuthorization.request()
+        guard auth == .authorized else { throw PlayerError.noAppleMusic }
+        
+        let subscription = try await MusicSubscription.current
+        guard subscription.canPlayCatalogContent else { throw PlayerError.noAppleMusicSubscription }
+    }
+    
     private func nextUp(val: Float) -> Float {
         let val100 = Int(round(val * 10.0))
         let x = val100 % 5 == 0 ? 5 : (5 - val100 % 5)
@@ -308,89 +316,32 @@ struct AudioPlayerView: View {
         return (Float(val100 - x) / 10.0)
     }
     
-    private func startLoopTimer(interval: TimeInterval) {
-        Task {
-            await loopTimerManager.startTimer(interval: interval / Double(audioPlayer.rate), task: {
-                Task { await fireLoopTimer() }
-            } )
-        }
-    }
-    
-    private func resumeLoopTimer(remainingInterval: TimeInterval, normalInterval: TimeInterval) {
-        Task {
-            await loopTimerManager.resumeTimer(remainingInterval: remainingInterval / Double(audioPlayer.rate), normalInterval: normalInterval / Double(audioPlayer.rate), task: {
-                Task { await fireLoopTimer() }
-            } )
-        }
-    }
-    
-    private func fireLoopTimer() {
-        print("loopTimer ended, position set to \(currentLoop.start)")
-        audioPlayer.setPosition(position: currentLoop.start)
-    }
-    
-    private func stopLoopTimer() {
-        Task {
-            await loopTimerManager.stopTimer()
-        }
-    }
-    
-    @State private var isLoopTimerRunning = false
-    private func setCurrentLoopTimer(_ load: Bool = true) {
-        guard !isLoopTimerRunning else { return }
-        isLoopTimerRunning = true
-        
-        Task {
-            defer { isLoopTimerRunning = false } // Flag zurücksetzen, wenn die Task endet
-
-            if load { let _ = try? await audioPlayer.load(song: song) }
-            
-            if loopActive && validLoop(loop: currentLoop) {
-                if audioPlayer.position <= currentLoop.start || audioPlayer.position >= currentLoop.stop {
-                    audioPlayer.setPosition(position: currentLoop.start)
-                    startLoopTimer(interval: currentLoop.stop - currentLoop.start)
-                } else {
-                    let rest = currentLoop.stop - audioPlayer.position
-                    resumeLoopTimer(remainingInterval: rest, normalInterval: currentLoop.stop - currentLoop.start)
-                }
-            } else {
-                stopLoopTimer()
-            }
-        }
-    }
-        
     private func startPlayback() async throws {
         if audioPlayer.state == .playing {
             audioPlayer.pause()
-            stopLoopTimer()
         } else {
             // falls Fehler auftritt, Spinner weg
             do {
                 if !audioPlayer.isLoaded() {
                     try await audioPlayer.load(song: song)
                 }
-                await audioPlayer.play()
+                try await audioPlayer.play()
             } catch (let error) { throw error }
             
             MarkerTimer.shared.stop()
-            setCurrentLoopTimer(false)
         }
     }
-
+    
     private func stopPlayback() {
-        buttonBusy = false
-        
         audioPlayer.stop()
-        stopLoopTimer()
     }
-
+    
     private func rewindPlayback() {
         if loopActive {
-            audioPlayer.setPosition(position: currentLoop.start)
+            audioPlayer.position = currentLoop.start
         } else {
-            audioPlayer.setPosition(position: 0)
+            audioPlayer.position = 0
         }
-//        setCurrentLoopTimer()
     }
     
     private func validLoop(loop: PlayerLoop) -> Bool {
@@ -412,11 +363,11 @@ struct AudioPlayerView: View {
     private func importMP3File(song: Song, urls: [URL]) {
         do {
             audioPlayer.stop()
-//            audioPlayer.unLoadMP3()
+            //            audioPlayer.unLoadMP3()
             
             let fileManager = FileManager.default
             let destDir = try GlobalFunctions.mp3Path()
-                        
+            
             for url in urls {
                 print("Lade \(url.absoluteString)")
                 
@@ -427,83 +378,24 @@ struct AudioPlayerView: View {
                     (uuid, pitch) = try song.getMP3Info()
                     song.tryRemoveMP3()
                 } catch {}
-
+                
                 let destURL = destDir
                     .appendingPathComponent(uuid + ".mp3")
-
-                let startSecurityScope = url.startAccessingSecurityScopedResource()                
+                
+                let startSecurityScope = url.startAccessingSecurityScopedResource()
                 try fileManager.copyItem(at: url, to: destURL)
                 if startSecurityScope { url.stopAccessingSecurityScopedResource() }
-
+                
                 song.setMP3Info(uuid: uuid, pitch: pitch)
                 print("\(song.musicItemId)")
-                songMP3Uuid = uuid
-                songPitch = pitch / 10.0
-//                audioPlayer.isMP3Player = true
+                //                songPitch = pitch / 10.0
+                //                audioPlayer.isMP3Player = true
                 
                 break
             }
         } catch(let error) {
             print("Fehler beim mp3-Laden: \(error.localizedDescription)")
             globals.setSongChordsError(error: error)
-        }
-    }
-    
-    // MARK: - Subscription offer
-//    
-//    /// The Apple Music subscription of the current user.
-//    @State private var musicSubscription: MusicSubscription?
-//    
-//    /// `true` when the album detail view needs to offer an Apple Music subscription to the user.
-//    private var shouldOfferSubscription: Bool {
-//        let canBecomeSubscriber = musicSubscription?.canBecomeSubscriber ?? false
-//        return canBecomeSubscriber
-//    }
-//    
-//    private var subscriptionOfferButton: some View {
-//        Button(action: handleSubscriptionOfferButtonSelected) {
-//            HStack {
-//                Image(systemName: "applelogo")
-//                Text("Join")
-//            }
-//            .frame(maxWidth: 200)
-//        }
-//        .buttonStyle(BorderedProminentButtonStyle())
-//    }
-//    
-//    /// The state that controls whether the album detail view displays a subscription offer for Apple Music.
-//    @State private var isShowingSubscriptionOffer = false
-//    
-//    /// The options for the Apple Music subscription offer.
-//    @State private var subscriptionOfferOptions: MusicSubscriptionOffer.Options = .default
-//    
-//    /// Computes the presentation state for a subscription offer.
-//    private func handleSubscriptionOfferButtonSelected() {
-//        subscriptionOfferOptions.messageIdentifier = .join
-//        subscriptionOfferOptions.itemID = MusicItemID(song.musicItemId)
-//        isShowingSubscriptionOffer = true
-//    }
-}
-
-struct AudioPlayerNotAllowedView: View {
-    @Environment(AudioPlayer.self) private var audioPlayer
-    var body: some View {
-        VStack {
-            Text("Audio playback is not allowed in this app")
-            Button("Open Settings") {
-                #if os(macOS)
-                if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security") {
-                    NSWorkspace.shared.open(url)
-                }
-                #else
-                if let url = URL(string: UIApplication.openSettingsURLString) {
-                    UIApplication.shared.open(url)
-                }
-                #endif
-            }.buttonStyle(BorderedButtonStyle()).padding()
-        }
-        .onAppear {
-            audioPlayer.handleAuthorizationStatus()
         }
     }
 }
@@ -513,7 +405,7 @@ struct MusicContentView: View {
     
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
-    @Environment(AudioPlayerII.self) private var audioPlayer
+    @Environment(AudioPlayer.self) private var audioPlayer
     @Environment(Globals.self) private var globals
 
     // MARK: - View
@@ -775,7 +667,7 @@ struct SetButtonView: View {
     var body: some View {
         VStack(alignment: .center) {
             Text(txt).font(.footnote)
-            Button { point = audioPlayer.songPosition } label: { Image(systemName: "button.programmable").font(.title) }.disabled(GlobalFunctions.isDisabled(song: song))
+            Button { point = audioPlayer.position } label: { Image(systemName: "button.programmable").font(.title) }.disabled(GlobalFunctions.isDisabled(song: song))
             Text(GlobalFunctions.formatTimeInterval(point)).font(.footnote)
         }
     }

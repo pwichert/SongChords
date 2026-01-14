@@ -18,6 +18,11 @@ class PrintSongDelegate: NSObject, PrintDelegateBase {
     let song: Song
     let autoScroll: Bool
     
+    init(song: Song, autoScroll: Bool) {
+        self.song = song
+        self.autoScroll = autoScroll
+    }
+    
     init?(songID: PersistentIdentifier, modelContainer: ModelContainer, autoScroll: Bool) async {
         let modelContext = ModelContext(modelContainer)
         self.autoScroll = autoScroll
@@ -74,7 +79,8 @@ class PrintSongDelegate: NSObject, PrintDelegateBase {
             // Funktionssammler
             var rowEvents: [() -> Void] = []
             
-            for rowContent in SongTaskManager.shared.representationHolder.rows {
+            let rows = SongTaskManager.shared.representationHolder.rows
+            for rowContent in rows {
                 // function je nach row.rowEvent sammeln und bei nächster zeile ablegen
                 // die Rows mit newpage/columnbreak erscheinen nicht mehr, wie in DetailView()
                 switch rowContent.rowEvent {

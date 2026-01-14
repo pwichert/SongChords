@@ -20,7 +20,7 @@ class PlayerLoop: Codable, Identifiable, Hashable {
     var start: TimeInterval = 0
     var stop: TimeInterval = 0
     var title: String = ""
-    
+        
     init(start: TimeInterval, stop: TimeInterval, title: String) {
         self.id = UUID()
         self.start = start

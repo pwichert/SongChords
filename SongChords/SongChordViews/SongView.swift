@@ -43,28 +43,18 @@ internal struct SongViewX: View {
     @Environment(\.horizontalSizeClass) var horizontalSizeClass
     @Environment(\.modelContext) private var modelContext
     @Environment(Globals.self) private var globals
-    @Environment(AudioPlayerII.self) private var audioPlayer
-    @Environment(TimerManager.self) private var timerManager
+    @Environment(AudioPlayer.self) private var audioPlayer
 
     @State private var showAudioPlayer: Bool = false
     @State private var showSongEditView: Bool = false
     @State private var showRemoveAllAnchors: Bool = false
     @State private var showHowtoAutoscroll: Bool = false
+    @State private var showFileExport: Bool = false
+
     @State private var pdfUrl: URL?
     
-    @State private var showFileExport: Bool = false
-    
-    @State private var currentLoop = PlayerLoop(start: 0, stop: 0, title: "")
-    @State private var selectedLoop: PlayerLoop?
-    @State private var loopActive: Bool = false
-    @State private var songSpeed: Double = 1.0
-    @State private var songPitch: Float = 0.0
-    @State private var songMP3Uuid: String = ""
-    @State private var songPosition: TimeInterval = 0.0
-
     @State private var scrollPosition = ScrollPosition(edge: .top)
     @State private var settingsChangeTick = 0
-
     @State private var autoScrollEnabled = false
     @State private var currentSectionID: Int?
     
@@ -98,7 +88,7 @@ internal struct SongViewX: View {
                                 }
                             }
                             .onChange(of: audioPlayer.position) {
-                                scrollEvent(proxy: proxy, time: songPosition)
+                                scrollEvent(proxy: proxy, time: audioPlayer.position)
                             }
                     }
                 }
@@ -177,8 +167,7 @@ internal struct SongViewX: View {
         .overlay(
             Group {
                 if showAudioPlayer {
-                    AudioPlayerView(song: song, currentLoop: $currentLoop, selectedLoop: $selectedLoop, loopActive: $loopActive, songSpeed: $songSpeed, songPosition: $songPosition, songPitch: $songPitch, songMP3Uuid: $songMP3Uuid)
-//                    AudioPlayerViewII(song: song)
+                    AudioPlayerView(song: song)
                     .padding()
                     .background(.regularMaterial)
                     .cornerRadius(12)
@@ -351,44 +340,15 @@ internal struct SongViewX: View {
             print("pdfUrl changed")
             pdfUrl = nil
         }
-        
-        initAudio()
-    }
-    
-    private func initAudio() {
-        Task { await timerManager.stopTimer() }
-        
-        audioPlayer.stop()
-
-        songPitch = 0
-
-        if song.musicItemId.starts(with: "local@") {
-//            audioPlayer.isMP3Player = true
-            do {
-                let (uuid, pitch) = try song.getMP3Info()
-                songPitch = pitch// / 10.0
-                audioPlayer.setPitch(pitch: Double(songPitch))
-                songMP3Uuid = uuid
-            } catch (let error) {
-                print(error.localizedDescription)
-            }
-        }
-//        else {
-//            audioPlayer.isMP3Engine = false
-//        }
-
-
-        loopActive = false
-        currentLoop = PlayerLoop(start: 0, stop: 0, title: "")
-        selectedLoop = nil
     }
     
     private func showPdf() async {
-        let delegate = await PrintSongDelegate(songID: song.persistentModelID, modelContainer: modelContext.container, autoScroll: autoScrollEnabled)
-        if let delegate = delegate {
+//        let delegate = await PrintSongDelegate(songID: song.persistentModelID, modelContainer: modelContext.container, autoScroll: autoScrollEnabled)
+        let delegate = PrintSongDelegate(song: song, autoScroll: autoScrollEnabled)
+//        if let delegate = delegate {
             let defaultPaper = MediaBoxes.getBox(name: userSettings.mediabox)
             pdfUrl = delegate.createPDF(paperSize: defaultPaper)
-        }
+//        }
     }
 }
 
@@ -578,7 +538,7 @@ struct SectionHeaderView: View, Identifiable {
                             tm = MarkerTimer.shared.time
                         }
                         else if let audioPlayer {
-                            tm = audioPlayer.songPosition
+                            tm = audioPlayer.position
                         }
                         if let tm {
                             saveAnchor(songPosition: tm)

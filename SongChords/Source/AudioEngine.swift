@@ -20,12 +20,16 @@ enum PlayerError: Error, LocalizedError {
     case notFound
     case invalidMP3Info
     case noAppleMusic
+    case noAppleMusicSubscription
+    case invalidLoop
     
     var errorDescription: String? {
         switch self {
         case .notFound: return String(localized: "not found")
         case .invalidMP3Info: return String(localized: "invalid MP3 info")
         case .noAppleMusic: return String(localized: "no Apple Music")
+        case .noAppleMusicSubscription: return String(localized: "no Apple Music Subscription")
+        case .invalidLoop: return String(localized: "invalid Loop")
         }
     }
 }
@@ -48,43 +52,65 @@ enum PlayerState {
     }
 }
 
+@Observable
+final class TransportState {
+    var duration: TimeInterval = 0
+    var position: TimeInterval = 0
+    var rate: Float = 1
+    var pitch: Float = 0
+    var state: PlayerState = .stopped
+    var loop: PlayerLoop?
+}
+
 protocol AudioEngine {
     var duration: TimeInterval { get }
     var position: TimeInterval { get set }
     var rate: Float { get set }
     var pitch: Float { get set }
-    var state: PlayerState { get }
     
     func load(song: Song) async throws
     func play() async throws
     func pause()
     func stop()
     func isLoaded() -> Bool
-    
-    func setPosition(position: TimeInterval)
-    func setPitch(pitch: Double)
-    func setRate(rate: Double)
 }
 
 @Observable
-final class AudioPlayerII {    
+final class AudioPlayer {
+    private var transport = TransportState()
+        
     @ObservationIgnored
     private var engine: AudioEngine?
 
-    private(set) var state: PlayerState = .stopped
-    private(set) var duration: TimeInterval = 0
-    private(set) var position: TimeInterval = 0
-    private(set) var rate: Float = 1.0
-    private(set) var pitch: Float = 0
+    private(set) var state: PlayerState { get { transport.state } set { transport.state = newValue }}
+    private(set) var duration: TimeInterval { get { transport.duration } set { transport.duration = newValue }}
+    
+    var loop: PlayerLoop? { get { return transport.loop } set { transport.loop = newValue }}
 
-    private(set) var positionSeconds: TimeInterval = 0
+    var position: TimeInterval { get { transport.position }
+        set {
+//            print("position = \(newValue)")
+            transport.position = newValue
+            engine?.position = newValue
+        }}
+    
+    var rate: Float { get { transport.rate }
+        set {
+            print("rate = \(newValue)")
+            transport.rate = newValue
+            engine?.rate = newValue
+        }}
+    
+    var pitch: Float { get { transport.pitch }
+        set {
+            print("pitch = \(newValue)")
+            transport.pitch = newValue
+            engine?.pitch = newValue
+        }}
 
     @ObservationIgnored
     private var ticker: Task<Void, Never>?
 
-    @ObservationIgnored
-    private var tickerStart: Date?
-        
     isolated
     deinit {
         print("AudioPlayer deinit")
@@ -100,22 +126,17 @@ final class AudioPlayerII {
         print("AudioPlayer load")
 
         do {
-            var realPitch: Double = 0.0
-            if pitch != 0 {
-                realPitch = Double(pitch)
-            }
-            engine = await song.isLocalMP3()
+            let newEngine: AudioEngine = await song.isLocalMP3()
                 ? MP3Engine()
                 : try AppleMusicEngine()
 
             state = .loading
-            try await engine!.load(song: song)
+            try await newEngine.load(song: song)
 
-            if realPitch != 0 {
-                    setPitch(pitch: realPitch)
-            }
+            engine = newEngine
             
-            syncFromEngine()
+            duration = engine?.duration ?? 0
+            applyTransportToEngine()
             startTicker()
 
         } catch (let error) {
@@ -124,13 +145,12 @@ final class AudioPlayerII {
         }
     }
 
-    func play() async {
+    func play() async throws {
         print("AudioPlayer play")
 
-        guard let engine else { return }
-        try? await engine.play()
-        syncFromEngine()
         startTicker()
+        try await engine?.play()
+        state = .playing
     }
 
     func pause() {
@@ -138,7 +158,7 @@ final class AudioPlayerII {
 
         stopTicker()
         engine?.pause()
-        syncFromEngine()
+        state = .paused
     }
 
     func stop() {
@@ -147,68 +167,53 @@ final class AudioPlayerII {
         stopTicker()
         engine?.stop()
         engine = nil
-        state = .stopped
         position = 0
-        syncFromEngine()
+        state = .stopped
     }
 
     private func startTicker() {
-        ticker?.cancel()
+        stopTicker()
+
         ticker = Task {
-            tickerStart = Date()
-            positionSeconds = 0
             while !Task.isCancelled {
-                try? await Task.sleep(for: .milliseconds(200))
+                guard let engine else { return }
+
+                transport.position = engine.position
                 
-                if let tickerStart {
-                    let currentSeconds = Date.now.timeIntervalSince(tickerStart).rounded()
-                    if positionSeconds != currentSeconds { positionSeconds = currentSeconds }
+                if let l = loop, position < max(l.start, 0) || position >= min(l.stop, duration) {
+                    position = max(l.start, 0)
                 }
-                
-                syncFromEngine()
+
+                if position >= duration {
+                    state = .stopped
+                    stopTicker()
+                    return
+                }
+
+                try? await Task.sleep(for: .milliseconds(200))
             }
         }
     }
-
+    
     private func stopTicker() {
         ticker?.cancel()
-        positionSeconds = 0
-        tickerStart = nil
+        ticker = nil
     }
     
-    private func syncFromEngine() {
-        guard let engine else { return }
-        duration = engine.duration
-        position = engine.position
-        rate = engine.rate
-        pitch = engine.pitch
-        state = engine.state
-    }
-    
-    func setPosition(position: TimeInterval) {
-        print("AudioPlayer setPosition")
+    private func applyTransportToEngine() {
+        engine?.rate = rate
+        engine?.pitch = pitch
+        engine?.position = position
 
-        engine?.setPosition(position: position)
-        syncFromEngine()
-    }
-    
-    func setPitch(pitch: Double) {
-        print("AudioPlayer setPitch")
+        self.loop = loop
 
-        engine?.setPitch(pitch: pitch)
-        syncFromEngine()
-        
-        // Hack für pitch, kann schon vorab ohne engine gesetzt werden
-        if engine == nil {
-            self.pitch = Float(pitch)
+        if state == .playing {
+            Task { try? await engine?.play() }
         }
     }
     
-    func setRate(rate: Double) {
-        print("AudioPlayer setRate")
-
-        engine?.setRate(rate: rate)
-        syncFromEngine()
+    func setDefaults() {
+        transport = TransportState()
     }
 }
 
@@ -233,7 +238,6 @@ final class AppleMusicEngine: AudioEngine {
     }}
         
     var pitch: Float = 0
-    var state: PlayerState = .stopped
     
     private var musicAuthorizationStatus: MusicAuthorization.Status = .notDetermined
 
@@ -246,8 +250,6 @@ final class AppleMusicEngine: AudioEngine {
     }
     
     func load(song: Song) async throws {
-        state = .loading
-        
         let req = MusicCatalogResourceRequest<MusicKit.Song>(
             matching: \.id,
             equalTo: MusicItemID(song.musicItemId)
@@ -264,8 +266,6 @@ final class AppleMusicEngine: AudioEngine {
             try await pl.prepareToPlay()
         }
         let _ = try await pres.value
-        
-        state = .paused
     }
     
     func play() async throws {
@@ -275,29 +275,14 @@ final class AppleMusicEngine: AudioEngine {
             pl.state.playbackRate = self.rate
         }
         let _ = try await res.value
-        
-        state = .playing
     }
     
     func pause() {
         player.pause()
-        state = .paused
     }
     
     func stop() {
         player.stop()
-        state = .stopped
-    }
-    
-    func setPosition(position: TimeInterval) {
-        self.position = position
-    }
-    
-    func setPitch(pitch: Double) {
-    }
-    
-    func setRate(rate: Double) {
-        self.rate = Float(rate)
     }
     
     private func restoreState(state: MusicKit.MusicPlayer.PlaybackStatus) {
@@ -306,8 +291,6 @@ final class AppleMusicEngine: AudioEngine {
         case .playing:
             // setzen der Rate started immer das playing, daher hier nicht nochmal
             break
-        case .stopped:
-            player.stop()
             
         case .paused:
             player.pause()
@@ -317,25 +300,13 @@ final class AppleMusicEngine: AudioEngine {
         }
     }
     
-    func handleAuthorizationStatus() async throws {
-        switch musicAuthorizationStatus {
-        case .notDetermined:
-            let musicAuthorizationStatus = await MusicAuthorization.request()
-            update(with: musicAuthorizationStatus)
-            
-            if musicAuthorizationStatus != .authorized {
-                throw PlayerError.noAppleMusic
-            }
-            
-        default:
-            print("Audioplayer musicAuthorizationStatus = \(self.musicAuthorizationStatus)")
-        }
-    }
+    private func handleAuthorizationStatus() async throws {
+        let auth = await MusicAuthorization.request()
+        guard auth == .authorized else { throw PlayerError.noAppleMusic }
         
-    private func update(with musicAuthorizationStatus: MusicAuthorization.Status) {
-        self.musicAuthorizationStatus = musicAuthorizationStatus
-        print("Audioplayer update musicAuthorizationStatus \(self.musicAuthorizationStatus)")
-    }
+        let subscription = try await MusicSubscription.current
+        guard subscription.canPlayCatalogContent else { throw PlayerError.noAppleMusicSubscription }
+    }        
 }
 
 final class MP3Engine: AudioEngine {
@@ -357,9 +328,8 @@ final class MP3Engine: AudioEngine {
     // ein halbton = 100 Cents
     var pitch: Float {
         get { pitchNode.pitch / 10.0}
-        set { pitchNode.pitch = newValue * 10.0;print(newValue * 10.0) }
+        set { pitchNode.pitch = newValue * 10.0 }
     }
-    var state: PlayerState = .stopped
     
     func isLoaded() -> Bool {
         engine.isRunning
@@ -371,8 +341,6 @@ final class MP3Engine: AudioEngine {
         let destDir = try GlobalFunctions.mp3Path()
         let filePath = destDir.appendingPathComponent(urlStr + ".mp3")
         
-        state = .loading
-
         file = try AVAudioFile(forReading: filePath)
         
         if let file {
@@ -404,9 +372,6 @@ final class MP3Engine: AudioEngine {
             self.pitch = pitch
 
             try engine.start()
-            state = .paused
-        } else {
-            state = .failed
         }
     }
 
@@ -418,31 +383,16 @@ final class MP3Engine: AudioEngine {
 
 //        engine.mainMixerNode.outputVolume = 1.0
         node.play()
-        state = .playing
     }
 
     func pause() {
         startTime = position
         node.pause()
-        state = .paused
     }
 
     func stop() {
         startTime = 0
         node.stop()
-        state = .stopped
-    }
-    
-    func setPosition(position: TimeInterval) {
-        self.position = position
-    }
-    
-    func setPitch(pitch: Double) {
-        self.pitch = Float(pitch)
-    }
-    
-    func setRate(rate: Double) {
-        self.rate = Float(rate)
     }
     
     private func seek(to seconds: TimeInterval) {

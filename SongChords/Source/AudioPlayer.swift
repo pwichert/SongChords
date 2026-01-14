@@ -5,6 +5,7 @@
 //  Created by Peter Wichert on 20.01.25.
 //
 
+#if false
 import SwiftUI
 import MusicKit
 import AVFoundation
@@ -560,3 +561,4 @@ class MP3AudioPlayer: AudioPlayerProtocol {
         return min(max(totalAdjustment, 0.1), 2.0) // Lautstärke auf sinnvolle Werte begrenzen
     }
 }
+#endif
