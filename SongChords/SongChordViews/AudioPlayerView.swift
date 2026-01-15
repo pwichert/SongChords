@@ -30,15 +30,18 @@ struct AudioPlayerView: View {
     @State private var songSpeed: Float = 1
     @State private var songPosition: TimeInterval = 0
     @State private var songPitch: Float = 0
-    @State private var songPitchText: String = ""
     
     @State private var inPositionEditing: Bool = false
-    @State private var inPitchEditing: Bool = false
-    @State private var inRateEditing: Bool = false
     
     @Environment(AudioPlayer.self) private var audioPlayer
     @Environment(Globals.self) private var globals
     @Environment(\.modelContext) private var modelContext
+
+    #if os(macOS)
+    let gridVerticalSpacing = 6.0
+    #else
+    let gridVerticalSpacing = 1.0
+    #endif
     
     var body: some View {
         VStack {
@@ -87,68 +90,75 @@ struct AudioPlayerView: View {
             playbackButtonsView
             
             if !showSmallView {
-                Grid(alignment: .trailing) {
-                    GridRow {
+                Grid(alignment: .trailing, verticalSpacing: 0) {
+                    GridRow(alignment: .center) {
                         Text("Pos")
+                        #if os(macOS)
                         Slider(
                             value: $songPosition,       // durch Schattenvariable Scrubbing verhindern
                             in: 0...audioPlayer.duration,
                             onEditingChanged: { editing in
-                                if editing {
-                                    inPositionEditing = true
-                                } else {
-                                    audioPlayer.position = songPosition
+                                inPositionEditing = editing
+                            }
+                        )
+                        .disabled(GlobalFunctions.isDisabled(song: song))
+                        #else
+                        Slider(
+                            value: $songPosition,       // durch Schattenvariable Scrubbing verhindern
+                            in: 0...audioPlayer.duration
+                        )
+                        .simultaneousGesture (      // onEditingChanged geht manchmal verloren, Gesture ist sicherer
+                            DragGesture(minimumDistance: 0)
+                                .onChanged { _ in
+                                    if !inPositionEditing {
+                                        inPositionEditing = true
+                                    }
+                                }
+                                .onEnded { _ in
                                     inPositionEditing = false
                                 }
-                            }
-                        ).disabled(GlobalFunctions.isDisabled(song: song))
+                            )
+                        .disabled(GlobalFunctions.isDisabled(song: song))
+                        #endif
                         Text(GlobalFunctions.formatTimeInterval(inPositionEditing ? songPosition : audioPlayer.position)).font(.footnote).frame(width: 50).lineLimit(1)
-                    }
-                    GridRow {
+                    }.padding(.bottom, gridVerticalSpacing * 1.5)
+                    GridRow(alignment: .center) {
                         Text("Speed")
                         Slider(
                             value: $songSpeed,       // durch Schattenvariable Scrubbing verhindern
                             in: 0.3...1,
                             onEditingChanged: { editing in
-                                if editing {
-                                    inRateEditing = true
-                                } else {
-                                    audioPlayer.rate = songSpeed
-                                    inRateEditing = false
-                                }
+                                if !editing { audioPlayer.rate = songSpeed }
                             }
                         ).disabled(GlobalFunctions.isDisabled(song: song))
                         Text("\(Int(round(audioPlayer.rate * 100.0)))%").font(.footnote).frame(width: 50).lineLimit(1)
-                    }
+                    }.padding(.bottom, gridVerticalSpacing)
                     
                     if song.isLocalMP3() {
-                        GridRow {
+                        GridRow(alignment: .center) {
                             Text("Pitch")
                             HStack {
                                 Slider(
                                     value: $songPitch,      // durch Schattenvariable Scrubbing verhindern
                                     in: -110...110,
                                     onEditingChanged: { editing in
-                                        if editing {
-                                            inPitchEditing = true
-                                        } else {
+                                        if !editing {
                                             audioPlayer.pitch = songPitch
                                             setSongPitch(songPitch)
-                                            inPitchEditing = false
                                         }
                                     }
                                 ).disabled(!song.isLocalMP3() || GlobalFunctions.isDisabled(song: song))
                                 HStack {
                                     Button(action: { songPitch = nextDown(val: songPitch); audioPlayer.pitch = songPitch; setSongPitch(songPitch) }) {
-                                        Image(systemName: "minus.circle").font(.subheadline)
+                                        Image(systemName: "minus.circle").font(.title3)
                                     }.disabled(GlobalFunctions.isDisabled(song: song))
                                     Button(action: { songPitch = nextUp(val: songPitch); audioPlayer.pitch = songPitch; setSongPitch(songPitch) }) {
-                                        Image(systemName: "plus.circle").font(.subheadline)
+                                        Image(systemName: "plus.circle").font(.title3)
                                     }.disabled(GlobalFunctions.isDisabled(song: song))
                                 }
                             }
                             Text(String(format: "%.2f", songPitch / 10.0)).font(.footnote).frame(width: 50).lineLimit(1)
-                        }
+                        }.padding(.bottom, gridVerticalSpacing)
                     }
                 }
                 .padding(.horizontal)
@@ -203,7 +213,7 @@ struct AudioPlayerView: View {
                 globals.setSongChordsError(error: error)
             }
         }
-        .onChange(of: song.persistentModelID) {
+        .onChange(of: song.persistentModelID, initial: true) {
             audioPlayer.stop()
             audioPlayer.setDefaults()
             currentLoop = PlayerLoop(start: 0, stop: 0, title: "")
@@ -220,17 +230,19 @@ struct AudioPlayerView: View {
             }
         }
         .onChange(of: audioPlayer.pitch) { _, newValue in
-            // zu häufiges Speichern des Pitch in DB verhindern durch Kopie für Slider in $songPitch
-            songPitchText = String(format: "%.2f", newValue / 10.0)
-            if !inPitchEditing { songPitch = newValue }
+            songPitch = newValue
+        }
+        .onChange(of: inPositionEditing) {
+            print("change inPositionEditing \(inPositionEditing)")
+            if !inPositionEditing { audioPlayer.position = songPosition }
         }
         .onChange(of: audioPlayer.position) { _, newValue in
             // Scrubbing verhindern durch Kopie für Slider in $songPosition
+//            print("position changed \(newValue)")
             if !inPositionEditing { songPosition = newValue }
         }
         .onChange(of: audioPlayer.rate) { _, newValue in
-            // Scrubbing verhindern durch Kopie für Slider in $songSpeed
-            if !inRateEditing { songSpeed = newValue }
+            songSpeed = newValue
         }
         .onChange(of: selectedLoop) {
             print("change selectedLoop")

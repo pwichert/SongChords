@@ -87,9 +87,13 @@ final class AudioPlayer {
     
     var loop: PlayerLoop? { get { return transport.loop } set { transport.loop = newValue }}
 
-    var position: TimeInterval { get { transport.position }
+    var position: TimeInterval {
+        get {
+            if tickerEnd > 0 && transport.position >= tickerEnd { stop() }
+            return transport.position
+        }
         set {
-//            print("position = \(newValue)")
+            print("position = \(newValue)")
             transport.position = newValue
             engine?.position = newValue
         }}
@@ -110,7 +114,12 @@ final class AudioPlayer {
 
     @ObservationIgnored
     private var ticker: Task<Void, Never>?
+    static let tickerSleepMilliSeconds: Int = 200
+    static let tickerBuffer = TimeInterval((Double(tickerSleepMilliSeconds) * 1.5) / 1000.0)
 
+    @ObservationIgnored
+    var tickerEnd: TimeInterval { max(0, duration - AudioPlayer.tickerBuffer) }
+    
     isolated
     deinit {
         print("AudioPlayer deinit")
@@ -176,21 +185,18 @@ final class AudioPlayer {
 
         ticker = Task {
             while !Task.isCancelled {
-                guard let engine else { return }
+                guard var e = engine else { return }
+                let currentPosition = e.position
 
-                transport.position = engine.position
+                if let l = loop, l.start < l.stop, currentPosition < max(l.start, 0) || currentPosition >= min(l.stop, tickerEnd) {
+//                    print("korrigiert von \(currentPosition) auf \(max(l.start, 0))")
+                    e.position = max(l.start, 0)
+                }
                 
-                if let l = loop, position < max(l.start, 0) || position >= min(l.stop, duration) {
-                    position = max(l.start, 0)
-                }
-
-                if position >= duration {
-                    state = .stopped
-                    stopTicker()
-                    return
-                }
-
-                try? await Task.sleep(for: .milliseconds(200))
+                transport.position = e.position
+//                print("\(position) : \(duration)")
+                
+                try? await Task.sleep(for: .milliseconds(AudioPlayer.tickerSleepMilliSeconds))
             }
         }
     }
@@ -201,10 +207,12 @@ final class AudioPlayer {
     }
     
     private func applyTransportToEngine() {
-        engine?.rate = rate
-        engine?.pitch = pitch
-        engine?.position = position
-
+        if engine != nil {
+            if engine?.rate != rate { engine?.rate = rate }
+            if engine?.pitch != pitch  { engine?.pitch = pitch }
+            if engine?.position != position { engine?.position = position }
+        }
+        
         self.loop = loop
 
         if state == .playing {
@@ -222,8 +230,16 @@ final class AppleMusicEngine: AudioEngine {
     
     var duration: TimeInterval = 0
     var position: TimeInterval {
-        get { player.playbackTime }
-        set { player.playbackTime = newValue }
+        get {
+            if duration > 0 && player.playbackTime >= duration {
+                print("Playback beendet.")
+                self.stop()
+                player.playbackTime = 0
+            }
+            return player.playbackTime
+        }
+        set {
+            player.playbackTime = newValue }
     }
     
     // Speed-Änderung started den Player, daher Status merken und restaurieren
@@ -420,6 +436,14 @@ final class MP3Engine: AudioEngine {
         guard let lastRenderTime = node.lastRenderTime,
               let playerTime = node.playerTime(forNodeTime: lastRenderTime) else {
             return 0
+        }
+        
+        let res = Double(playerTime.sampleTime) / Double(sampleRate)
+        
+        if res + startTime >= duration {
+            print("Playback beendet.")
+            self.stop()
+            seek(to: 0)
         }
         
         guard sampleRate != 0 else { return 0 }
