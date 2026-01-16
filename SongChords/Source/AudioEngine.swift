@@ -67,7 +67,8 @@ protocol AudioEngine {
     var position: TimeInterval { get set }
     var rate: Float { get set }
     var pitch: Float { get set }
-    
+    var isPlaying: Bool { get }
+
     func load(song: Song) async throws
     func play() async throws
     func pause()
@@ -89,7 +90,7 @@ final class AudioPlayer {
 
     var position: TimeInterval {
         get {
-            if tickerEnd > 0 && transport.position >= tickerEnd { stop() }
+//            if tickerEnd > 0 && transport.position >= tickerEnd { stop() }
             return transport.position
         }
         set {
@@ -114,11 +115,6 @@ final class AudioPlayer {
 
     @ObservationIgnored
     private var ticker: Task<Void, Never>?
-    static let tickerSleepMilliSeconds: Int = 200
-    static let tickerBuffer = TimeInterval((Double(tickerSleepMilliSeconds) * 1.5) / 1000.0)
-
-    @ObservationIgnored
-    var tickerEnd: TimeInterval { max(0, duration - AudioPlayer.tickerBuffer) }
     
     isolated
     deinit {
@@ -131,8 +127,10 @@ final class AudioPlayer {
     }
     
     func load(song: Song) async throws {
-        stop()
         print("AudioPlayer load")
+        stopTicker()
+        engine?.stop()
+        engine = nil
 
         do {
             let newEngine: AudioEngine = await song.isLocalMP3()
@@ -157,9 +155,9 @@ final class AudioPlayer {
     func play() async throws {
         print("AudioPlayer play")
 
-        startTicker()
         try await engine?.play()
         state = .playing
+        startTicker()
     }
 
     func pause() {
@@ -186,17 +184,24 @@ final class AudioPlayer {
         ticker = Task {
             while !Task.isCancelled {
                 guard var e = engine else { return }
+                
                 let currentPosition = e.position
 
-                if let l = loop, l.start < l.stop, currentPosition < max(l.start, 0) || currentPosition >= min(l.stop, tickerEnd) {
+                if let l = loop, l.start < l.stop, currentPosition < max(l.start, 0) || currentPosition >= min(l.stop, duration) {
 //                    print("korrigiert von \(currentPosition) auf \(max(l.start, 0))")
                     e.position = max(l.start, 0)
                 }
-                
+
                 transport.position = e.position
 //                print("\(position) : \(duration)")
                 
-                try? await Task.sleep(for: .milliseconds(AudioPlayer.tickerSleepMilliSeconds))
+                if !e.isPlaying {
+                    print("engine stopped")
+                    stop()
+                    return
+                }
+                
+                try? await Task.sleep(for: .milliseconds(200))
             }
         }
     }
@@ -228,19 +233,14 @@ final class AudioPlayer {
 final class AppleMusicEngine: AudioEngine {
     private let player = ApplicationMusicPlayer.shared
     
+    private var aboutToPlay: Bool = false
+    private var loaded: Bool = false
+    
+    var isPlaying: Bool { get { return aboutToPlay || player.state.playbackStatus == .playing }}
     var duration: TimeInterval = 0
     var position: TimeInterval {
-        get {
-            if duration > 0 && player.playbackTime >= duration {
-                print("Playback beendet.")
-                self.stop()
-                player.playbackTime = 0
-            }
-            return player.playbackTime
-        }
-        set {
-            player.playbackTime = newValue }
-    }
+        get { return player.playbackTime }
+        set { player.playbackTime = newValue }}
     
     // Speed-Änderung started den Player, daher Status merken und restaurieren
     private var rate_: Float = 1.0
@@ -262,10 +262,12 @@ final class AppleMusicEngine: AudioEngine {
     }
     
     func isLoaded() -> Bool {
-        !player.queue.entries.isEmpty
+        loaded
     }
     
     func load(song: Song) async throws {
+        loaded = false
+        
         let req = MusicCatalogResourceRequest<MusicKit.Song>(
             matching: \.id,
             equalTo: MusicItemID(song.musicItemId)
@@ -282,15 +284,23 @@ final class AppleMusicEngine: AudioEngine {
             try await pl.prepareToPlay()
         }
         let _ = try await pres.value
+        loaded = true
     }
     
     func play() async throws {
         let pl = player
+        
+        // nach .play() ist der Zustand erst .pause, nicht .playing
+        // aboutToPlay überbrückt bis .playing
+        aboutToPlay = true
+        
         let res = Task {
             try await pl.play()
             pl.state.playbackRate = self.rate
         }
         let _ = try await res.value
+        
+        aboutToPlay = false
     }
     
     func pause() {
@@ -299,6 +309,7 @@ final class AppleMusicEngine: AudioEngine {
     
     func stop() {
         player.stop()
+        loaded = false
     }
     
     private func restoreState(state: MusicKit.MusicPlayer.PlaybackStatus) {
@@ -322,7 +333,7 @@ final class AppleMusicEngine: AudioEngine {
         
         let subscription = try await MusicSubscription.current
         guard subscription.canPlayCatalogContent else { throw PlayerError.noAppleMusicSubscription }
-    }        
+    }
 }
 
 final class MP3Engine: AudioEngine {
@@ -332,7 +343,9 @@ final class MP3Engine: AudioEngine {
     private var file: AVAudioFile?
     private var sampleRate: Double = 44100 // Standard-Sample-Rate
     private var startTime: TimeInterval = 0
+    private var loaded: Bool = false
 
+    var isPlaying: Bool { get { return isInside() && node.isPlaying }}
     var duration: TimeInterval = 0
     var position: TimeInterval { get { return getCurrentPosition() + startTime } set { seek(to: newValue) } }
     var rate: Float {
@@ -348,10 +361,11 @@ final class MP3Engine: AudioEngine {
     }
     
     func isLoaded() -> Bool {
-        engine.isRunning
+        loaded
     }
     
-    func load(song: Song) async throws {
+    func load(song: Song) throws {
+        loaded = false
         let (urlStr, pitch) = try song.getMP3Info()
         
         let destDir = try GlobalFunctions.mp3Path()
@@ -387,38 +401,38 @@ final class MP3Engine: AudioEngine {
             
             self.pitch = pitch
 
-            try engine.start()
+            engine.prepare()
+            node.scheduleFile(file, at: nil)
+            
+            startTime = 0
+            loaded = true
         }
     }
 
     func play() throws {
-        guard let file else { return }
-
-//        node.scheduleSegment(file, startingFrame: 0, frameCount: AVAudioFrameCount(file.length), at: nil, completionHandler: nil)
-        node.scheduleFile(file, at: nil)
-
-//        engine.mainMixerNode.outputVolume = 1.0
+        try engine.start()
         node.play()
     }
 
     func pause() {
-        startTime = position
         node.pause()
+        engine.pause()
     }
 
     func stop() {
-        startTime = 0
         node.stop()
+        engine.stop()
+        loaded = false
     }
     
     private func seek(to seconds: TimeInterval) {
-        guard let file = file else { return }
+        guard let file else { return }
         
-        let framePosition = AVAudioFramePosition(seconds * Double(sampleRate))
+        let framePosition = min(AVAudioFramePosition(seconds * Double(sampleRate)), file.length - 1)
         let frameCount = AVAudioFrameCount(file.length - framePosition)
         
         if framePosition >= file.length {
-            print("Seek-Zeit liegt außerhalb der Datei.")
+            print("Seek-Zeit liegt außerhalb der Datei. \(framePosition) >= \(file.length)")
             return
         }
         
@@ -432,21 +446,112 @@ final class MP3Engine: AudioEngine {
         if isPlaying { node.play() }
     }
     
+    private func isInside() -> Bool {
+        guard let lastRenderTime = node.lastRenderTime,
+              let playerTime = node.playerTime(forNodeTime: lastRenderTime) else {
+            return false
+        }
+        
+        let res = Double(playerTime.sampleTime) / Double(sampleRate)
+        return res + startTime < duration
+    }
+    
     private func getCurrentPosition() -> TimeInterval {
         guard let lastRenderTime = node.lastRenderTime,
               let playerTime = node.playerTime(forNodeTime: lastRenderTime) else {
             return 0
         }
         
-        let res = Double(playerTime.sampleTime) / Double(sampleRate)
-        
-        if res + startTime >= duration {
-            print("Playback beendet.")
-            self.stop()
-            seek(to: 0)
-        }
-        
         guard sampleRate != 0 else { return 0 }
         return Double(playerTime.sampleTime) / Double(sampleRate)
     }
 }
+
+final class AVPlayerEngine: AudioEngine {
+    private let player = AVPlayer()
+    
+    var isPlaying: Bool = false
+    var duration: TimeInterval = 0
+    var position: TimeInterval {
+        get { return player.currentTime().seconds }
+        set { player.seek(to: CMTime(seconds: newValue, preferredTimescale: 1)) }
+    }
+    
+    // Speed-Änderung started den Player, daher Status merken und restaurieren
+    private var rate_: Float = 1.0
+    var rate: Float { get {
+        return player.rate
+    } set {
+        rate_ = newValue
+//        let state = player.state.playbackStatus
+        player.rate = newValue
+//        restoreState(state: state)
+    }}
+        
+    var pitch: Float = 0
+    
+    private var musicAuthorizationStatus: MusicAuthorization.Status = .notDetermined
+
+    init() async throws {
+        try await handleAuthorizationStatus()
+    }
+    
+    func isLoaded() -> Bool {
+        player.currentItem != nil
+    }
+    
+    func load(song: Song) async throws {
+        let req = MusicCatalogResourceRequest<MusicKit.Song>(
+            matching: \.id,
+            equalTo: MusicItemID(song.musicItemId)
+        )
+        
+        let res = try await req.response()
+        guard let item = res.items.first else { throw PlayerError.notFound }
+        
+        duration = item.duration ?? 0
+//        player.replaceCurrentItem(with: )
+        
+//        let pl = player
+//        let pres = Task {
+//            try await pl.prepareToPlay()
+//        }
+//        let _ = try await pres.value
+    }
+    
+    func play() {
+        player.play()
+    }
+    
+    func pause() {
+        player.pause()
+    }
+    
+    func stop() {
+        player.pause()
+    }
+    
+//    private func restoreState(state: MusicKit.MusicPlayer.PlaybackStatus) {
+//        print("Audioplayer restoring \(state)")
+//        switch state {
+//        case .playing:
+//            // setzen der Rate started immer das playing, daher hier nicht nochmal
+//            break
+//
+//        case .paused:
+//            player.pause()
+//
+//        default:
+//            player.stop()
+//        }
+//    }
+    
+    private func handleAuthorizationStatus() async throws {
+        let auth = await MusicAuthorization.request()
+        guard auth == .authorized else { throw PlayerError.noAppleMusic }
+        
+        let subscription = try await MusicSubscription.current
+        guard subscription.canPlayCatalogContent else { throw PlayerError.noAppleMusicSubscription }
+    }
+}
+
