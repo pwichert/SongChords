@@ -213,13 +213,13 @@ struct AudioPlayerView: View {
                 globals.setSongChordsError(error: error)
             }
         }
+        .onDisappear {
+            audioPlayer.stop()
+        }
         .onChange(of: song.persistentModelID, initial: true) {
             audioPlayer.stop()
             audioPlayer.setDefaults()
-            currentLoop = PlayerLoop(start: 0, stop: 0, title: "")
-            loopActive = false
-            selectedLoop = nil
-            
+                        
             if song.musicItemId.starts(with: "local@") {
                 do {
                     let (_, pitch) = try song.getMP3Info()
@@ -228,22 +228,29 @@ struct AudioPlayerView: View {
                     print(error.localizedDescription)
                 }
             }
+            
+            currentLoop = PlayerLoop(start: 0, stop: 0, title: "")
+            loopActive = false
+            selectedLoop = nil
         }
         .onChange(of: audioPlayer.pitch) { _, newValue in
             songPitch = newValue
         }
+        .onChange(of: audioPlayer.rate) { _, newValue in
+            songSpeed = newValue
+        }
+        // bidirektionale Kopplung zwischen audioPlayer.position und songPosition
+        // außer bei inPositionEditing == true, wenn also der Slider bewegt wird.
+        // Scrubbing verhindern durch Kopie für Slider in $songPosition und nicht direkt auf audioPlayer.songPosition
         .onChange(of: inPositionEditing) {
             print("change inPositionEditing \(inPositionEditing)")
             if !inPositionEditing { audioPlayer.position = songPosition }
         }
         .onChange(of: audioPlayer.position) { _, newValue in
-            // Scrubbing verhindern durch Kopie für Slider in $songPosition
 //            print("position changed \(newValue)")
             if !inPositionEditing { songPosition = newValue }
         }
-        .onChange(of: audioPlayer.rate) { _, newValue in
-            songSpeed = newValue
-        }
+        // Loop selektiert
         .onChange(of: selectedLoop) {
             print("change selectedLoop")
             if let selectedLoop {
@@ -251,6 +258,7 @@ struct AudioPlayerView: View {
                 if loopActive { audioPlayer.loop = currentLoop }
             }
         }
+        // loopActive gedrückt
         .onChange(of: loopActive) { _, active in
             print("change loopActive \(active)")
             if active {
@@ -287,7 +295,7 @@ struct AudioPlayerView: View {
                 }.frame(minWidth: 70) // hält die Buttonbreite konstant, wenn sich Texte Pause/Play ändern
             }.disabled(GlobalFunctions.isDisabled(song: song))// || shouldOfferSubscription)
             
-            Button(action: { stopPlayback() }) {
+            Button(action: { audioPlayer.stop()  }) {
                 Label("Stop", systemImage: "stop.fill")
             }.disabled(GlobalFunctions.isDisabled(song: song))
             
@@ -317,15 +325,15 @@ struct AudioPlayerView: View {
     }
     
     private func nextUp(val: Float) -> Float {
-        let val100 = Int(round(val * 10.0))
-        let x = val100 % 5 == 0 ? 5 : (5 - val100 % 5)
-        return (Float(val100 + x) / 10.0)
+        let val10 = Int(round(val * 10.0))
+        let x = val10 % 5 == 0 ? 5 : (5 - val10 % 5)
+        return (Float(val10 + x) / 10.0)
     }
     
     private func nextDown(val: Float) -> Float {
-        let val100 = Int(round(val * 10.0))
-        let x = val100 % 5 == 0 ? 5 : val100 % 5
-        return (Float(val100 - x) / 10.0)
+        let val10 = Int(round(val * 10.0))
+        let x = val10 % 5 == 0 ? 5 : val10 % 5
+        return (Float(val10 - x) / 10.0)
     }
     
     private func startPlayback() async throws {
@@ -334,7 +342,7 @@ struct AudioPlayerView: View {
         } else {
             // falls Fehler auftritt, Spinner weg
             do {
-                if !audioPlayer.isLoaded() {
+                if !audioPlayer.isLoaded {
                     try await audioPlayer.load(song: song)
                 }
                 try await audioPlayer.play()
@@ -342,10 +350,6 @@ struct AudioPlayerView: View {
             
             MarkerTimer.shared.stop()
         }
-    }
-    
-    private func stopPlayback() {
-        audioPlayer.stop()
     }
     
     private func rewindPlayback() {
@@ -357,7 +361,7 @@ struct AudioPlayerView: View {
     }
     
     private func validLoop(loop: PlayerLoop) -> Bool {
-        guard audioPlayer.isLoaded() else { return true }
+        guard audioPlayer.isLoaded else { return true }
         let songDuration = audioPlayer.duration
         return loop.start < songDuration && loop.stop < songDuration + 0.1 && loop.start < loop.stop
     }
