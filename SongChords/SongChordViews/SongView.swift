@@ -343,12 +343,8 @@ internal struct SongViewX: View {
     }
     
     private func showPdf() async {
-//        let delegate = await PrintSongDelegate(songID: song.persistentModelID, modelContainer: modelContext.container, autoScroll: autoScrollEnabled)
         let delegate = PrintSongDelegate(song: song, autoScroll: autoScrollEnabled)
-//        if let delegate = delegate {
-            let defaultPaper = MediaBoxes.getBox(name: userSettings.mediabox)
-            pdfUrl = delegate.createPDF(paperSize: defaultPaper)
-//        }
+        pdfUrl = delegate.createPDF()
     }
 }
 
@@ -378,7 +374,7 @@ struct DetailContent: View {
             
             ForEach(rows.filter({ return $0.chunkContent != .newpage && $0.chunkContent != .columnbreak })) { rowContent in
                 RowView(song: song, modelContext: modelContext, globals: globals, audioPlayer: audioPlayer,
-                        darkColor: darkColor, lightColor: lightColor, rowContent: rowContent, rowEvents: [], forPrinting: false, autoScroll: autoScroll)
+                        darkColor: darkColor, lightColor: lightColor, rowContent: rowContent, forPrinting: false, autoScroll: autoScroll)
             }
         }
         .padding()
@@ -394,7 +390,6 @@ struct RowView: View, Identifiable {
     let darkColor: Color
     let lightColor: Color
     let rowContent: RowContent
-    let rowEvents: [() -> Void]
     let forPrinting: Bool
     let autoScroll: Bool
     
@@ -402,10 +397,10 @@ struct RowView: View, Identifiable {
     
     var body: some View {
 //        let _ = Self._printChanges()
-//        let _ = print("rendert \(model.id)")
+//        let _ = print("rendert \(rowContent.id)")
         
         VStack(alignment: .leading, spacing: 0) {
-//            let _ = print(model.content.toString())
+//            let _ = print(rowContent.chunkContent.toString())
             
             switch rowContent.chunkContent {
             case .sectionStarted(let str, let sectionId):
@@ -442,9 +437,6 @@ struct RowView: View, Identifiable {
                 EmptyView()
             }
         }.padding(EdgeInsets(top: 0, leading: 0, bottom: forPrinting ? userSettings.linespacingpdf : userSettings.linespacing, trailing: 0))
-        .onAppear {
-            for rowEvent in rowEvents { rowEvent() }
-        }
     }
 }
 

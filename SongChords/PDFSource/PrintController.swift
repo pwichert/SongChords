@@ -10,7 +10,7 @@ import PDFKit
 import SwiftData
 
 protocol PrintDelegateBase {
-    func createPDF(paperSize: CGRect) -> URL?
+    func createPDF() -> URL?
 }
 
 class PrintSongDelegate: NSObject, PrintDelegateBase {
@@ -37,74 +37,59 @@ class PrintSongDelegate: NSObject, PrintDelegateBase {
         let _ =  await SongTaskManager.shared.manager.waitUntilFinished()
     }
     
-    // nur, um eine andere URL als beim Drucken zu haben. Sicher ist sicher.
-    func createViewPDF(paperSize: CGRect) -> URL? {
-        return songToPdf(userSettings: userSettings, paperSize: paperSize, viewURL: true)
+    func createPDF() -> URL? {
+        return songToPdf(userSettings: userSettings)
     }
+    
+    func songToPdf(userSettings: UserSettings) -> URL? {
+        let mgr = SongTaskManager.shared.representationHolder.directiveManager
+        let margins = EdgeInsets(top: userSettings.margintop, leading: userSettings.marginleft, bottom: userSettings.marginbottom, trailing: userSettings.marginright)
+        let pdfConfiguration = PDFConfiguration(mediaBox: userSettings.mediabox, margins: margins, columns: mgr.columns, scale: userSettings.printingscale / 100.0)
+        guard let pdfGenerator = try? PDFGenerator(config: pdfConfiguration, userSettings: userSettings) else { return nil }
         
-    func createPDF(paperSize: CGRect) -> URL? {
-        return songToPdf(userSettings: userSettings, paperSize: paperSize)
-    }
+        let darkColor = Color(red: 0.15, green: 0.15, blue: 0.15)
+        let lightColor = Color(red: 0.90, green: 0.90, blue: 0.90)
         
-    func songToPdf(userSettings: UserSettings, paperSize: CGRect, viewURL: Bool = false) -> URL? {
+        pdfGenerator.startPDF()
         
-        #if false
-        // zum Testen
-        do {
-            let gen = try PDFGenerator(userSettings: userSettings, mediaBox: paperSize, cols: 1)
-            
-            gen.drawTest(col: 0, view: Text("1234567").font(.system(size: userSettings.chordsize+4, weight: .bold, design: .rounded)))
-            
-            return gen.url
-        } catch { print(error.localizedDescription) ; return nil}
-        #else
-        
-        do {
-            let mgr = SongTaskManager.shared.representationHolder.directiveManager
-
-            let darkColor = Color(red: 0.15, green: 0.15, blue: 0.15)
-            let lightColor = Color(red: 0.90, green: 0.90, blue: 0.90)
-
-            let gen = try PDFGenerator(userSettings: userSettings, mediaBox: paperSize, cols: mgr.columns, viewURL: viewURL)
-            gen.startPDF()
-            
-            let title = mgr.getDirective("title") ?? song.title
-            if !title.isEmpty {
-                gen.draw(view: Text(title).font(.system(size: userSettings.chordsizepdf+4, weight: .bold, design: .rounded)))
-            }
-
-            gen.draw(view: Color.clear.padding(.bottom, 2))
-            gen.setColumnTop()
-            
-            // Funktionssammler
-            var rowEvents: [() -> Void] = []
-            
-            let rows = SongTaskManager.shared.representationHolder.rows
-            for rowContent in rows {
-                // function je nach row.rowEvent sammeln und bei nächster zeile ablegen
-                // die Rows mit newpage/columnbreak erscheinen nicht mehr, wie in DetailView()
-                switch rowContent.rowEvent {
-                case .newpage: rowEvents.append(gen.setNewPage)
-                case .columnbreak: rowEvents.append(gen.setColumnBreak)
-                case .none:
-                    gen.draw(view: RowView(song: song, modelContext: nil, globals: nil, audioPlayer: nil, darkColor: darkColor, lightColor: lightColor, rowContent: rowContent, rowEvents: rowEvents, forPrinting: true, autoScroll: autoScroll))
-                    rowEvents = []
-                }
-            }
-            
-            try gen.endPDF()
-            return gen.url
-        } catch {
-            print(error.localizedDescription)
-            return nil
+        let title = mgr.getDirective("title") ?? song.title
+        if !title.isEmpty {
+            pdfGenerator.draw(Text(title).padding(.bottom, userSettings.linespacingpdf).font(.system(size: userSettings.chordsizepdf+4, weight: .bold, design: .rounded)))
         }
-        #endif
+                
+        pdfGenerator.markColumnTop()
+        
+        // Funktionssammler
+        var rowEvents: [() -> Void] = []
+        
+        let rows = SongTaskManager.shared.representationHolder.rows
+        for rowContent in rows {
+            // function je nach row.rowEvent sammeln und bei nächster zeile ablegen
+            // die Rows mit newpage/columnbreak erscheinen nicht mehr, wie in DetailView()
+            switch rowContent.rowEvent {
+            case .newpage: rowEvents.append(pdfGenerator.forceNewPage)
+            case .columnbreak: rowEvents.append(pdfGenerator.forceColumnBreak)
+            case .none:
+                for rowEvent in rowEvents { rowEvent() }
+                rowEvents = []
+
+                pdfGenerator.draw(RowView(song: song, modelContext: nil, globals: nil, audioPlayer: nil, darkColor: darkColor, lightColor: lightColor, rowContent: rowContent, forPrinting: true, autoScroll: autoScroll))                
+            }
+        }
+        
+        pdfGenerator.endPDF()
+        
+        return pdfGenerator.url
     }
 }
 
 class PrintSetlistDelegate: NSObject, PrintDelegateBase {
     let userSettings = UserSettings()
     let playlist: PlayList
+
+    init(playlist: PlayList) {
+        self.playlist = playlist
+    }
     
     init?(playlistID: PersistentIdentifier, modelContainer: ModelContainer) {
         let modelContext = ModelContext(modelContainer)
@@ -112,34 +97,33 @@ class PrintSetlistDelegate: NSObject, PrintDelegateBase {
         self.playlist = playlist
     }
 
-    func createPDF(paperSize: CGRect) -> URL? {
-        return setlistToPDF(playlist: playlist, userSettings: userSettings, paperSize: paperSize)
+    func createPDF() -> URL? {
+        return setlistToPDF(playlist: playlist, userSettings: userSettings)
     }
         
-    func setlistToPDF(playlist: PlayList, userSettings: UserSettings, paperSize: CGRect) -> URL? {
-        do {
-            // 2-spaltig
-            let gen = try PDFGenerator(userSettings: userSettings, mediaBox: paperSize, cols: 2)
-            gen.startPDF()
-            
-            gen.draw(view: Text(playlist.title).font(.system(size: userSettings.txtsizepdf+8, weight: .bold, design: .rounded))
-                .padding(.bottom, userSettings.txtsizepdf+8))
-            
-            gen.setColumnTop()
-            let topPadding: CGFloat = 8
-
-            var cnt = 1
-            for song in (playlist.songs ?? []).sorted(by: { a,b in a.seq < b.seq }) {
-                gen.draw(view: Text("\(cnt).  \(song.title)").font(.system(size: userSettings.txtsizepdf+4, weight: .semibold, design: .rounded)).padding(.top, topPadding))
+    func setlistToPDF(playlist: PlayList, userSettings: UserSettings) -> URL? {
+        // 2-spaltig
+        let margins = EdgeInsets(top: userSettings.margintop, leading: userSettings.marginleft, bottom: userSettings.marginbottom, trailing: userSettings.marginright)
+        let pdfConfiguration = PDFConfiguration(mediaBox: userSettings.mediabox, margins: margins, columns: 2, scale: userSettings.printingscale / 100.0)
+        guard let pdfGenerator = try? PDFGenerator(config: pdfConfiguration, userSettings: userSettings) else { return nil }
                 
-                cnt += 1
-            }
-            
-            try gen.endPDF()
-            return gen.url
-        } catch {
-            print(error.localizedDescription)
-            return nil
+        pdfGenerator.startPDF()
+        
+        let title = playlist.title
+        if !title.isEmpty {
+            pdfGenerator.draw(Text(title).padding(.bottom, userSettings.linespacingpdf * 2.0).font(.system(size: userSettings.chordsizepdf+4, weight: .bold, design: .rounded)))
         }
+        
+        pdfGenerator.markColumnTop()
+        
+        var cnt = 1
+        for song in (playlist.songs ?? []).sorted(by: { a,b in a.seq < b.seq }) {
+            pdfGenerator.draw(Text("\(cnt).  \(song.title)").padding(.bottom, userSettings.linespacingpdf).font(.system(size: userSettings.txtsizepdf+4, weight: .semibold, design: .rounded)))
+            
+            cnt += 1
+        }
+        
+        pdfGenerator.endPDF()
+        return pdfGenerator.url
     }
 }

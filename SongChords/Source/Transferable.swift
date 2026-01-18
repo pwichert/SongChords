@@ -330,12 +330,10 @@ struct PDFHelper {
         print("FileRepresentation (.pdf) exported song \(title)")
         
         do {
-            let userSettings = UserSettings()
-            let defaultPaper = MediaBoxes.getBox(name: userSettings.mediabox)
             let modelContainer: ModelContainer? = GlobalModelContainer.shared
             guard let modelContainer else { throw NSError(domain: "PDFCreationError", code: 5, userInfo: ["reason": "Missing ModelContainer for PDF export"]) }
             let delegate = await PrintSongDelegate(songID: id, modelContainer: modelContainer, autoScroll: false)
-            guard let delegate = delegate, let pdfUrl = delegate.createPDF(paperSize: defaultPaper) else {
+            guard let delegate = delegate, let pdfUrl = delegate.createPDF() else {
                 throw NSError(domain: "PDFCreationError", code: 4, userInfo: ["reason": "Failed to create PDF"])
             }
             let url1 = pdfUrl.deletingLastPathComponent()
@@ -355,12 +353,10 @@ struct PDFHelper {
         print("FileRepresentation (.pdf) exported playlist \(title)")
         
         do {
-            let userSettings = UserSettings()
-            let defaultPaper = MediaBoxes.getBox(name: userSettings.mediabox)
             let modelContainer: ModelContainer? = GlobalModelContainer.shared
             guard let modelContainer else { throw NSError(domain: "PDFCreationError", code: 5, userInfo: ["reason": "Missing ModelContainer for PDF export"]) }
             let delegate = PrintSetlistDelegate(playlistID: playlistID, modelContainer: modelContainer)
-            guard let delegate = delegate, let pdfUrl = delegate.createPDF(paperSize: defaultPaper) else {
+            guard let delegate = delegate, let pdfUrl = delegate.createPDF() else {
                 throw NSError(domain: "PDFCreationError", code: 4, userInfo: ["reason": "Failed to create PDF"])
             }
             let url1 = pdfUrl.deletingLastPathComponent()
