@@ -267,15 +267,6 @@ public struct ParserResult {
     let directiveManager: Task<DirectiveManagerSendable, Error>
 }
 
-// TODO: Eingabeparameter für ChordProParser
-// um userSettings los zu werden, ist nicht in Gebrauch
-struct RenderContext {
-    let chordf: UIFont
-    let txtf: UIFont
-    let hideChords: Bool
-    let textFollowsChords: Bool
-}
-
 private struct ParserState {
     var chords: [TextElement] = []
     var texts: [TextElement] = []

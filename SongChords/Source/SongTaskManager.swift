@@ -52,7 +52,7 @@ final class SongTaskManager {
                 // Lexer [Token] -> Parser [SongRenderChunk] -> Filter [SongRenderChunk] -> RepresentationHolder.rows [RowContent] -> DetailContent [RowView]
                 //                                                                       -> RepresentationHolder.rowsForPrinting [RowContent] -> PrintSongDelegate [RowView]
                 
-                let startTime = Date.now
+//                let startTime = Date.now
 
                 let lexer = ChordProLexer(input: srcText)
                 let tokenStream = try await lexer.tokensAsStream()
