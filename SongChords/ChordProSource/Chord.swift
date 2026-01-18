@@ -184,7 +184,7 @@ public struct ParsedChord: Identifiable, Equatable, Sendable {
         return res.sorted { $0.base < $1.base }
     }
         
-    public static func parse(_ chordString: String, rootSystem: inout ChordRoot, strict: Bool) -> ParsedChord? {
+    public static func parse(_ chordString: String, rootSystem: inout ChordRoot, strict: Bool) throws -> ParsedChord? {
         if chordString.isEmpty { return nil }
         
         // Grundton
@@ -206,6 +206,8 @@ public struct ParsedChord: Identifiable, Equatable, Sendable {
             }
         }
         
+        try Task.checkCancellation()
+        
         var ext: ChordExt?
         if index < chordString.endIndex {
             ext = ChordExt.allCases.first(where: { String(chordString[index...]).lowercased().starts(with: $0.rawValue) })
@@ -213,6 +215,8 @@ public struct ParsedChord: Identifiable, Equatable, Sendable {
                 index = chordString.index(index, offsetBy: ext.rawValue.count)
             }
         }
+        
+        try Task.checkCancellation()
         
         var bsIndex: Int?
         var bassFlat: Bool = false

@@ -267,6 +267,29 @@ public struct ParserResult {
     let directiveManager: Task<DirectiveManagerSendable, Error>
 }
 
+// TODO: Eingabeparameter für ChordProParser
+// um userSettings los zu werden, ist nicht in Gebrauch
+struct RenderContext {
+    let chordf: UIFont
+    let txtf: UIFont
+    let hideChords: Bool
+    let textFollowsChords: Bool
+}
+
+private struct ParserState {
+    var chords: [TextElement] = []
+    var texts: [TextElement] = []
+    var plainText = ""
+
+    var nextChordPosition: Double = 0
+    var nextTextPosition: Double = 0
+    var minNextChordPosition: Double = 0
+
+    var numDirectives = 0
+    var isFinished = false      // falls src ohne newline endet
+    var currentSection: Int = 0
+}
+
 nonisolated
 public class ChordProParser {
     private let directiveManager = DirectiveManager()
@@ -280,17 +303,8 @@ public class ChordProParser {
     private let txtf: UIFont
     private let chordf: UIFont
         
-    private var chords: [TextElement] = []
-    private var texts: [TextElement] = []
-    private var plainText: String = ""
-    private var numDirectives: Int = 0
-    private var isFinished: Bool = false     // falls src ohne newline endet
+    private var parserState = ParserState()
     
-    private var nextChordPosition: Double = 0
-    private var nextTextPosition: Double = 0
-    private var minNextChordPosition: Double = 0
-    private var currentSection: Int = 0
-
     private let chordPadding: Double = 3
         
     public init(userSettings: UserSettingsSendable, songTranspose: Int, forPrinting: Bool = false) {
@@ -357,53 +371,53 @@ public class ChordProParser {
     }
     
     private func consume(_ token: Token?) throws -> [SongRenderChunk] {
-        if token != nil { isFinished = false }
+        if token != nil { parserState.isFinished = false }
         
         switch token {
             
         case .bracketEnclosed(let chord):
-            if let pchord = ParsedChord.parse(chord, rootSystem: &rootSystem, strict: true) {
-                let position = max(nextChordPosition, minNextChordPosition)
+            if let pchord = try ParsedChord.parse(chord, rootSystem: &rootSystem, strict: true) {
+                let position = max(parserState.nextChordPosition, parserState.minNextChordPosition)
 
                 let (str, tchord) = pchord.toString(transpose: songTranspose + directiveManager.transpose, rootSystem: &rootSystem)
                 let strLen = sizeOfString(string: str, font: chordf)
-                chords.append(TextElement(txt: str, isChordcomment: false, fontOffset: position, background: true, chord: tchord ?? pchord))
+                parserState.chords.append(TextElement(txt: str, isChordcomment: false, fontOffset: position, background: true, chord: tchord ?? pchord))
                 
                 // wenn Chords angezeigt werden, soll sich der Text danach richten
                 if showChords {
                     // textFollowsChords == true: Text genau an Chord-Position, wird danach aber evtl. auseinander gezogen
                     // sym !== symLine.symbols.first && txt.isEmpty: Text nur beim ersten Mal genau an Chord-Position, wird danach aber nicht mehr auseinander gezogen (z.B.: [Bb][B][Am]c[A]d[A]e[A][Bb][B][Am]c[A]d[A]e[A])
-                    if textFollowsChords || (chords.count > 1 && texts.isEmpty) {
-                        nextTextPosition = position
+                    if textFollowsChords || (parserState.chords.count > 1 && parserState.texts.isEmpty) {
+                        parserState.nextTextPosition = position
                     }
                 }
                 
-                nextChordPosition = position + strLen
-                minNextChordPosition = nextChordPosition + chordPadding
+                parserState.nextChordPosition = position + strLen
+                parserState.minNextChordPosition = parserState.nextChordPosition + chordPadding
                 
             } else {
                 // kein Chord -> chordcomment oder section
-                let position = nextChordPosition
+                let position = parserState.nextChordPosition
                 let isChordcomment = chord.starts(with: "*")
                 let str = processReplace(srcline: isChordcomment ? String(chord.dropFirst()) : chord, root: &rootSystem)
                 let strLen = sizeOfString(string: str, font: chordf)
-                chords.append(TextElement(txt: str, isChordcomment: isChordcomment, fontOffset: position, background: false, chord: nil))
+                parserState.chords.append(TextElement(txt: str, isChordcomment: isChordcomment, fontOffset: position, background: false, chord: nil))
                 
                 if showChords {
                     // siehe oben
-                    if textFollowsChords || (chords.count > 1 && texts.isEmpty) {
-                        nextTextPosition = position
+                    if textFollowsChords || (parserState.chords.count > 1 && parserState.texts.isEmpty) {
+                        parserState.nextTextPosition = position
                     }
                 }
                 
-                nextChordPosition = position + strLen
-                minNextChordPosition = nextChordPosition
+                parserState.nextChordPosition = position + strLen
+                parserState.minNextChordPosition = parserState.nextChordPosition
             }
 
             return []
             
         case .curlyEnclosed(let directive):
-            numDirectives += 1
+            parserState.numDirectives += 1
 
             if let d = directiveManager.addDirective(processReplace(srcline: directive, root: &rootSystem)) {
 
@@ -415,9 +429,9 @@ public class ChordProParser {
                     return [SongRenderChunk(content: .newpage)]
 
                 case .start_of_verse, .start_of_bridge, .start_of_chorus:
-                    currentSection += 1
+                    parserState.currentSection += 1
                     let val = directiveManager.getDirective(d.rawValue) ?? ""
-                    return [SongRenderChunk(content: .sectionStarted(val, currentSection - 1))]
+                    return [SongRenderChunk(content: .sectionStarted(val, parserState.currentSection - 1))]
                     
                 case .end_of_verse, .end_of_bridge, .end_of_chorus:
                     return [SongRenderChunk(content: .sectionEnded)]
@@ -425,7 +439,7 @@ public class ChordProParser {
                 case .comment, .comment_box, .comment_italic:
                     let val = directiveManager.getDirective(d.rawValue) ?? ""
                     let strLen = sizeOfString(string: val, font: txtf)
-                    texts.append(TextElement(txt: val, isChordcomment: false, fontOffset: nextTextPosition, background: false, chord: nil))
+                    parserState.texts.append(TextElement(txt: val, isChordcomment: false, fontOffset: parserState.nextTextPosition, background: false, chord: nil))
                     textCleanup(str: val, strLen: strLen)
 
                 default: break
@@ -433,7 +447,7 @@ public class ChordProParser {
             } else {
                 let str = processReplace(srcline: directive, root: &rootSystem)
                 let strLen = sizeOfString(string: str, font: txtf)
-                texts.append(TextElement(txt: str, isChordcomment: false, fontOffset: nextTextPosition, background: false, chord: nil))
+                parserState.texts.append(TextElement(txt: str, isChordcomment: false, fontOffset: parserState.nextTextPosition, background: false, chord: nil))
                 textCleanup(str: str, strLen: strLen)
             }
             
@@ -442,16 +456,16 @@ public class ChordProParser {
         case .text(let text):
             let str = processReplace(srcline: text, root: &rootSystem)
             let strLen = sizeOfString(string: str, font: txtf)
-            texts.append(TextElement(txt: str, isChordcomment: false, fontOffset: nextTextPosition, background: false, chord: nil))
-            plainText.append(str)
+            parserState.texts.append(TextElement(txt: str, isChordcomment: false, fontOffset: parserState.nextTextPosition, background: false, chord: nil))
+            parserState.plainText.append(str)
             
             textCleanup(str: str, strLen: strLen)
             return []
 
         case .comment(let text):
             let strLen = sizeOfString(string: text, font: txtf)
-            texts.append(TextElement(txt: text, isChordcomment: false, fontOffset: nextTextPosition, background: false, chord: nil))
-            plainText.append(text)
+            parserState.texts.append(TextElement(txt: text, isChordcomment: false, fontOffset: parserState.nextTextPosition, background: false, chord: nil))
+            parserState.plainText.append(text)
             
             textCleanup(str: text, strLen: strLen)
             return []
@@ -460,71 +474,75 @@ public class ChordProParser {
             return []
             
         case .newLine, nil:
-            if let res = flush() { return res } else { return [] }
+            let chunks = finalizeLine()
+            resetLinestate()
+            return chunks
         }
                 
         /* ----- Ende func ----- */
 
         
         /* ----- lokale Hilfsfunktionen ----- */
-
-        func flush() -> [SongRenderChunk]? {
-            if isFinished { return nil }
-            isFinished = true
+        
+        func finalizeLine() -> [SongRenderChunk] {
+            if parserState.isFinished { return [] }
+            parserState.isFinished = true
             
             // Falls Chords da sind und Text nur aus whitespaces besteht, dann wurde der Text nur aus den Chordzwischenräumen erzeugt: [Am]  [Am]  [Am]
-            if !chords.isEmpty && !texts.isEmpty && ParserHelper.allWhitespace(elements: texts) {
+            if !parserState.chords.isEmpty && !parserState.texts.isEmpty && ParserHelper.allWhitespace(elements: parserState.texts) {
                 // Und dann muss er weg
-                texts = []
-                plainText = ""
+                parserState.texts = []
+                parserState.plainText = ""
             }
             
             var res: [SongRenderChunk] = []
             
-            if chords.count == 1 && ParserHelper.allWhitespace(elements: texts), let chord = chords.first, chord.chord == nil, !chord.isChordcomment {
+            if parserState.chords.count == 1 && ParserHelper.allWhitespace(elements: parserState.texts), let chord = parserState.chords.first, chord.chord == nil, !chord.isChordcomment {
                 // Sectionstart
-                currentSection += 1
-                res.append(SongRenderChunk(content: .sectionStarted(chord.txt, currentSection - 1)))
+                parserState.currentSection += 1
+                res.append(SongRenderChunk(content: .sectionStarted(chord.txt, parserState.currentSection - 1)))
             } else {
                 // Zeilen nur aus Directiven bestehend werden ignoriert, ansonsten Leerzeile
-                if chords.isEmpty && ParserHelper.allWhitespace(elements: texts) {
-                    if numDirectives == 0 {
+                if parserState.chords.isEmpty && ParserHelper.allWhitespace(elements: parserState.texts) {
+                    if parserState.numDirectives == 0 {
                         res.append(SongRenderChunk(content: .emptyline))
                     }
                 } else {
-                    if ParserHelper.allWhitespace(elements: texts) {
+                    if ParserHelper.allWhitespace(elements: parserState.texts) {
                         // kein Text -> .chordline
-                        res.append(SongRenderChunk(content: .chordline(chords)))
-                    } else if chords.isEmpty {
+                        res.append(SongRenderChunk(content: .chordline(parserState.chords)))
+                    } else if parserState.chords.isEmpty {
                         // keine chords -> .textline
-                        res.append(SongRenderChunk(content: .textline(texts, plaintext: plainText)))
+                        res.append(SongRenderChunk(content: .textline(parserState.texts, plaintext: parserState.plainText)))
                     } else {
                         // beides -> .splittedline
-                        res.append(SongRenderChunk(content: .splittedline(chords: chords, texts: texts, plaintext: plainText)))
+                        res.append(SongRenderChunk(content: .splittedline(chords: parserState.chords, texts: parserState.texts, plaintext: parserState.plainText)))
                     }
                 }
             }
 
-            texts = []
-            chords = []
-            plainText = ""
-            nextChordPosition = 0
-            nextTextPosition = 0
-            minNextChordPosition = 0
-            numDirectives = 0
-
             return res
+        }
+        
+        func resetLinestate() {
+            parserState.texts = []
+            parserState.chords = []
+            parserState.plainText = ""
+            parserState.nextChordPosition = 0
+            parserState.nextTextPosition = 0
+            parserState.minNextChordPosition = 0
+            parserState.numDirectives = 0
         }
         
         func textCleanup(str: String, strLen: Double) {
             // Chordabstand erzeugen, falls nur Whitespace
             if str.trimmingCharacters(in: .whitespaces).count == 0 {
-                nextChordPosition += sizeOfString(string: str, font: chordf)
+                parserState.nextChordPosition += sizeOfString(string: str, font: chordf)
             }
             
             // Text direkt hintereinander setzen
-            nextTextPosition += strLen
-            nextChordPosition = max(nextTextPosition, nextChordPosition)
+            parserState.nextTextPosition += strLen
+            parserState.nextChordPosition = max(parserState.nextTextPosition, parserState.nextChordPosition)
         }
     }
     
@@ -549,7 +567,7 @@ public class ChordProParser {
                             case DirectiveNamesSpecial.key_actual:
                                 let key = directiveManager.getDirective(DirectiveType.key.rawValue)
                                 if let key = key {
-                                    let chord = ParsedChord.parse(key, rootSystem: &root, strict: true)
+                                    let chord = try? ParsedChord.parse(key, rootSystem: &root, strict: true)
                                     if let chord = chord {
                                         (repl, _) = chord.toString(transpose: directiveManager.transpose, rootSystem: &root)
                                     }
@@ -578,8 +596,21 @@ public class ChordProParser {
         return res
     }
     
+    let textMetricsCache = TextMetricsCache()
     private func sizeOfString(string: String, font: UIFont) -> Double {
-        let fontAttributes = [NSAttributedString.Key.font: font]
-        return string.size(withAttributes: fontAttributes).width
+        return textMetricsCache.width(of: string, font: font)
+    }
+}
+
+nonisolated
+final class TextMetricsCache {
+    private var cache: [String: Double] = [:]
+
+    func width(of string: String, font: UIFont) -> Double {
+        let key = "\(font.fontName)-\(font.pointSize)-\(string)"
+        if let w = cache[key] { return w }
+        let w = string.size(withAttributes: [.font: font]).width
+        cache[key] = w
+        return w
     }
 }

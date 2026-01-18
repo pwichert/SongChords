@@ -52,6 +52,8 @@ final class SongTaskManager {
                 // Lexer [Token] -> Parser [SongRenderChunk] -> Filter [SongRenderChunk] -> RepresentationHolder.rows [RowContent] -> DetailContent [RowView]
                 //                                                                       -> RepresentationHolder.rowsForPrinting [RowContent] -> PrintSongDelegate [RowView]
                 
+                let startTime = Date.now
+
                 let lexer = ChordProLexer(input: srcText)
                 let tokenStream = try await lexer.tokensAsStream()
                 
@@ -67,9 +69,11 @@ final class SongTaskManager {
                     await self.representationHolder.append(chunk)
                 }
                 await self.representationHolder.isFinished()
-                
+                                
                 let directiveManager = try await parserResult.directiveManager.value
                 await self.representationHolder.setDirectiveManager(directiveManager)
+
+//                print(Date.now.timeIntervalSince(startTime))
 
             } catch is CancellationError {
                 print("processSongInBackground cancelled")
