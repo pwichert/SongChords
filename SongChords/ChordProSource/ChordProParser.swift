@@ -267,6 +267,45 @@ public struct ParserResult {
     let directiveManager: Task<DirectiveManagerSendable, Error>
 }
 
+enum CacheResult<T> {
+    case miss
+    case hit(T?)
+}
+
+nonisolated
+struct ChordCacheKey: Hashable {
+    let chord: String
+    let rootSystemID: ObjectIdentifier
+    let strict: Bool
+}
+
+actor ParsedChordCache {
+    private var cache: [ChordCacheKey: ParsedChord?] = [:]
+
+    private var hits: Int = 0
+    private var misses: Int = 0
+    
+    func get(_ key: ChordCacheKey) -> CacheResult<ParsedChord> {
+        switch cache[key] {
+        // kein Wert vorhanden
+        case .none:
+            misses += 1
+//            print("\(cache.count) hits \(hits) misses \(misses) \(key.chord)")
+            return .miss
+            
+        // Wert nil oder ParsedChord
+        case .some(let value):
+            hits += 1
+//            print("\(cache.count) hits \(hits) misses \(misses) \(key.chord)")
+            return .hit(value)
+        }
+    }
+
+    func set(_ key: ChordCacheKey, value: ParsedChord?) {
+        cache[key] = value
+    }
+}
+
 private struct ParserState {
     var chords: [TextElement] = []
     var texts: [TextElement] = []
@@ -295,6 +334,7 @@ public class ChordProParser {
     private let chordf: UIFont
         
     private var parserState = ParserState()
+    private static let sharedChordCache = ParsedChordCache()
     
     private let chordPadding: Double = 3
         
@@ -332,13 +372,13 @@ public class ChordProParser {
                 for try await token in tokens {
                     try Task.checkCancellation()
 
-                    let chunk = try parser.consume(token)
+                    let chunk = try await parser.consume(token)
                     if !chunk.isEmpty {
                         continuation.yield(chunk)
                     }
                 }
 
-                let final = try parser.consume(nil)
+                let final = try await parser.consume(nil)
                 if !final.isEmpty {
                     continuation.yield(final)
                 }
@@ -361,13 +401,27 @@ public class ChordProParser {
         )
     }
     
-    private func consume(_ token: Token?) throws -> [SongRenderChunk] {
+    private func consume(_ token: Token?) async throws -> [SongRenderChunk] {
         if token != nil { parserState.isFinished = false }
         
         switch token {
             
         case .bracketEnclosed(let chord):
-            if let pchord = try ParsedChord.parse(chord, rootSystem: &rootSystem, strict: true) {
+            // Cache fragen
+            let key = ChordCacheKey(chord: chord, rootSystemID: ObjectIdentifier(type(of: rootSystem)), strict: true)
+            var p: ParsedChord?
+            
+            switch await ChordProParser.sharedChordCache.get(key) {
+            case .miss:
+                let parsed = try ParsedChord.parse(chord, rootSystem: &rootSystem, strict: true)
+                await ChordProParser.sharedChordCache.set(key, value: parsed)
+                p = parsed
+
+            case .hit(let value):
+                p = value   // kann nil oder ParsedChord sein
+            }
+            
+            if let pchord = p {
                 let position = max(parserState.nextChordPosition, parserState.minNextChordPosition)
 
                 let (str, tchord) = pchord.toString(transpose: songTranspose + directiveManager.transpose, rootSystem: &rootSystem)

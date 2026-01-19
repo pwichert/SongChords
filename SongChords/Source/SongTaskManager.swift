@@ -85,7 +85,7 @@ final class SongTaskManager {
     }
 }
 
-protocol RowBuilding {
+private protocol RowBuilding {
     func append(_ chunks: [SongRenderChunk])
     func finish() -> (rows:[RowContent], sections: [Int:SectionModel])
 }
@@ -95,7 +95,7 @@ enum RowTarget {
     case printing
 }
 
-final class ScreenRowBuilder: RowBuilding {
+private final class ScreenRowBuilder: RowBuilding {
     private var rows: [RowContent] = []
     private var sections: [Int: SectionModel] = [:]
     private var currentSectionId: Int?
@@ -138,7 +138,7 @@ final class ScreenRowBuilder: RowBuilding {
     }
 }
 
-final class PrintRowBuilder: RowBuilding {
+private final class PrintRowBuilder: RowBuilding {
     private var rows: [RowContent] = []
 
     func append(_ chunks: [SongRenderChunk]) {
