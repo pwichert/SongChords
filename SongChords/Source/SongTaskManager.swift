@@ -63,8 +63,7 @@ final class SongTaskManager {
                 let chunkFilter = ViewFilter(userSettings: userSettings, showHeader: showHeader, showText: showText)
                 let filteredStream = await chunkFilter.chunksAsStream(chunks: parserResult.stream)
                 
-                await self.representationHolder.reset()
-                await self.representationHolder.setBuilder(forPrinting: forPrinting)
+                await self.representationHolder.reset(rowTarget: forPrinting ? .printing : .screen)
                 
                 for try await chunk in filteredStream {
                     try Task.checkCancellation()
@@ -89,7 +88,11 @@ final class SongTaskManager {
 protocol RowBuilding {
     func append(_ chunks: [SongRenderChunk])
     func finish() -> (rows:[RowContent], sections: [Int:SectionModel])
-    func reset()
+}
+
+enum RowTarget {
+    case screen
+    case printing
 }
 
 final class ScreenRowBuilder: RowBuilding {
@@ -113,26 +116,25 @@ final class ScreenRowBuilder: RowBuilding {
                 }
             }
 
+            // row für DetailView hinzufügen
             let row = RowContent(sectionId: currentSectionId, chunkContent: chunk.content, rowEvent: event)
-
             rows.append(row)
 
+            // Section suchen und row der Section-Struktur hinzufügen
             if let currentSectionId,
                let section = sections[currentSectionId] {
                 section.rows.append(row)
-                section.headerRowID = row.id
+                
+                //Header-UUID der Section-Struktur hinzufügen
+                if section.headerRowID == nil {
+                    section.headerRowID = row.id
+                }
             }
         }
     }
 
     func finish() -> (rows: [RowContent], sections: [Int: SectionModel]) {
         (rows, sections)
-    }
-
-    func reset() {
-        rows = []
-        sections = [:]
-        currentSectionId = nil
     }
 }
 
@@ -154,10 +156,6 @@ final class PrintRowBuilder: RowBuilding {
     func finish() -> (rows: [RowContent], sections: [Int : SectionModel]) {
         (rows, [:])
     }
-    
-    func reset() {
-        rows = []
-    }
 }
 
 @Observable
@@ -178,97 +176,34 @@ class RepresentationHolder {
     private(set) var sections: [Int:SectionModel] = [:]
     
     @ObservationIgnored
-    var builder: RowBuilding = ScreenRowBuilder()
+    private var rowTarget: RowTarget = .screen
+    
+    @ObservationIgnored
+    private var rowBuilder: RowBuilding = ScreenRowBuilder()
         
-    func setBuilder(forPrinting: Bool) {
-        builder = forPrinting ? PrintRowBuilder() : ScreenRowBuilder()
-    }
-
     func append(_ chunks: [SongRenderChunk]) {
-        builder.append(chunks)
+        rowBuilder.append(chunks)
     }
     
     func finish() {
-        let (r, s) = builder.finish()
-        if builder is ScreenRowBuilder {
-            rows = r
-            sections = s
-        } else {
-            rowsForPrinting = r
+        switch self.rowTarget {
+        case .screen: (rows, sections) = rowBuilder.finish()
+        case .printing: (rowsForPrinting, _) = rowBuilder.finish()
         }
     }
     
-    func reset() {
-        builder.reset()
+    func reset(rowTarget: RowTarget) {
+        self.rowTarget = rowTarget
+        
+        switch rowTarget {
+        case .screen: rowBuilder = ScreenRowBuilder()
+        case .printing: rowBuilder = PrintRowBuilder()
+        }
     }
-
-    
-//    func appendForPrinting(_ chunks: [SongRenderChunk]) {
-//        for chunk in chunks {
-//            let rowEvent: RowEvent? = switch chunk.content {
-//                case .newpage: .newpage
-//                case .columnbreak: .columnbreak
-//                default:  nil
-//            }
-//            
-//            // row für DetailView hinzufügen
-//            let row = RowContent(sectionId: 0, chunkContent: chunk.content, rowEvent: rowEvent)
-//            silentRows.append(row)
-//        }
-//    }
-//    
-//    func append(_ chunks: [SongRenderChunk]) {
-//        // parser-token in entsprechenden event für RowContent umsetzen
-//        for chunk in chunks {
-//            let rowEvent: RowEvent? = switch chunk.content {
-//                case .newpage: .newpage
-//                case .columnbreak: .columnbreak
-//                default:  nil
-//            }
-//            
-//            if let secId = chunk.sectionId {
-//                currentSectionId = secId
-//                if sections[secId] == nil {
-//                    sections[secId] = SectionModel(id: secId)
-//                }
-//            }
-//            
-//            // row für DetailView hinzufügen
-//            let row = RowContent(sectionId: currentSectionId, chunkContent: chunk.content, rowEvent: rowEvent)
-//            silentRows.append(row)
-//
-//            // Section suchen und row der Section-Struktur hinzufügen
-//            if let currentSectionId, let section = sections[currentSectionId] {
-//                section.rows.append(row)
-//                
-//                // Header-UUID der Section-Struktur hinzufügen
-//                if section.headerRowID == nil {
-//                    section.headerRowID = row.id
-//                }
-//            }
-//        }
-//    }
-//    
-//    func reset() {
-//        silentRows = []
-//        currentSectionId = nil
-//        sections = [:]
-//    }
     
     func resetRowContent() {
         rows = []
     }
-    
-//    func isFinished(forPrinting: Bool) {
-//        if !silentRows.isEmpty {
-//            if forPrinting {
-//                rowsForPrinting = silentRows
-//            } else {
-//                rows = silentRows
-//            }
-//            silentRows = []
-//        }
-//    }
 }
 
 enum RowEvent {
