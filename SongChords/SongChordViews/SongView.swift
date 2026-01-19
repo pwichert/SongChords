@@ -343,8 +343,9 @@ internal struct SongViewX: View {
     }
     
     private func showPdf() async {
-        let delegate = PrintSongDelegate(song: song, autoScroll: autoScrollEnabled)
-        pdfUrl = delegate.createPDF()
+        if let delegate = await PrintSongDelegate(songID: song.id, modelContainer: modelContext.container, autoScroll: autoScrollEnabled) {
+            pdfUrl = delegate.createPDF()
+        }
     }
 }
 
