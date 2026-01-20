@@ -22,6 +22,7 @@ struct InfoContentView<Content: View>: View {
         #if os(macOS)
         ScrollView {
             content
+                .font(.default)
                 .padding()
         }
         .frame(idealHeight: 500)
@@ -36,7 +37,7 @@ struct InfoContentView<Content: View>: View {
         #else
         Form {
             content
-                .font(.footnote)
+                .font(.default)
                 .padding()
         }
         .navigationTitle(navigationTitle)
