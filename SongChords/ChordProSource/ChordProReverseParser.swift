@@ -7,8 +7,11 @@
 
 public class ChordProReverseParser {
     private(set) var chunks: [SongRenderChunk] = []
+    private var rootSystem: ChordRoot
     
-    public init() {}
+    public init(rootSystem: ChordRoot) {
+        self.rootSystem = rootSystem
+    }
     
     public func toString() -> String {
         var res: String = ""
@@ -20,8 +23,8 @@ public class ChordProReverseParser {
                 res.append("[" + section + "]\n")
                 
             case .splittedline(chords: let chords, texts: let texts, plaintext: let plaintext):
-                var split = SplittedLine(chords: chords, texts: texts, plainText: plaintext)
-                res.append(mixSplittedLine(splittedLine: &split) + "\n")
+                let split = SplittedLine(chords: chords, texts: texts, plainText: plaintext)
+                res.append(mixSplittedLine(splittedLine: split) + "\n")
                 
             default:
                 break
@@ -31,7 +34,7 @@ public class ChordProReverseParser {
         return res
     }
         
-    public func parse(input: String, rootSystem: inout ChordRoot) {
+    public func parse(input: String) {
         var lines = [String]()
         input.enumerateLines{ (line, _) -> () in
             let cleanLine = line.replacingOccurrences(of: "\r", with: "")
@@ -48,7 +51,7 @@ public class ChordProReverseParser {
         for line in lines {
             cnt -= 1
             
-            let curLine = isChordline(line: line, rootSystem: &rootSystem)
+            let curLine = isChordline(line: line)
             
             if line.starts(with: "[") && line.last == "]" {
                 let s = line.index(after: line.startIndex)
@@ -87,7 +90,7 @@ public class ChordProReverseParser {
         }
     }
     
-    private func isChordline(line: String, rootSystem: inout ChordRoot) -> (textElement: [TextElement], isChord: Bool) {
+    private func isChordline(line: String) -> (textElement: [TextElement], isChord: Bool) {
         let spl = splitWords(line: line)
         
         var chords: [TextElement] = []
@@ -140,7 +143,7 @@ public class ChordProReverseParser {
         return res
     }
     
-    private func mixSplittedLine(splittedLine: inout SplittedLine) -> String {
+    private func mixSplittedLine(splittedLine: SplittedLine) -> String {
         var txt = splittedLine.textsToString() ?? ""
         
         // absteigend sortiert

@@ -220,7 +220,7 @@ internal struct SongViewX: View {
             updateSongRepresentation()
         }
         .onDisappear {
-            // Wenn die Playlist gewechselt und ein anderer Song selektiert wird,
+            // Wenn nach der PDF-Ansicht ein anderer Song selektiert wird,
             // kann man sonst noch kurz den alten Song sehen
             SongTaskManager.shared.representationHolder.resetRowContent()
         }

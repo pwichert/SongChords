@@ -423,11 +423,11 @@ internal struct SongListViewX: View {
         let cb = UIPasteboard.general.string
         #endif
         
-        if !(cb ?? "").isEmpty {
-            var root: ChordRoot = userSettings.isGermanNotation ? EnglishGermanRoot() : EnglishDutchRoot()
+        if let cb, !cb.isEmpty {
+            let root: ChordRoot = userSettings.isGermanNotation ? EnglishGermanRoot() : EnglishDutchRoot()
             
-            let chordProReverseParser = ChordProReverseParser()
-            chordProReverseParser.parse(input: cb!, rootSystem: &root)
+            let chordProReverseParser = ChordProReverseParser(rootSystem: root)
+            chordProReverseParser.parse(input: cb)
             let txt = chordProReverseParser.toString()
             
             do {
