@@ -62,7 +62,7 @@ struct AudioPlayerView: View {
                             #else
                             .font(.subheadline)
                             #endif
-                            .foregroundStyle(validLoop(loop: playerLoop) ? Color.primary : Color.red)
+                            .foregroundStyle(audioPlayer.isValidLoop(loop: playerLoop) ? Color.primary : Color.red)
                         }
                         .onDelete(perform: { indices in
                             var idxSet = Set<UUID>()
@@ -360,13 +360,6 @@ struct AudioPlayerView: View {
         }
     }
     
-    private func validLoop(loop: PlayerLoop) -> Bool {
-        guard audioPlayer.isLoaded else { return true }
-        let maxLoopStop = max(0, audioPlayer.duration - 2.0 * audioPlayer.tickerSleepInterval)
-        let minLoopDuration = 2.0 * audioPlayer.tickerSleepInterval
-        return loop.stop < maxLoopStop && loop.start < loop.stop && loop.stop - loop.start > minLoopDuration
-    }
-    
     private func setSongPitch(_ pitch: Float) {
         do {
             let (uuidStr, _) = try song.getMP3Info()
@@ -614,6 +607,7 @@ struct PlayerLoopEditView: View {
     
     @Environment(\.modelContext) private var modelContext
     @Environment(Globals.self) private var globals
+    @Environment(AudioPlayer.self) private var audioPlayer
 
     var body: some View {
         HStack(alignment: .center) {
@@ -624,7 +618,7 @@ struct PlayerLoopEditView: View {
                 } label: {
                     Image(systemName: active ? "checkmark.square" : "square").font(.title)
                 }
-                .disabled(GlobalFunctions.isDisabled(song: song) || currentLoop.stop == 0 || currentLoop.start >= currentLoop.stop)
+                .disabled(GlobalFunctions.isDisabled(song: song))
                 Text("").font(.footnote)
             }
             
@@ -633,6 +627,7 @@ struct PlayerLoopEditView: View {
                 .disabled(song.musicItemId.isEmpty)
                 .font(.body)
                 .textFieldStyle(RoundedBorderTextFieldStyle())
+                .foregroundStyle(audioPlayer.isValidLoop(loop: currentLoop) ? Color.primary : Color.red)
             SetButtonView(song: song, txt: "Start", point: $currentLoop.start)
             SetButtonView(song: song, txt: "End", point: $currentLoop.stop)
             
@@ -643,7 +638,7 @@ struct PlayerLoopEditView: View {
                 } label: {
                     Image(systemName: "square.and.arrow.down").font(.title)
                 }
-                .disabled(GlobalFunctions.isDisabled(song: song) || currentLoop.stop == 0 || currentLoop.start >= currentLoop.stop)
+                .disabled(GlobalFunctions.isDisabled(song: song) || !audioPlayer.isValidLoop(loop: currentLoop))
                 Text("").font(.footnote)
             }
         }

@@ -187,7 +187,7 @@ final class AudioPlayer {
                 let currentPosition = e.position
 
                 // loop evtl wieder auf anfang
-                if let l = loop, l.start < l.stop, currentPosition < max(l.start, 0) || currentPosition >= min(l.stop, duration) {
+                if let l = loop, isValidLoop(loop: l), currentPosition < max(l.start, 0) || currentPosition >= min(l.stop, duration) {
 //                    print("korrigiert von \(currentPosition) auf \(max(l.start, 0))")
                     e.position = max(l.start, 0)
                 }
@@ -229,6 +229,13 @@ final class AudioPlayer {
     
     func setDefaults() {
         transport = TransportState()
+    }
+    
+    func isValidLoop(loop: PlayerLoop) -> Bool {
+        guard isLoaded else { return true }
+        let maxLoopStop = max(0, duration - 2.0 * tickerSleepInterval)
+        let minLoopDuration = 2.0 * tickerSleepInterval
+        return loop.stop > 0.0 && loop.stop < maxLoopStop && loop.start < loop.stop && loop.stop - loop.start > minLoopDuration
     }
 }
 
