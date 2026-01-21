@@ -362,8 +362,8 @@ struct AudioPlayerView: View {
     
     private func validLoop(loop: PlayerLoop) -> Bool {
         guard audioPlayer.isLoaded else { return true }
-        let songDuration = audioPlayer.duration
-        return loop.start < songDuration && loop.stop < songDuration + 0.1 && loop.start < loop.stop
+        let maxLoopDuration = max(0, audioPlayer.duration - 0.5)
+        return loop.stop <= maxLoopDuration && loop.start < loop.stop
     }
     
     private func setSongPitch(_ pitch: Float) {
@@ -464,7 +464,6 @@ struct MusicContentView: View {
                             song.tryRemoveMP3() // falls schon MP3 geladen wurde, erst löschen
                             song.musicItemId = id
                             try modelContext.save()
-//                            try await audioPlayer.load(song: song)
                         } catch (let error) {
                             globals.setSongChordsError(error: error)
                         }
