@@ -15,6 +15,7 @@
 import SwiftUI
 import MusicKit
 import AVFoundation
+import SwiftData
 
 enum PlayerError: Error, LocalizedError {
     case notFound
@@ -232,11 +233,25 @@ final class AudioPlayer {
     }
     
     func isValidLoop(loop: PlayerLoop) -> Bool {
-        guard isLoaded else { return true }
-        let maxLoopStop = max(0, duration - 2.0 * tickerSleepInterval)
-        let minLoopDuration = 2.0 * tickerSleepInterval
+        let maxLoopStop = max(0, duration - 2.5 * tickerSleepInterval)
+        let minLoopDuration = 2.5 * tickerSleepInterval
         return loop.stop > 0.0 && loop.stop < maxLoopStop && loop.start < loop.stop && loop.stop - loop.start > minLoopDuration
     }
+}
+
+actor MusicItemCache {
+    typealias MusicID = String
+    private var cache: [MusicID: MusicKit.Song?] = [:]
+
+    func get(_ id: MusicID) -> MusicKit.Song?? {
+        cache[id]
+    }
+
+    func set(_ id: MusicID, value: MusicKit.Song?) {
+        cache[id] = value
+    }
+
+    func clear() { cache.removeAll() }
 }
 
 final class AppleMusicEngine: AudioEngine {
@@ -266,7 +281,8 @@ final class AppleMusicEngine: AudioEngine {
     var pitch: Float = 0
     
     private var musicAuthorizationStatus: MusicAuthorization.Status = .notDetermined
-
+    private static let sharedMusicItemCache = MusicItemCache()
+    
     init() async throws {
         try await handleAuthorizationStatus()
     }
@@ -274,13 +290,28 @@ final class AppleMusicEngine: AudioEngine {
     func load(song: Song) async throws {
         loaded = false
         
-        let req = MusicCatalogResourceRequest<MusicKit.Song>(
-            matching: \.id,
-            equalTo: MusicItemID(song.musicItemId)
-        )
+        var item: MusicItemCollection<MusicKit.Song>.Element?
         
-        let res = try await req.response()
-        guard let item = res.items.first else { throw PlayerError.notFound }
+        let key = song.musicItemId
+
+        switch await AppleMusicEngine.sharedMusicItemCache.get(key) {
+        case .some(let value):
+            item = value   // kann nil oder Song sein
+            print("cache")
+
+        case .none:
+            let req = MusicCatalogResourceRequest<MusicKit.Song>(
+                matching: \.id,
+                equalTo: MusicItemID(song.musicItemId)
+            )
+            
+            let res = try await req.response()
+            let fetched = res.items.first
+            await AppleMusicEngine.sharedMusicItemCache.set(key, value: fetched)
+            item = fetched
+        }
+        
+        guard let item = item else { throw PlayerError.notFound }
         
         duration = item.duration ?? 0
         player.queue = [item]

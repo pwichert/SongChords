@@ -62,7 +62,7 @@ struct AudioPlayerView: View {
                             #else
                             .font(.subheadline)
                             #endif
-                            .foregroundStyle(audioPlayer.isValidLoop(loop: playerLoop) ? Color.primary : Color.red)
+                            .foregroundStyle(!audioPlayer.isLoaded || audioPlayer.isValidLoop(loop: playerLoop) ? Color.primary : Color.red)
                         }
                         .onDelete(perform: { indices in
                             var idxSet = Set<UUID>()
@@ -627,7 +627,7 @@ struct PlayerLoopEditView: View {
                 .disabled(song.musicItemId.isEmpty)
                 .font(.body)
                 .textFieldStyle(RoundedBorderTextFieldStyle())
-                .foregroundStyle(audioPlayer.isValidLoop(loop: currentLoop) ? Color.primary : Color.red)
+                .foregroundStyle(!audioPlayer.isLoaded || audioPlayer.isValidLoop(loop: currentLoop) ? Color.primary : Color.red)
             SetButtonView(song: song, txt: "Start", point: $currentLoop.start)
             SetButtonView(song: song, txt: "End", point: $currentLoop.stop)
             
