@@ -362,8 +362,8 @@ struct AudioPlayerView: View {
     
     private func validLoop(loop: PlayerLoop) -> Bool {
         guard audioPlayer.isLoaded else { return true }
-        let maxLoopStop = max(0, audioPlayer.duration - 2 * audioPlayer.tickerSleepInterval)
-        let minLoopDuration = 2 * audioPlayer.tickerSleepInterval
+        let maxLoopStop = max(0, audioPlayer.duration - 2.0 * audioPlayer.tickerSleepInterval)
+        let minLoopDuration = 2.0 * audioPlayer.tickerSleepInterval
         return loop.stop < maxLoopStop && loop.start < loop.stop && loop.stop - loop.start > minLoopDuration
     }
     
