@@ -80,6 +80,8 @@ protocol AudioEngine {
 final class AudioPlayer {
     private var transport = TransportState()
         
+    let tickerSleepInterval: TimeInterval = 0.2
+    
     @ObservationIgnored
     private var engine: AudioEngine?
     var isLoaded: Bool { get { engine?.isLoaded ?? false }}
@@ -201,7 +203,7 @@ final class AudioPlayer {
                     return
                 }
                 
-                try? await Task.sleep(for: .milliseconds(200))
+                try? await Task.sleep(for: .seconds(tickerSleepInterval))
             }
         }
     }

@@ -362,8 +362,9 @@ struct AudioPlayerView: View {
     
     private func validLoop(loop: PlayerLoop) -> Bool {
         guard audioPlayer.isLoaded else { return true }
-        let maxLoopDuration = max(0, audioPlayer.duration - 0.5)
-        return loop.stop <= maxLoopDuration && loop.start < loop.stop
+        let maxLoopStop = max(0, audioPlayer.duration - 2 * audioPlayer.tickerSleepInterval)
+        let minLoopDuration = 2 * audioPlayer.tickerSleepInterval
+        return loop.stop < maxLoopStop && loop.start < loop.stop && loop.stop - loop.start > minLoopDuration
     }
     
     private func setSongPitch(_ pitch: Float) {
