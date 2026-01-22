@@ -243,7 +243,7 @@ struct AudioPlayerView: View {
         // außer bei inPositionEditing == true, wenn also der Slider bewegt wird.
         // Scrubbing verhindern durch Kopie für Slider in $songPosition und nicht direkt auf audioPlayer.songPosition
         .onChange(of: inPositionEditing) {
-            print("change inPositionEditing \(inPositionEditing)")
+//            print("change inPositionEditing \(inPositionEditing)")
             if !inPositionEditing { audioPlayer.position = songPosition }
         }
         .onChange(of: audioPlayer.position) { _, newValue in
@@ -252,7 +252,7 @@ struct AudioPlayerView: View {
         }
         // Loop selektiert
         .onChange(of: selectedLoop) {
-            print("change selectedLoop")
+//            print("change selectedLoop")
             if let selectedLoop {
                 currentLoop = PlayerLoop(start: selectedLoop.start, stop: selectedLoop.stop, title: selectedLoop.title)
                 if loopActive { audioPlayer.loop = currentLoop }
@@ -260,7 +260,7 @@ struct AudioPlayerView: View {
         }
         // loopActive gedrückt
         .onChange(of: loopActive) { _, active in
-            print("change loopActive \(active)")
+//            print("change loopActive \(active)")
             if active {
                 audioPlayer.loop = currentLoop
             } else {

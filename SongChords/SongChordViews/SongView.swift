@@ -354,7 +354,7 @@ struct DetailContent: View {
     let darkColor: Color
     let lightColor: Color
     let autoScroll: Bool
-    
+        
     @Environment(\.modelContext) private var modelContext
     @Environment(Globals.self) private var globals
     @Environment(AudioPlayer.self) private var audioPlayer
@@ -371,9 +371,9 @@ struct DetailContent: View {
             #endif
 
             // sinnlose rows (wie .sectionEnded) werden in ViewFilter entfernt
-            // PDF-Events (.newpage, .columnbreak) werden hier entfernt
+            // PDF-Events (.newpage, .columnbreak) werden in .append() vorher entfernt
             
-            ForEach(rows.filter({ return $0.chunkContent != .newpage && $0.chunkContent != .columnbreak })) { rowContent in
+            ForEach(rows) { rowContent in
                 RowView(song: song, modelContext: modelContext, globals: globals, audioPlayer: audioPlayer,
                         darkColor: darkColor, lightColor: lightColor, rowContent: rowContent, forPrinting: false, autoScroll: autoScroll)
             }
@@ -382,8 +382,7 @@ struct DetailContent: View {
     }
 }
 
-struct RowView: View, Identifiable {
-    let id: UUID = UUID()
+struct RowView: View {
     let song: Song
     let modelContext: ModelContext?
     let globals: Globals?
@@ -428,7 +427,7 @@ struct RowView: View, Identifiable {
                 Text(" ").font(Font(forPrinting ? userSettings.txtPDFUIFont : userSettings.txtUIFont))
                 
             case .columnbreak, .newpage:
-                // in DetailView entfernt
+                // in append() entfernt
                 // Color.clear.frame(width: 1, height: 1, alignment: .center)
                  EmptyView()
 
@@ -441,8 +440,7 @@ struct RowView: View, Identifiable {
     }
 }
 
-struct TextsLineView: View, Identifiable {
-    let id: UUID = UUID()
+struct TextsLineView: View {
     let line: [TextElement]
     
     var body: some View {
@@ -465,8 +463,7 @@ struct TextsLineView: View, Identifiable {
     }
 }
 
-struct ChordsLineView: View, Identifiable {
-    let id: UUID = UUID()
+struct ChordsLineView: View {
     let line: [TextElement]
     let lightColor: Color
     let darkColor: Color
@@ -499,8 +496,8 @@ struct ChordsLineView: View, Identifiable {
     }
 }
 
-struct SectionHeaderView: View, Identifiable {
-    let id: UUID = UUID()
+
+struct SectionHeaderView: View {
     let song: Song
     let modelContext: ModelContext?
     let globals: Globals?
@@ -579,8 +576,7 @@ struct SectionHeaderView: View, Identifiable {
     }
 }
 
-struct ChordsPlainView: View, Identifiable {
-    let id: UUID = UUID()
+struct ChordsPlainView: View {
     let line: [TextElement]
     let lightColor: Color
     let darkColor: Color
@@ -603,8 +599,7 @@ struct ChordsPlainView: View, Identifiable {
     }
 }
 
-struct PopoverButtonView: View, Identifiable {
-    let id: UUID = UUID()
+struct PopoverButtonView: View {
     let chordTxt: TextElement
     
     @State private var showChordShape: Bool = false

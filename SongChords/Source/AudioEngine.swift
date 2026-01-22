@@ -81,10 +81,11 @@ protocol AudioEngine {
 final class AudioPlayer {
     private var transport = TransportState()
         
-    let tickerSleepInterval: TimeInterval = 0.2
+    private let tickerSleepInterval: TimeInterval = 0.2
     
     @ObservationIgnored
     private var engine: AudioEngine?
+    
     var isLoaded: Bool { get { engine?.isLoaded ?? false }}
 
     private(set) var state: PlayerState { get { transport.state } set { transport.state = newValue }}
@@ -93,7 +94,6 @@ final class AudioPlayer {
 
     var position: TimeInterval {
         get {
-//            if tickerEnd > 0 && transport.position >= tickerEnd { stop() }
             return transport.position
         }
         set {
@@ -241,17 +241,62 @@ final class AudioPlayer {
 
 actor MusicItemCache {
     typealias MusicID = String
-    private var cache: [MusicID: MusicKit.Song?] = [:]
 
+    struct Entry {
+        let value: MusicKit.Song?
+        let insertedAt: Date
+    }
+
+    private var store: [MusicID: Entry] = [:]
+
+    private let ttl: TimeInterval
+    private let maxEntries: Int?
+    private var lastCleanup: Date
+    
+    init(ttl: TimeInterval = 60 * 60 * 4, maxEntries: Int? = 200) {
+        self.ttl = ttl
+        self.maxEntries = maxEntries
+        self.lastCleanup = .now
+    }
+
+    // Doppelt-Optional: nil = miss, .some(nil) = negativ gecacht, .some(.some(song)) = hit
     func get(_ id: MusicID) -> MusicKit.Song?? {
-        cache[id]
+        cleanupIfNeeded()
+
+        guard let entry = store[id] else { return nil } // miss
+
+        if Date().timeIntervalSince(entry.insertedAt) > ttl {
+            store[id] = nil
+            return nil // miss (abgelaufen)
+        }
+
+        return .some(entry.value) // hit (value kann nil sein)
     }
 
     func set(_ id: MusicID, value: MusicKit.Song?) {
-        cache[id] = value
+        store[id] = Entry(value: value, insertedAt: Date.now)
+        enforceLimit()
     }
 
-    func clear() { cache.removeAll() }
+    // MARK: - Intern
+
+    private func cleanupIfNeeded() {
+        guard Date().timeIntervalSince(lastCleanup) > 60 * 10 else { return }
+
+        lastCleanup = .now
+        store = store.filter { Date().timeIntervalSince($0.value.insertedAt) <= ttl }
+    }
+
+    private func enforceLimit() {
+        guard let max = maxEntries, store.count > max else { return }
+
+        // Einfaches LRU-Light: älteste zuerst raus
+        let overflow = store.count - max
+        let sorted = store.sorted { $0.value.insertedAt < $1.value.insertedAt }
+        for i in 0..<overflow {
+            store[sorted[i].key] = nil
+        }
+    }
 }
 
 final class AppleMusicEngine: AudioEngine {
@@ -293,11 +338,10 @@ final class AppleMusicEngine: AudioEngine {
         var item: MusicItemCollection<MusicKit.Song>.Element?
         
         let key = song.musicItemId
-
         switch await AppleMusicEngine.sharedMusicItemCache.get(key) {
         case .some(let value):
             item = value   // kann nil oder Song sein
-            print("cache")
+            print("AppleMusicEngine cache")
 
         case .none:
             let req = MusicCatalogResourceRequest<MusicKit.Song>(

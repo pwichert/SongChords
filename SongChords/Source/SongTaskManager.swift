@@ -109,6 +109,9 @@ private final class ScreenRowBuilder: RowBuilding {
                 default: nil
             }
 
+            // keine PDF-Events weitergeben
+            if event != nil { continue }
+            
             if let secId = chunk.sectionId {
                 currentSectionId = secId
                 if sections[secId] == nil {
@@ -121,11 +124,10 @@ private final class ScreenRowBuilder: RowBuilding {
             rows.append(row)
 
             // Section suchen und row der Section-Struktur hinzufügen
-            if let currentSectionId,
-               let section = sections[currentSectionId] {
+            if let currentSectionId, let section = sections[currentSectionId] {
                 section.rows.append(row)
                 
-                //Header-UUID der Section-Struktur hinzufügen
+                // Header-UUID der Section-Struktur hinzufügen -> id der 1. Zeile der Section-Zeilen
                 if section.headerRowID == nil {
                     section.headerRowID = row.id
                 }
@@ -212,12 +214,13 @@ enum RowEvent {
 }
 
 final class RowContent: Identifiable {
-    let id: UUID = UUID()
+    let id: UUID
     let sectionId: Int?
     let chunkContent: SongRenderChunk.chunkContent
     let rowEvent: RowEvent?
     
     init(sectionId: Int?, chunkContent: SongRenderChunk.chunkContent, rowEvent: RowEvent? = nil) {
+        self.id = UUID()
         self.chunkContent = chunkContent
         self.rowEvent = rowEvent
         self.sectionId = sectionId

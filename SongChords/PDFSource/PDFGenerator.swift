@@ -69,9 +69,8 @@ class MediaBoxes {
     }
     
     static func regionDefaultPaper(for locale: Locale = .current) -> PaperSize {
-        let currentRegion = Locale.current.region?.identifier
-        if let region = currentRegion {
-            if region.contains("US") || region.contains("CA") { return .usLetter }
+        if let region = Locale.current.region {
+            if region == .unitedStates || region == .canada { return .usLetter }
         }
         return .a4
     }
