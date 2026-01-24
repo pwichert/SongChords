@@ -35,9 +35,8 @@ struct PlayListView: View {
     @State private var showInfoView: Bool = false
     @State private var showPrivacyView: Bool = false
     
-    @State private var showPlaylistImport: Bool = false
     @State private var songImportUrl: IdentifiableURL?
-    @State private var openUrl: URL?
+    @State private var playlistImportUrl: IdentifiableURL?
     
     @AppStorage("isOnboarding") var isOnboarding: Bool = true
     
@@ -189,30 +188,21 @@ struct PlayListView: View {
                 PlaylistSelectionSheet(playlists: playlists, urlToInsert: url.url)
             }
         }
+        .sheet(item: $playlistImportUrl) { url in
+            NavigationStack {
+                ImportPlaylistSheet(url: url)
+            }
+        }
         .onOpenURL(perform: { url in
             print("onOpenURL: \(url)")
             let fileExtension = url.pathExtension
-            openUrl = url
             
             if fileExtension.lowercased() == (UTType.playlistJSON.preferredFilenameExtension ?? "nix").lowercased() {
-                showPlaylistImport.toggle()
+                playlistImportUrl = IdentifiableURL(url: url)
             } else if fileExtension.lowercased() == (UTType.songJSON.preferredFilenameExtension ?? "nix").lowercased() {
                 songImportUrl = IdentifiableURL(url: url)
             }
         })
-        .confirmationDialog(Text("Import Playlist?"), isPresented: $showPlaylistImport, titleVisibility: .visible) {
-            Button("Import") {
-                withAnimation {
-                    if let openUrl = openUrl {
-                        do {
-                            try importPlaylist(url: openUrl)
-                        } catch (let error) {
-                            globals.setSongChordsError(error: error)
-                        }
-                    }
-                }
-            }
-        }
         #if os(iOS)
         .environment(\.editMode, $editMode)
         .onChange(of: editMode) { selectedPlaylistID = nil }
@@ -273,14 +263,6 @@ struct PlayListView: View {
         }
     }
     
-    private func importPlaylist(url: URL) throws {
-        let playlist = try PlayListTransferable.fromUrl(url: url)
-        let newPlaylist = try PlayList(modelContext: modelContext, title: playlist.title)
-        modelContext.insert(newPlaylist)
-        try newPlaylist.sortAndCopyCodable(songs: playlist.songs, modelContext: modelContext)
-        try modelContext.save()
-    }
-
     private func printAll() {
         var cnt1: Int = 0
         for p in playlists {
@@ -302,6 +284,69 @@ struct PlayListView: View {
         }
 
         print("\(cnt2) Songs waren NICHT in Playlisten ----------")
+    }
+}
+
+struct ImportPlaylistSheet: View {
+    let url: IdentifiableURL?
+    
+    @Environment(\.dismiss) private var dismiss
+    @Environment(Globals.self) private var globals
+    @Environment(\.modelContext) private var modelContext
+
+    var body: some View {
+        VStack(spacing: 24) {
+            Image(systemName: "tray.and.arrow.down.fill")
+                .font(.system(size: 48))
+                .foregroundStyle(.tint)
+
+            Text("Import Playlist?")
+                .font(.title2)
+                .bold()
+
+            Text("Do you want to import the selected playlist file into SongChords?")
+                .font(.body)
+                .multilineTextAlignment(.center)
+                .foregroundStyle(.secondary)
+                .padding(.horizontal)
+
+            HStack(spacing: 16) {
+                Button(role: .cancel) {
+                    dismiss()
+                } label: {
+                    Text("Cancel")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.bordered)
+
+                Button {
+                    if let url {
+                        do {
+                            try importPlaylist(url: url.url)
+                        } catch (let error) {
+                            globals.setSongChordsError(error: error)
+                        }
+                    }
+                    dismiss()
+                } label: {
+                    Text("Import")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.borderedProminent)
+            }
+            .padding(.top, 8)
+        }
+        .padding(32)
+        .presentationDetents([.medium])
+        .presentationDragIndicator(.visible)
+    }
+    
+    private func importPlaylist(url: URL) throws {
+        let playlist = try PlayListTransferable.fromUrl(url: url)
+        let newPlaylist = try PlayList(modelContext: modelContext, title: playlist.title)
+        modelContext.insert(newPlaylist)
+        try newPlaylist.sortAndCopyCodable(songs: playlist.songs)
+        try modelContext.save()
     }
 }
 
@@ -388,7 +433,7 @@ struct PlaylistSelectionSheet: View {
                         if let pl = PlayList.fetchPlaylist(with: selectedPlaylist, in: modelContext) {
                             do {
                                 let urlSong = try SongTransferable.fromUrl(url: urlToInsert)
-                                let song = try Song(from: urlSong, modelContext: modelContext)
+                                let song = try Song(from: urlSong)
                                 song.toPlaylist(playlist: pl)
                                 try modelContext.save()
                             } catch (let error) {

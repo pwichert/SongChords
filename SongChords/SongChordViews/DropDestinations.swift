@@ -28,13 +28,13 @@ extension PlayListView {
         // Playlist- oder Song-URL?
         if let song = try? SongTransferable.fromUrl(url: url)  {
             print("dropDestinationURL: song-url von \(song.title)")
-            try playlist.sortAndCopyCodable(songs: [song], modelContext: modelContext)
+            try playlist.sortAndCopyCodable(songs: [song])
             try modelContext.save()
         } else {
             let playlist = try PlayListTransferable.fromUrl(url: (url))
             let newPlaylist = try PlayList(modelContext: modelContext, title: playlist.title)
             modelContext.insert(newPlaylist)
-            try newPlaylist.sortAndCopyCodable(songs: playlist.songs, modelContext: modelContext)
+            try newPlaylist.sortAndCopyCodable(songs: playlist.songs)
             try modelContext.save()
             print("dropDestinationURL: playlist-url von \(playlist.title) mit \(playlist.songs.count) Songs")
         }

@@ -18,6 +18,7 @@ struct ContentView: View {
     @Environment(AudioPlayer.self) private var audioPlayer
     @Environment(Globals.self) private var globals
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.scenePhase) private var scenePhase
 
     var body: some View {
         NavigationSplitView(columnVisibility: $visibility) {
@@ -67,6 +68,12 @@ struct ContentView: View {
         .onChange(of: selectedPlaylistID) { selectedSongIDs = [] }      // ContentUnavailable in SongView
         .navigationSplitViewStyle(.automatic)
         .preferredColorScheme(userSettings.displayMode == .dark ? .dark : (userSettings.displayMode == .light ? .light : nil))
+        .onChange(of: scenePhase) { _, phase in
+            // Sidebar nach App-Start anzeigen (für Portrait-Modus auf iPad)
+            if phase == .active && selectedPlaylistID == nil {
+                visibility = .all
+            }
+        }
     }
 }
 

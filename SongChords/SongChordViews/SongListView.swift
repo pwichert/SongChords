@@ -166,7 +166,7 @@ internal struct SongListViewX: View {
                         print("Count: \(s.count)")
                         do {
                             for song in s {
-                                let sng = try Song(copying: song, modelContext: modelContext)
+                                let sng = try Song(copying: song)
                                 sng.toPlaylist(playlist: playlist, after: song)
                             }
                             try modelContext.save()
@@ -431,7 +431,7 @@ internal struct SongListViewX: View {
             let txt = chordProReverseParser.toString()
             
             do {
-                let song = try Song(title: "Import", srcText: txt, modelContext: modelContext)
+                let song = try Song(title: "Import", srcText: txt)
                 song.toPlaylist(playlist: playlist)
                 
                 song.title = "Import \(song.seq)"
@@ -444,7 +444,7 @@ internal struct SongListViewX: View {
     
     private func importSongTemplate() {
         do {
-            let song = try Song(title: String(localized: "New Song"), srcText: "", modelContext: modelContext)
+            let song = try Song(title: String(localized: "New Song"), srcText: "")
             song.toPlaylist(playlist: playlist)
             
             song.srcText.append("{st: Subtitle of Song}\n")
@@ -469,9 +469,9 @@ internal struct SongListViewX: View {
         
         Task {
             do {
-                let (filename, srcText) = try Song.srcTextFromText(url: url, modelContext: modelContext)
+                let (filename, srcText) = try Song.srcTextFromText(url: url)
                 let title = try await Song.titleFromDirective(srcText: srcText)
-                let song = try Song(title: Song.makeValidTitle(title ?? filename), srcText: srcText, modelContext: modelContext)
+                let song = try Song(title: Song.makeValidTitle(title ?? filename), srcText: srcText)
                 song.toPlaylist(playlist: playlist)
                 try modelContext.save()
             } catch (let error) {
@@ -511,7 +511,7 @@ struct CopyToPlaylistView: View {
                     do {
                         if let selectedPlaylist = selectedPlaylist {
                             if let pl = PlayList.fetchPlaylist(with: selectedPlaylist, in: modelContext) {
-                                try pl.sortAndCopy(songs: fetchedSongs, modelContext: modelContext)
+                                try pl.sortAndCopy(songs: fetchedSongs)
                                 try modelContext.save()
                             }
                         }

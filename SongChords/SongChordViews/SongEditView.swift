@@ -103,7 +103,7 @@ struct SongEditView: View {
                             }
                             if modelContext.hasChanges { try modelContext.save() }
                         } else {
-                            let song = try Song(title: title, srcText: srcText, transpose: Int(transpose), showChords: true, showText: showText, showHeader: true, duration: 0, musicItemId: "", playerLoops: [], backgroundColor: 0, modelContext: modelContext)
+                            let song = try Song(title: title, srcText: srcText, transpose: Int(transpose), showChords: true, showText: showText, showHeader: true, duration: 0, musicItemId: "", playerLoops: [], backgroundColor: 0)
                             modelContext.insert(song)
                             song.toPlaylist(playlist: playlist)
                             
@@ -151,10 +151,15 @@ struct ChordProEditorView: View {
     
     @Environment(\.dismiss) private var dismiss
 
+    @FocusState private var focusedField: FocusedField?
     @State private var t: String = ""
     
+    enum FocusedField: Hashable {
+        case songEditor
+    }
     var body: some View {
         TextEditor(text: $t)
+            .focused($focusedField, equals: .songEditor)
             .monospaced()
             .autocorrectionDisabled(true)
             #if os(iOS)
@@ -164,6 +169,12 @@ struct ChordProEditorView: View {
             #endif
             .onAppear() {
                 t = srcText
+                
+            #if os(iOS)
+                if t.isEmpty {
+                    focusedField = .songEditor
+                }
+            #endif
             }
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {

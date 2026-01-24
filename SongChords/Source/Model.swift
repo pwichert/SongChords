@@ -86,16 +86,16 @@ final class PlayList: Identifiable {
         }
     }
     
-    public func sortAndCopy(songs: [Song]?, modelContext: ModelContext) throws {
+    public func sortAndCopy(songs: [Song]?) throws {
         for song in (songs ?? []).sorted(by: { $0.seq < $1.seq }) {
-            let newSong = try Song(copying: song, modelContext: modelContext)
+            let newSong = try Song(copying: song)
             newSong.toPlaylist(playlist: self)
         }
     }
     
-    public func sortAndCopyCodable(songs: [SongTransferable]?, modelContext: ModelContext) throws {
+    public func sortAndCopyCodable(songs: [SongTransferable]?) throws {
         for song in (songs ?? []).sorted(by: { $0.seq < $1.seq }) {
-            let newSong = try Song(from: song, modelContext: modelContext)
+            let newSong = try Song(from: song)
             newSong.toPlaylist(playlist: self)
         }
     }
@@ -147,7 +147,7 @@ final public class Song: Identifiable {
     @Transient static let invalidTitleCharacters = CharacterSet(charactersIn: "\t\\\0").union(.illegalCharacters).union(.controlCharacters).union(.newlines)
     @Transient static let invalidFilenameCharacters = CharacterSet(charactersIn: "\t\\\0/").union(.illegalCharacters).union(.symbols).union(.controlCharacters).union(.newlines)
     
-    init(title: String, srcText: String, transpose: Int = 0, showChords: Bool = true, showText: Bool = true, showHeader: Bool = true, duration: Double = 0, musicItemId: String = "", playerLoops: [PlayerLoop] = [], backgroundColor: Int = 0, sectionAnchors: [SectionAnchor] = [], modelContext: ModelContext) throws {
+    init(title: String, srcText: String, transpose: Int = 0, showChords: Bool = true, showText: Bool = true, showHeader: Bool = true, duration: Double = 0, musicItemId: String = "", playerLoops: [PlayerLoop] = [], backgroundColor: Int = 0, sectionAnchors: [SectionAnchor] = []) throws {
         if !Song.isValidTitle(title) {
             throw SongChordsError.invalidSongtitle
         }
@@ -170,12 +170,12 @@ final public class Song: Identifiable {
         if musicItemId.starts(with: "local@") { self.musicItemId = "" } else { self.musicItemId = musicItemId }
     }
 
-    convenience init(copying other: Song, modelContext: ModelContext) throws {
-        try self.init(title: other.title, srcText: other.srcText, transpose: other.transpose, showChords: other.showChords, showText: other.showText, showHeader: other.showHeader, duration: other.duration, musicItemId: other.musicItemId, playerLoops: other.playerLoops, backgroundColor: other.backgroundColor, sectionAnchors: other.sectionAnchors, modelContext: modelContext)
+    convenience init(copying other: Song) throws {
+        try self.init(title: other.title, srcText: other.srcText, transpose: other.transpose, showChords: other.showChords, showText: other.showText, showHeader: other.showHeader, duration: other.duration, musicItemId: other.musicItemId, playerLoops: other.playerLoops, backgroundColor: other.backgroundColor, sectionAnchors: other.sectionAnchors)
     }
     
-    convenience init(from snapshot: SongTransferable, modelContext: ModelContext) throws {
-        try self.init(title: snapshot.title, srcText: snapshot.srcText, transpose: snapshot.transpose, showChords: snapshot.showChords, showText: snapshot.showText, showHeader: snapshot.showHeader, duration: snapshot.duration, musicItemId: snapshot.musicItemId, playerLoops: snapshot.playerLoops, backgroundColor: snapshot.backgroundColor, sectionAnchors: snapshot.sectionAnchors, modelContext: modelContext)
+    convenience init(from snapshot: SongTransferable) throws {
+        try self.init(title: snapshot.title, srcText: snapshot.srcText, transpose: snapshot.transpose, showChords: snapshot.showChords, showText: snapshot.showText, showHeader: snapshot.showHeader, duration: snapshot.duration, musicItemId: snapshot.musicItemId, playerLoops: snapshot.playerLoops, backgroundColor: snapshot.backgroundColor, sectionAnchors: snapshot.sectionAnchors)
     }
 
     func toPlaylist(playlist: PlayList, after: Song? = nil) {
@@ -213,7 +213,7 @@ final public class Song: Identifiable {
         return nil
     }
         
-    static func srcTextFromText(url: URL, modelContext: ModelContext) throws -> (title: String, srcText: String) {
+    static func srcTextFromText(url: URL) throws -> (title: String, srcText: String) {
         let startSecurityScope = url.startAccessingSecurityScopedResource()
         let songData = try Data(contentsOf: url)
         if startSecurityScope { url.stopAccessingSecurityScopedResource() }
