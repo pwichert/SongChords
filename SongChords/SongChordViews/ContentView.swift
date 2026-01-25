@@ -46,6 +46,7 @@ struct ContentView: View {
                 
             } else {
                 ContentUnavailableView("Select a playlist", systemImage: "doc.text.image.fill")
+                    .onAppear { visibility = .all }
             }
             
         } detail: {

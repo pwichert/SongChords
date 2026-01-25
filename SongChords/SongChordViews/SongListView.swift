@@ -84,6 +84,7 @@ struct SongListView: View {
             )
         } else {
             ContentUnavailableView("Select a playlist", systemImage: "doc.text.image.fill")
+                .onAppear { visibility = .all }
         }
     }
 }
