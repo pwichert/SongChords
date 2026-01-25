@@ -423,9 +423,24 @@ struct PlaylistSelectionSheet: View {
     @State private var selectedPlaylist: PlayList.ID?
 
     var body: some View {
-        List(playlists, selection: $selectedPlaylist) { playlist in
-            Text(playlist.title)
+        VStack {
+            Text("Import into:")
+            List(playlists, selection: $selectedPlaylist) { playlist in
+                Text(playlist.title)
+                #if os(iOS)
+                    .font(.subheadline).listRowInsets(.init(top: 8, leading: 8, bottom: 8, trailing: 8))
+                #endif
+            }
+            #if os(iOS)
+            .environment(\.defaultMinListRowHeight, 20)
+            #endif
+            .frame(maxHeight: 350).cornerRadius(10)
+            .overlay( /// apply a rounded border
+                RoundedRectangle(cornerRadius: 10)
+                    .stroke(.secondary, lineWidth: 1)
+            )
         }
+        .padding()
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 Button("Done", systemImage: "checkmark") {

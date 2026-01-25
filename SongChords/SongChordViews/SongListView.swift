@@ -225,8 +225,8 @@ internal struct SongListViewX: View {
                 ToolbarItem(placement: .bottomBar) {
                     Button(action: { songIDsToCopy = IdentifiablePersistentIdentifierSet(identifiers: selectedSongIDs)
                     }) {
-                        Text("Copy To").disabled(selectedSongIDs.isEmpty)
-                    }
+                        Text("Copy To")
+                    }.disabled(selectedSongIDs.isEmpty)
                 }
                                             
                 ToolbarSpacer(placement: .bottomBar)
@@ -241,8 +241,8 @@ internal struct SongListViewX: View {
 
                 ToolbarItem(placement: .bottomBar) {
                       Button(action: { prepareDelete(songIDs: selectedSongIDs) }) {
-                        Text("Delete").disabled(selectedSongIDs.isEmpty)
-                    }
+                        Text("Delete")
+                    }.disabled(selectedSongIDs.isEmpty)
                 }
             }
             
@@ -497,11 +497,26 @@ struct CopyToPlaylistView: View {
     @Query(sort: \PlayList.seq, order: .forward) private var playlists: [PlayList]
 
     var body: some View {
-        List(selection: $selectedPlaylist) {
-            ForEach(playlists.filter({ $0.persistentModelID != fromPlaylist.persistentModelID })) { pl in
-                Text(pl.title)
+        VStack {
+            Text("Copy to:")
+            List(selection: $selectedPlaylist) {
+                ForEach(playlists.filter({ $0.persistentModelID != fromPlaylist.persistentModelID })) { pl in
+                    Text(pl.title)
+                    #if os(iOS)
+                        .font(.subheadline).listRowInsets(.init(top: 8, leading: 8, bottom: 8, trailing: 8))
+                    #endif
+                }
             }
+            #if os(iOS)
+            .environment(\.defaultMinListRowHeight, 20)
+            #endif
+            .frame(maxHeight: 350).cornerRadius(10)
+            .overlay( /// apply a rounded border
+                RoundedRectangle(cornerRadius: 10)
+                    .stroke(.secondary, lineWidth: 1)
+            )
         }
+        .padding()
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 Button(action: {

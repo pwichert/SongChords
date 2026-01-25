@@ -296,6 +296,8 @@ actor MusicItemCache {
         for i in 0..<overflow {
             store[sorted[i].key] = nil
         }
+        
+        if overflow > 0 { print("cache overflow, removing \(overflow) entries") }
     }
 }
 
@@ -326,6 +328,7 @@ final class AppleMusicEngine: AudioEngine {
     var pitch: Float = 0
     
     private var musicAuthorizationStatus: MusicAuthorization.Status = .notDetermined
+    
     private static let sharedMusicItemCache = MusicItemCache()
     
     init() async throws {
@@ -334,6 +337,8 @@ final class AppleMusicEngine: AudioEngine {
     
     func load(song: Song) async throws {
         loaded = false
+        
+        if musicAuthorizationStatus != .authorized { try await handleAuthorizationStatus() }
         
         var item: MusicItemCollection<MusicKit.Song>.Element?
         
@@ -414,6 +419,8 @@ final class AppleMusicEngine: AudioEngine {
         
         let subscription = try await MusicSubscription.current
         guard subscription.canPlayCatalogContent else { throw PlayerError.noAppleMusicSubscription }
+
+        musicAuthorizationStatus = auth
     }
 }
 
