@@ -1,0 +1,32 @@
+[
+  {
+    "id": "intro",
+    "title": "Welcome",
+    "file": "intro.md"
+  },
+  {
+    "id": "autoscroll",
+    "title": "Autoscroll",
+    "file": "autoscroll.md"
+  },
+  {
+    "id": "player",
+    "title": "Audio Player & Loops",
+    "file": "player.md"
+  },
+  {
+    "id": "pdf",
+    "title": "PDF & Printing",
+    "file": "pdf.md"
+  },
+  {
+    "id": "import",
+    "title": "Import & Export",
+    "file": "import-export.md"
+  },
+  {
+    "id": "chords",
+    "title": "Chord Diagrams",
+    "file": "chord-diagrams.md"
+  }
+]

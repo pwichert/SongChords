@@ -33,10 +33,13 @@ struct PlayListView: View {
     @State private var showOptionsView: Bool = false
     @State private var showPrintOptionsView: Bool = false
     @State private var showInfoView: Bool = false
+    @State private var showHelpView: Bool = false
     @State private var showPrivacyView: Bool = false
     
     @State private var songImportUrl: IdentifiableURL?
     @State private var playlistImportUrl: IdentifiableURL?
+    
+    @Environment(\.openWindow) var openWindow
     
     @AppStorage("isOnboarding") var isOnboarding: Bool = true
     
@@ -130,9 +133,18 @@ struct PlayListView: View {
                         Button(action: { showPrivacyView.toggle() }) {
                             Label("Privacy Policy", systemImage: "person.fill.questionmark")
                         }
-                        Button(action: { showInfoView.toggle() }) {
-                            Label("Info", systemImage: "info.circle")
+//                        Button(action: { showInfoView.toggle() }) {
+//                            Label("Info", systemImage: "info.circle")
+//                        }
+                        #if os(iOS)
+                        Button(action: { showHelpView.toggle() }) {
+                            Label("Help", systemImage: "book")
                         }
+                        #else
+                        Button(action: { openWindow(id: "help") }) {
+                            Label("Help", systemImage: "book")
+                        }
+                        #endif
                         #if DEBUG
                         Button(action: { printAll() }) {
                             Label("Print All", systemImage: "list.number")
@@ -168,20 +180,16 @@ struct PlayListView: View {
             }
             .interactiveDismissDisabled()
         }
-        .sheet(isPresented: $showInfoView) {
-            NavigationStack {
-                InfoView()
-            }
-        }
         .sheet(isPresented: $showPrivacyView) {
             NavigationStack {
                 PrivacyView()
             }
         }
         .sheet(isPresented: $isOnboarding) {
-            NavigationStack {
-                OnboardingSheet()
-            }
+            HelpBookView(initialChapter: "intro")
+        }
+        .sheet(isPresented: $showHelpView) {        // nur iOS
+            HelpBookView()
         }
         .sheet(item: $songImportUrl) { url in
             NavigationStack {
@@ -466,22 +474,22 @@ struct PlaylistSelectionSheet: View {
                 }
             }
         }
+        .navigationTitle("Import Song into Playlist")
         #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
         #else
             .frame(idealHeight: 400)
         #endif
-        .navigationTitle("Import Song into Playlist")
     }
 }
 
-struct OnboardingSheet: View {
-    @Environment(\.dismiss) var dismiss
-        
-    var body: some View {
-        InfoView()
-    }
-}
+//struct OnboardingSheet: View {
+//    @Environment(\.dismiss) var dismiss
+//        
+//    var body: some View {
+//        InfoView()
+//    }
+//}
 
 struct PrivacyTextView: View {
     var body: some View {

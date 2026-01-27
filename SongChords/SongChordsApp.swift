@@ -24,8 +24,6 @@ Anhang: Setlist Concert.scplaylist
 */
 
                 
-                
-                
 import SwiftUI
 import SwiftData
 
@@ -52,6 +50,10 @@ struct SongChordsApp: App {
     @State private var globals: Globals = Globals()
     @State private var audioPlayer = AudioPlayer()
     
+    #if os(macOS)
+    @NSApplicationDelegateAdaptor private var appDelegate: AppDelegate
+    #endif
+
     var body: some Scene {
         #if os(macOS)
         Window ("SongChords", id: "main") {
@@ -64,6 +66,11 @@ struct SongChordsApp: App {
                 }
         }
         .modelContainer(sharedModelContainer)
+        
+        Window(LocalizedStringKey("SongChords Help"), id: "help") {
+            HelpBookView()
+        }
+        .handlesExternalEvents(matching: ["help"])
         #else
         WindowGroup {
             ContentView()
@@ -81,6 +88,13 @@ struct SongChordsApp: App {
     private func scenePhaseChanged(_ phase: ScenePhase) async {
         if scenePhase == .active {
             print("-> active")
+            Task {
+                do {
+                    try await Task.sleep(for: .seconds(10))
+                    let ghostCleaner = MP3GhostCleaner()
+                    await ghostCleaner.runGhostScanIfNeeded()
+                } catch {}
+            }
         } else {
             if scenePhase == .background { print("-> background")
                 audioPlayer.stop()
@@ -89,3 +103,12 @@ struct SongChordsApp: App {
         }
     }
 }
+
+#if os(macOS)
+final class AppDelegate: NSObject, NSApplicationDelegate {
+    func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
+        print("applicationShouldTerminateAfterLastWindowClosed: true")
+        return true
+    }
+}
+#endif

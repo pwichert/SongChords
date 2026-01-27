@@ -32,7 +32,9 @@ struct AudioPlayerView: View {
     @State private var songPitch: Float = 0
     
     @State private var inPositionEditing: Bool = false
-    
+    @State private var inRateEditing: Bool = false
+    @State private var inPitchEditing: Bool = false
+
     @Environment(AudioPlayer.self) private var audioPlayer
     @Environment(Globals.self) private var globals
     @Environment(\.modelContext) private var modelContext
@@ -128,10 +130,11 @@ struct AudioPlayerView: View {
                             value: $songSpeed,       // durch Schattenvariable Scrubbing verhindern
                             in: 0.3...1,
                             onEditingChanged: { editing in
+                                inRateEditing = editing
                                 if !editing { audioPlayer.rate = songSpeed }
                             }
                         ).disabled(GlobalFunctions.isDisabled(song: song))
-                        Text("\(Int(round(audioPlayer.rate * 100.0)))%").font(.footnote).frame(width: 50).lineLimit(1)
+                        Text("\(Int(round((inRateEditing ? songSpeed : audioPlayer.rate) * 100.0)))%").font(.footnote).frame(width: 50).lineLimit(1)
                     }.padding(.bottom, gridVerticalSpacing)
                     
                     if song.isLocalMP3() {
@@ -142,6 +145,7 @@ struct AudioPlayerView: View {
                                     value: $songPitch,      // durch Schattenvariable Scrubbing verhindern
                                     in: -110...110,
                                     onEditingChanged: { editing in
+                                        inPitchEditing = editing
                                         if !editing {
                                             audioPlayer.pitch = songPitch
                                             setSongPitch(songPitch)
@@ -157,7 +161,7 @@ struct AudioPlayerView: View {
                                     }.disabled(GlobalFunctions.isDisabled(song: song))
                                 }
                             }
-                            Text(String(format: "%.2f", songPitch / 10.0)).font(.footnote).frame(width: 50).lineLimit(1)
+                            Text(String(format: "%.2f", (inPitchEditing ? songPitch : audioPlayer.pitch) / 10.0)).font(.footnote).frame(width: 50).lineLimit(1)
                         }.padding(.bottom, gridVerticalSpacing)
                     }
                 }
@@ -373,13 +377,14 @@ struct AudioPlayerView: View {
     private func importMP3File(song: Song, urls: [URL]) {
         do {
             audioPlayer.stop()
-            //            audioPlayer.unLoadMP3()
             
             let fileManager = FileManager.default
             let destDir = try GlobalFunctions.mp3Path()
             
             for url in urls {
                 print("Lade \(url.absoluteString)")
+                
+                guard url.pathExtension.lowercased() == "mp3" else { continue }
                 
                 var uuid = UUID().uuidString
                 var pitch: Float = 0.0

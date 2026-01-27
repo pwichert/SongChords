@@ -520,7 +520,7 @@ struct CopyToPlaylistView: View {
         .padding()
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
-                Button(action: {
+                Button("Done", systemImage: "checkmark") {
                     print("songs to copy: \(String((songIDs?.count ?? 0)))")
                     let fetchedSongs = Song.fetchSongs(with: songIDs ?? [], in: modelContext)
 
@@ -538,21 +538,17 @@ struct CopyToPlaylistView: View {
                     #if os(iOS)
                     editMode = .inactive
                     #endif
+                    
                     dismiss()
-                }) {
-                    Text("Done")
                 }.disabled(selectedPlaylist == nil)
             }
             ToolbarItem(placement: .cancellationAction) {
-                Button(action: {
+                Button("Cancel", systemImage: "xmark") {
                     dismiss()
                 }
-                ) {
-                    Text("Cancel")
-                }
-                
             }
-        }.navigationTitle("Copy to Playlist")
+        }
+        .navigationTitle("Copy to Playlist")
         #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
         #else

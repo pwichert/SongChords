@@ -50,7 +50,7 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		A46DB5FD2D53C6BC0060114F /* Exceptions for "SongChords" folder in "SongChords" target */ = {
+		A48701072F277A4A00A46960 /* Exceptions for "SongChords" folder in "SongChords" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
@@ -60,14 +60,6 @@
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		A46DB4192D53B9270060114F /* SongChords */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-				A46DB5FD2D53C6BC0060114F /* Exceptions for "SongChords" folder in "SongChords" target */,
-			);
-			path = SongChords;
-			sourceTree = "<group>";
-		};
 		A486F95C2CDD00320053A0A1 /* SongChordsTests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = SongChordsTests;
@@ -76,6 +68,17 @@
 		A486F9662CDD00320053A0A1 /* SongChordsUITests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = SongChordsUITests;
+			sourceTree = "<group>";
+		};
+		A48700E32F277A4A00A46960 /* SongChords */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				A48701072F277A4A00A46960 /* Exceptions for "SongChords" folder in "SongChords" target */,
+			);
+			explicitFolders = (
+				AppResources,
+			);
+			path = SongChords;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -110,7 +113,7 @@
 		A486F93C2CDD00310053A0A1 = {
 			isa = PBXGroup;
 			children = (
-				A46DB4192D53B9270060114F /* SongChords */,
+				A48700E32F277A4A00A46960 /* SongChords */,
 				A486F95C2CDD00320053A0A1 /* SongChordsTests */,
 				A486F9662CDD00320053A0A1 /* SongChordsUITests */,
 				A48704E22CDD823200C19EDF /* Frameworks */,
@@ -154,7 +157,7 @@
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
-				A46DB4192D53B9270060114F /* SongChords */,
+				A48700E32F277A4A00A46960 /* SongChords */,
 			);
 			name = SongChords;
 			packageProductDependencies = (
@@ -323,7 +326,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = SongChords/SongChords.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 89;
+				CURRENT_PROJECT_VERSION = 114;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_ASSET_PATHS = "\"SongChords/Preview Content\"";
 				ENABLE_APP_SANDBOX = YES;
@@ -353,7 +356,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 3.5;
+				MARKETING_VERSION = 3.6;
 				PRODUCT_BUNDLE_IDENTIFIER = Wichert.SongChords;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = auto;
@@ -376,7 +379,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = SongChords/SongChords.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 89;
+				CURRENT_PROJECT_VERSION = 114;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_ASSET_PATHS = "\"SongChords/Preview Content\"";
 				ENABLE_APP_SANDBOX = YES;
@@ -406,7 +409,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 3.5;
+				MARKETING_VERSION = 3.6;
 				PRODUCT_BUNDLE_IDENTIFIER = Wichert.SongChords;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = auto;
