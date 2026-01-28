@@ -25,8 +25,8 @@ final class HelpBookLoader {
     init(initialChapter: String?) {
         self.initialChapter = initialChapter
         
-        let ident = Locale.current.language.languageCode?.identifier ?? "de"
-        self.base = "AppResources/Help/\(ident == "en" ? "en" : "de")"
+        let isGerman = Locale.current.language.languageCode == .german
+        self.base = "AppResources/Help/\(isGerman ? "de" : "en")"
     }
     
     func load() {
@@ -42,7 +42,15 @@ final class HelpBookLoader {
         if let initialChapter {
             currentID = items.first(where: { $0.id == initialChapter} )?.id
         } else {
-            currentID = nil
+            #if os(macOS)
+            currentID = items.first?.id
+            #else
+            if UIDevice.current.userInterfaceIdiom == .phone {
+                currentID = nil
+            } else {
+                currentID = items.first?.id
+            }
+            #endif
         }
     }
 

@@ -9,21 +9,23 @@ import SwiftUI
 
 enum MDSpan: Identifiable {
     case text(String)
-    case bold(String)
-    case code(String)
-    case icon(String)   // SF Symbol name
+    case bold(String)   // **bold**
+    case code(String)   // `code`
+    case icon(String)   // {icon:SF Symbol name}
 
     var id: UUID { UUID() }
 }
 
 enum MDNode: Identifiable {
-    case h1([MDSpan])
-    case h2([MDSpan])
-    case bullet([MDSpan])
-    case quote([MDSpan])
+    case h1([MDSpan])               // #
+    case h2([MDSpan])               // ##
+    case bullet([MDSpan])           // *
+    case hyphen([MDSpan])           // -
+    case enumeration([MDSpan], Int) // *1 *2 ... *9
+    case quote([MDSpan])            // >
     case paragraph([MDSpan])
-    case divider
-    case spacer(CGFloat)
+    case divider                    // ---
+    case spacer(CGFloat)            // newline
 
     var id: UUID { UUID() }
 }
@@ -44,8 +46,19 @@ struct MarkdownParser {
                 if line.hasPrefix("# ") {
                     return .h1(InlineParser.parse(String(line.dropFirst(2))))
                 }
+                if line.hasPrefix("*") {
+                    if line.hasPrefix("* ") {
+                        return .bullet(InlineParser.parse(String(line.dropFirst(2))))
+                    } else if line.count > 3 {
+                        let num = line.dropFirst(1).first
+                        let hasDelim = line.dropFirst(2).first?.isWhitespace ?? false
+                        if let num, hasDelim, num.isNumber, let d = Int(String(num)) {
+                            return .enumeration(InlineParser.parse(String(line.dropFirst(3))), d)
+                        }
+                    }
+                }
                 if line.hasPrefix("- ") {
-                    return .bullet(InlineParser.parse(String(line.dropFirst(2))))
+                    return .hyphen(InlineParser.parse(String(line.dropFirst(2))))
                 }
                 if line.hasPrefix("> ") {
                     return .quote(InlineParser.parse(String(line.dropFirst(2))))
@@ -144,6 +157,18 @@ struct MarkdownView: View {
                         spanLine(spans)
                     }
                     
+                case .hyphen(let spans):
+                    HStack(alignment: .top) {
+                        Text("-")
+                        spanLine(spans)
+                    }
+
+                case .enumeration(let spans, let num):
+                    HStack(alignment: .top) {
+                        Text(String("\(num)."))
+                        spanLine(spans)
+                    }
+
                 case .quote(let spans):
                     spanLine(spans)
                         .italic()
@@ -174,8 +199,11 @@ struct MarkdownView: View {
                 return Text("\(result)\(b)")
                 
             case .code(let s):
-                let m = Text(s).monospaced()//.background(Color.secondary.opacity(0.15))
-                return Text("\(result)\(m)")
+                var attr = AttributedString(s)
+                attr.backgroundColor = Color.secondary.opacity(0.15)
+                attr.font = .footnote.monospaced()
+                let txt = Text(attr)
+                return Text("\(result)\(txt)")
                 
             case .icon(let name):
                 let i = Text(Image(systemName: name))

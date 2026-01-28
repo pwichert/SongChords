@@ -5,6 +5,11 @@
     "file": "intro.md"
   },
   {
+    "id": "onboarding",
+    "title": "Schnelleinstieg",
+    "file": "onboarding.md"
+  },
+  {
     "id": "autoscroll",
     "title": "Autoscroll",
     "file": "autoscroll.md"

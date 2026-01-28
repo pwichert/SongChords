@@ -187,7 +187,7 @@ struct AudioPlayerView: View {
                         }.buttonStyle(BorderedButtonStyle()).font(.footnote)
                         
                         Button(action: { showMP3Import.toggle() } ) {
-                            Label("Import MPEG File", systemImage: "document")
+                            Label("Import MP3 File", systemImage: "document")
                         }.buttonStyle(BorderedButtonStyle()).font(.footnote)
                         
                         Spacer()

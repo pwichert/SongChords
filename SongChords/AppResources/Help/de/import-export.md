@@ -1,0 +1,76 @@
+# Import und Export
+
+
+## Import einer ChordPro-Datei
+
+Wenn du bereits eine **ChordPro-Datei** hast (`.cho`, `.chordpro`, `.pro`):
+
+*1 wähle eine Playliste aus.
+*2 wähle im Menü ({icon:ellipsis.circle}) `ChordPro-Datei importieren`.
+*2 wähle die ChordPro-Datei aus.
+
+Der Song ist danach sofort spielbereit und wird in der Live-Darstellung angezeigt.
+
+---
+
+## Import aus der Zwischenablage
+
+Wähle zunächst eine Playliste aus.
+Wenn du einen Songtext mit Akkorden bereits irgendwo hast (z. B. aus einer Website, Textdatei oder E-Mail):
+
+*1 kopiere den Songtext in die **Zwischenablage**.
+*2 öffne SongChords.
+*3 wähle eine Playliste aus.
+*4 wähle im Menü ({icon:ellipsis.circle}) `Text von Zwischenablage importieren`. Evtl. wird noch um Erlaubnis gefragt.
+*5 **Fertig**. Du hast jetzt einen neuen Song in der Liste.
+
+> Tipp: Auch einfache Textformate mit Akkorden über den Zeilen oder in Klammern werden meist korrekt erkannt.
+
+---
+
+## Export einer PDF-Datei
+
+**MacOS:**
+* klicke {icon:arrow.up.document} und folge dem Dateidialog. Wähle dabei das Dateiformat `.pdf`.
+
+**iOS:**
+* klicke unten den PDF-Exportieren-Button {icon:arrow.up.document.fill} und wähle dann `Datei speichern unter`
+
+---
+
+**SongChords hat ein eigenes Format, in dem du Playlisten und Songs speichern und wieder einlesen kannst. Verknüpfungen mit MP3-Dateien können auf diesem Weg allerdings nicht wieder importiert werden.**
+
+Endung für Songs ist `.songchords`
+Endung für Playlisten ist `.scplaylist`
+
+## Import/Export einer Playliste im SongChords-Format
+
+Benutze dafür die Buttons auf der Seite der Songliste
+
+**Export MacOS:**
+* klicke {icon:arrow.up.document} und folge dem Dateidialog. Wähle dabei das Dateiformat `.scplaylist`.
+
+**Export iOS:**
+* klicke unten den Teilen-Button {icon:square.and.arrow.up} bei der Songliste und wähle dann `Datei speichern unter`
+
+**Import:**
+* tappe auf die Datei mit Endung `.scplaylist`, die du wieder importieren möchtest.
+
+> Hinweis: Verknüpfungen mit MP3-Dateien werden beim Importieren NICHT wiederhergestellt.
+
+---
+
+## Import/Export eines Songs im SongChords-Format
+
+Benutze dafür die Buttons auf der Songseite
+
+**Export MacOS:**
+* klicke {icon:arrow.up.document} und folge dem Dateidialog. Wähle dabei das Dateiformat `.songchords`.
+
+**Export iOS:**
+* klicke unten den Teilen-Button {icon:square.and.arrow.up} bei der Songliste und wähle dann `Datei speichern unter`
+
+**Import:**
+* tappe auf die Datei mit Endung `.songchords`, die du wieder importieren möchtest.
+
+> Hinweis: Verknüpfungen mit MP3-Dateien werden beim Importieren NICHT wiederhergestellt.

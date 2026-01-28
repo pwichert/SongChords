@@ -22,6 +22,10 @@ struct PlayListView: View {
     
     @Environment(\.modelContext) private var modelContext
     @Environment(Globals.self) private var globals
+    
+    #if os(macOS)
+    @Environment(\.openWindow) private var openWindow
+    #endif
 
     #if os(iOS)
     @State private var editMode: EditMode = .inactive
@@ -35,14 +39,13 @@ struct PlayListView: View {
     @State private var showInfoView: Bool = false
     @State private var showHelpView: Bool = false
     @State private var showPrivacyView: Bool = false
+    @State private var showInsertDemoPlaylist: Bool = false
     
     @State private var songImportUrl: IdentifiableURL?
     @State private var playlistImportUrl: IdentifiableURL?
     
-    @Environment(\.openWindow) var openWindow
-    
-    @AppStorage("isOnboarding") var isOnboarding: Bool = true
-    
+    @AppStorage("isOnboarding") private var isOnboarding: Bool = true
+
     @Query(sort: \PlayList.seq, order: .forward) private var playlists: [PlayList]
     
     var body: some View {
@@ -127,15 +130,19 @@ struct PlayListView: View {
                         Button(action: { showOptionsView.toggle() }) {
                             Label("Options", systemImage: "gear.circle")
                         }
+                        
                         Button(action: { showPrintOptionsView.toggle() }) {
                             Label("PDF Options", systemImage: "printer")
                         }
+                        
+                        Button(action: { showInsertDemoPlaylist.toggle() }) {
+                            Label("Insert Demo Playlist", systemImage: "tray.and.arrow.down")
+                        }
+
                         Button(action: { showPrivacyView.toggle() }) {
                             Label("Privacy Policy", systemImage: "person.fill.questionmark")
                         }
-//                        Button(action: { showInfoView.toggle() }) {
-//                            Label("Info", systemImage: "info.circle")
-//                        }
+
                         #if os(iOS)
                         Button(action: { showHelpView.toggle() }) {
                             Label("Help", systemImage: "book")
@@ -145,6 +152,7 @@ struct PlayListView: View {
                             Label("Help", systemImage: "book")
                         }
                         #endif
+
                         #if DEBUG
                         Button(action: { printAll() }) {
                             Label("Print All", systemImage: "list.number")
@@ -185,12 +193,14 @@ struct PlayListView: View {
                 PrivacyView()
             }
         }
+        #if os(iOS)
         .sheet(isPresented: $isOnboarding) {
-            HelpBookView(initialChapter: "intro")
+            HelpBookView(initialChapter: "onboarding")
         }
-        .sheet(isPresented: $showHelpView) {        // nur iOS
+        .sheet(isPresented: $showHelpView) {
             HelpBookView()
         }
+        #endif
         .sheet(item: $songImportUrl) { url in
             NavigationStack {
                 PlaylistSelectionSheet(playlists: playlists, urlToInsert: url.url)
@@ -211,6 +221,23 @@ struct PlayListView: View {
                 songImportUrl = IdentifiableURL(url: url)
             }
         })
+        .confirmationDialog("Insert Demo Playlist?", isPresented: $showInsertDemoPlaylist) {
+            Button("Insert", role: .confirm) {
+                do {
+                    try DemoHelper.createDemoPlaylist(modelContext: modelContext)
+                } catch (let error) {
+                    globals.setSongChordsError(error: error)
+                }
+            }
+        }
+        #if os(macOS)
+        .onAppear {
+            if isOnboarding {
+                openWindow(id: "onboarding")
+                isOnboarding = false
+            }
+        }
+        #endif
         #if os(iOS)
         .environment(\.editMode, $editMode)
         .onChange(of: editMode) { selectedPlaylistID = nil }

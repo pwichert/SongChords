@@ -71,6 +71,11 @@ struct SongChordsApp: App {
             HelpBookView()
         }
         .handlesExternalEvents(matching: ["help"])
+
+        Window(LocalizedStringKey("SongChords Quick Start"), id: "onboarding") {
+            HelpBookView(initialChapter: "onboarding")
+        }
+        .handlesExternalEvents(matching: ["onboarding"])
         #else
         WindowGroup {
             ContentView()
@@ -87,6 +92,9 @@ struct SongChordsApp: App {
     
     private func scenePhaseChanged(_ phase: ScenePhase) async {
         if scenePhase == .active {
+//#if DEBUG
+//UserDefaults.standard.removeObject(forKey: "isOnboarding")
+//#endif
             print("-> active")
             Task {
                 do {
