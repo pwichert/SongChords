@@ -23,10 +23,10 @@ Der PDF-Export übernimmt eine speziell für den Druck optimierte Darstellung, u
 * automatische Zeilen- und Seitenumbrüche  
 
 **MacOS:**
-Wähle dazu {icon:arrow.up.document.fill} und folge der Dateiauswahl. Wähle dabei das Format .pdf.
+Wähle dazu {icon:arrow.up.document.fill} und folge der Dateiauswahl. Wähle dabei das Dateiformat `Pdf-Dokument`.
 
 **iOS:**
-Wähle dazu unten {icon:arrow.up.document.fill} und wähle `Datei speichern`. 
+Wähle dazu unten {icon:arrow.up.document.fill} und wähle `in Dateien sichern`. 
 
 Das erzeugte PDF kann anschließend geteilt, gespeichert oder gedruckt werden.
 
@@ -35,7 +35,7 @@ Das erzeugte PDF kann anschließend geteilt, gespeichert oder gedruckt werden.
 ## PDF-Export von Playlisten
 
 * komplette Playlisten lassen sich als Setliste exportieren. Dabei werden die Songs durchnummeriert und die Titel auf einer Seite zweispaltig dargestellt.
-* wähle dazu im Menü {icon:ellipsis.circle} über der Songliste `PDF-Datei exportieren` und folge der Dateiauswahl. 
+* wähle dazu im Menü {icon:ellipsis.circle} über der Songliste `PDF-Datei exportieren` und folge der Dateiauswahl. Wähle dabei das Dateiformat `Pdf-Dokument`.
 
 ---
 
@@ -43,8 +43,8 @@ Das erzeugte PDF kann anschließend geteilt, gespeichert oder gedruckt werden.
 
 SongChords kann die **PDF-Darstellung direkt anzeigen**, ohne dass ein Export notwendig ist.
 
-* Tippe auf `{icon:text.rectangle.page}`, um in die PDF-Ansicht zu wechseln  
-* Tippe auf `{icon:text.page}`, um wieder zur normalen Live-Darstellung zurückzukehren  
+* Tippe auf {icon:text.rectangle.page}, um in die PDF-Ansicht zu wechseln  
+* Tippe auf {icon:text.page}, um wieder zur normalen Live-Darstellung zurückzukehren  
 
 So kann das Layout vor dem Drucken überprüft werden.
 
@@ -57,6 +57,6 @@ So kann das Layout vor dem Drucken überprüft werden.
 Beim PDF-Export und Drucken gelten folgende Regeln:
 
 * das PDF-Layout verwendet **eigene Schriftgrößen** und ist unabhängig von der Live-Darstellung in der App. Wähle dazu `PDF-Optionen` im Menü {icon:ellipsis.circle} über den Playlisten
-* Spalten werden nicht automatisch „geclipped“ – zu lange Zeilen können in benachbarte Spalten hineinragen  
-* Seitenumbrüche erfolgen automatisch oder über `{new_page}`  
-* das Papierformat ist fest auf **DIN A4** eingestellt  
+* Spalten werden nicht automatisch „geclipped“ – zu lange Zeilen können in benachbarte Spalten hineinragen
+* Seitenumbrüche erfolgen automatisch oder über Direktive `{new_page}`
+* das Papierformat ist fest auf **DIN A4** eingestellt

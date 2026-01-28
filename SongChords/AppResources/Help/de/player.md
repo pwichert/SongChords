@@ -85,6 +85,6 @@ Die Hände sind frei für das Instrument.
 
 ---
 
-## Tip
+## Tipp
 
 > Du kannst Loops auch einfach erstellen, während der Audio Player läuft.  

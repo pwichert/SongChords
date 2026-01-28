@@ -136,7 +136,7 @@ struct PlayListView: View {
                         }
                         
                         Button(action: { showInsertDemoPlaylist.toggle() }) {
-                            Label("Insert Demo Playlist", systemImage: "tray.and.arrow.down")
+                            Label("Create Demo Playlist", systemImage: "tray.and.arrow.down")
                         }
 
                         Button(action: { showPrivacyView.toggle() }) {
@@ -221,8 +221,8 @@ struct PlayListView: View {
                 songImportUrl = IdentifiableURL(url: url)
             }
         })
-        .confirmationDialog("Insert Demo Playlist?", isPresented: $showInsertDemoPlaylist) {
-            Button("Insert", role: .confirm) {
+        .confirmationDialog("Create Demo Playlist?", isPresented: $showInsertDemoPlaylist) {
+            Button("Create Demo Playlist", role: .confirm) {
                 do {
                     try DemoHelper.createDemoPlaylist(modelContext: modelContext)
                 } catch (let error) {
