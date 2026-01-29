@@ -11,8 +11,6 @@ Du kannst damit:
 * Songtexte und Setlisten im PDF-Format erstellen
 * Akkord- und Textgrößen nach Wunsch einstellen
 
-Alles ist so designed, dass du **die Hände für das Instrument frei hast**.
-
 ---
 
 ## Wie SongChords funktioniert
@@ -20,8 +18,7 @@ Alles ist so designed, dass du **die Hände für das Instrument frei hast**.
 Jeder Song enthält **ChordPro Text**.  
 Aus diesem Text erstellt SongChords:
 
-* die On-Screen Song Darstellung
-* Akkord Diagramme
+* die Song Live-Darstellung
 * druckbare PDF Seiten
 * Timing Information für Autoscroll
 

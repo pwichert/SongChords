@@ -31,12 +31,14 @@ Wenn du einen Songtext mit Akkorden bereits irgendwo hast (z. B. aus einer Websi
 ## Export einer PDF-Datei
 
 **MacOS:**
-* klicke {icon:arrow.up.document} und folge dem Dateidialog. Wähle dabei das Dateiformat `Pdf-Dokument`.
+klicke {icon:arrow.up.document} und folge dem Dateidialog. Wähle dabei das Dateiformat `Pdf-Dokument`.
 
 **iOS:**
-* klicke unten den PDF-Exportieren-Button {icon:arrow.up.document.fill} und wähle dann `in Dateien sichern`
+klicke unten den PDF-Exportieren-Button {icon:arrow.up.document.fill} und wähle dann `in Dateien sichern`
 
 ---
+
+# SongChords Format
 
 **SongChords hat ein eigenes Format, in dem du Playlisten und Songs speichern und wieder einlesen kannst. Beachte: Verknüpfungen mit MP3-Dateien können auf diesem Weg allerdings nicht wieder importiert werden.**
 
@@ -48,13 +50,13 @@ Endung für Playlisten ist `.scplaylist`
 Benutze dafür die Buttons auf der Seite der Songliste
 
 **Export MacOS:**
-* klicke {icon:arrow.up.document} und folge dem Dateidialog. Wähle dabei das Dateiformat `SongChords Playlist`.
+klicke {icon:arrow.up.document} und folge dem Dateidialog. Wähle dabei das Dateiformat `SongChords Playlist`.
 
 **Export iOS:**
-* klicke unten den Teilen-Button {icon:square.and.arrow.up} bei der Songliste und wähle dann `in Dateien sichern`
+klicke unten den Teilen-Button {icon:square.and.arrow.up} bei der Songliste und wähle dann `in Dateien sichern`
 
 **Import:**
-* tappe auf die Datei mit Endung `.scplaylist`, die du wieder importieren möchtest. Bestätige dann den Import. Oder ziehe die Datei in das Fenster.
+tappe auf die Datei mit Endung `.scplaylist`, die du wieder importieren möchtest. Bestätige dann den Import. Oder ziehe die Datei in das Fenster (MacOS).
 
 ---
 
@@ -63,10 +65,10 @@ Benutze dafür die Buttons auf der Seite der Songliste
 Benutze dafür die Buttons auf der Songseite
 
 **Export MacOS:**
-* klicke {icon:arrow.up.document} und folge dem Dateidialog. Wähle dabei das Dateiformat `Songchords`.
+klicke {icon:arrow.up.document} und folge dem Dateidialog. Wähle dabei das Dateiformat `Songchords`.
 
 **Export iOS:**
-* klicke unten den Teilen-Button {icon:square.and.arrow.up} bei der Songliste und wähle dann `in Dateien sichern`
+klicke unten den Teilen-Button {icon:square.and.arrow.up} bei der Songliste und wähle dann `in Dateien sichern`
 
 **Import:**
-* tappe auf die Datei mit Endung `.songchords`, die du wieder importieren möchtest. Bestätige dann den Import. Oder ziehe die Datei in das Fenster.
+tappe auf die Datei mit Endung `.songchords`, die du wieder importieren möchtest. Bestätige dann den Import. Oder ziehe die Datei in das Fenster (MacOS).

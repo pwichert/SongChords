@@ -24,9 +24,7 @@ final class HelpBookLoader {
 
     init(initialChapter: String?) {
         self.initialChapter = initialChapter
-        
-        let isGerman = Locale.current.language.languageCode == .german
-        self.base = "AppResources/Help/\(isGerman ? "de" : "en")"
+        self.base = ResourceHelper.helpBase()
     }
     
     func load() {

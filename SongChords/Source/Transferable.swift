@@ -319,12 +319,6 @@ struct SongDropTransferable: Transferable {
     }
 }
 
-// Global access point for a ModelContainer used by wrappers to export Files.
-// Set this once during app startup, e.g., in the App struct after creating the container.
-struct GlobalModelContainer {
-    static var shared: ModelContainer?
-}
-
 struct PDFHelper {
     func createSongPDF(id: PersistentIdentifier, title: String) async throws -> URL {
         print("FileRepresentation (.pdf) exported song \(title)")

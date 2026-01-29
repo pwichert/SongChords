@@ -25,26 +25,16 @@ struct HelpBookView: View {
             }
             .navigationTitle("Help")
         } detail: {
-            if let current = loader.currentID {
-                if let chapter = loader.chapters.first(where: { $0.id == current }) {
-                    let nodes = MarkdownParser.parse(loader.loadMarkdown(chapter))
-
-                    ScrollView {
-                        MarkdownView(nodes: nodes)
-                            .padding()
-                    }
-                    .onChange(of: current) { scrollPosition = ScrollPosition(edge: .top) }
-                    .scrollPosition($scrollPosition)
-                    #if false
-                    .toolbar {
-                        ToolbarItem(placement: .confirmationAction) {
-                            Button("Ok", systemImage: "checkmark") {
-                                dismiss()
-                            }.labelStyle(.iconOnly)
-                        }
-                    }
-                    #endif
+            if let current = loader.currentID, let chapter = loader.chapters.first(where: { $0.id == current }) {
+                let nodes = MarkdownParser.parse(loader.loadMarkdown(chapter))
+                
+                ScrollView {
+                    MarkdownView(nodes: nodes)
+                        .padding()
                 }
+                .onChange(of: current) { scrollPosition = ScrollPosition(edge: .top) }
+                .scrollPosition($scrollPosition)
+                
             } else {
                 ContentUnavailableView("Select a topic", systemImage: "book")
             }

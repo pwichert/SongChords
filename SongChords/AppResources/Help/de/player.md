@@ -56,12 +56,12 @@ Ein Song kann mehrere Loops haben.
 
 ## Erstellen einer Loop
 
-*1 Starte das Abspielen des Songs mit dem Audio Player
-*2 Drücke **Start**, wenn die gewünschte Anfangsposition des Loops erreicht ist
-*3 Warte oder gehe zu einer anderen Position im Song
-*4 Drücke **End**, wenn die gewünschte Endposition erreicht ist
-*5 Gebe der Loop im Textfeld einen Namen
-*6 Ausführen von **Speichern** speichert den Loop permanent
+*1 starte das Abspielen des Songs mit dem Audio Player.
+*2 drücke **Start**, wenn die gewünschte Anfangsposition des Loops erreicht ist.
+*3 warte oder gehe zu einer anderen Position im Song.
+*4 drücke **End**, wenn die gewünschte Endposition erreicht ist.
+*5 gebe der Loop im Textfeld einen Namen.
+*6 Ausführen von **Speichern** speichert den Loop permanent.
 
 Der Loop ist nun einsatzbereit und gespeichert.
 
@@ -69,8 +69,8 @@ Der Loop ist nun einsatzbereit und gespeichert.
 
 ## Aktivieren der Loop
 
-* Hake **Aktivieren** an und spiele den Song ab, wenn die Loop ausgeführt werden soll
-* um die Wiederholungen zu stoppen, hake **Aktivieren** wieder ab
+* hake **Aktivieren** an und spiele den Song ab, wenn die Loop ausgeführt werden soll.
+* um die Wiederholungen zu stoppen, hake **Aktivieren** wieder ab.
 
 ---
 
@@ -78,8 +78,8 @@ Der Loop ist nun einsatzbereit und gespeichert.
 
 Wenn Autoscroll aktiviert ist und der Audio Player läuft:
 
-* der Song scrollt automatisch zur nächsten Sektion
-* das Timing wird aus der Audio-Position entnommen
+* der Song scrollt automatisch zur nächsten Sektion.
+* das Timing wird aus der Audio-Position entnommen.
 
 Die Hände sind frei für das Instrument.
 
@@ -87,4 +87,4 @@ Die Hände sind frei für das Instrument.
 
 ## Tipp
 
-> Du kannst Loops auch einfach erstellen, während der Audio Player läuft.  
+> Du kannst Loops auch einfach erstellen, während der Audio Player läuft.

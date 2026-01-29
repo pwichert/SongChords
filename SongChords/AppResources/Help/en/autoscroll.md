@@ -1,51 +1,56 @@
 # Autoscroll
 
-Autoscroll automatically scrolls the song to the next section.
-This keeps your hands free while playing.
+Autoscroll automatically scrolls the song to the next section. This keeps your hands free for the instrument.
+
+Scrolling is controlled either by a running timer or the audio player.
 
 ---
 
 ## Activation
 
-1. Open a song
-2. Tap the **Autoscroll** button (⏱)
-3. Choose **Timer** or **Audio Player**
+*1 select a song
+*2 open the autoscroll menu {icon:rectangle.stack} and activate autoscroll mode
+*3 then choose **Timer** {icon:autostartstop} in the autoscroll menu **or**
+*4 start the audio player {icon:music.note.list}
+
+While the timer or the audio player is running, you can create time markers (if not already done).
 
 ---
 
-## Setting Section Times
+## Create section time markers
 
-To assign timestamps:
+Assigning a time marker:
 
-1. Start the timer or audio player
-2. Tap a section header (Verse, Chorus, …)
-3. The current time is saved for that section
+*1 start the timer or audio player with autoscroll mode enabled
+*2 tap a section header (Verse, Chorus, …) for the context menu (long press or right-click)
+*3 the current time of the song will be saved for this section
 
 You can repeat this for all sections.
 
 ---
 
-## Duration Directive
+## Duration directive
 
-If a ChordPro directive like this is present:
+If this ChordPro directive is present:
 
-{duration: 230}
+`{duration: 230}`
 
-the timer will stop automatically after that time.
+the timer stops automatically after this time, in this example after 230 seconds.
 
 ---
 
-## Starting Autoscroll
+## Autoscroll
 
-When all sections have timestamps:
+When all sections have time markers:
 
-- Start the timer **or**
-- Play the song in the Audio Player
+* start the timer {icon:autostartstop} **or**
+* play the song in the audio player {icon:music.note.list}
 
-The song will scroll automatically.
+The song scrolls automatically.
 
 ---
 
 ## Tip
 
-> You can use Autoscroll even without an Apple Music subscription by using the built-in timer.
+> Autoscroll also works without an Apple Music subscription using the built-in timer.
+

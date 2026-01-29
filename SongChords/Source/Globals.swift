@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import SwiftData
 
 struct EquatableError: Equatable {
     static func == (lhs: EquatableError, rhs: EquatableError) -> Bool {
@@ -17,7 +18,6 @@ struct EquatableError: Equatable {
 }
 
 @Observable
-@MainActor
 public final class Globals {
     private(set) var songChordsError: EquatableError?
     
@@ -25,4 +25,62 @@ public final class Globals {
         songChordsError = EquatableError(error: error)
         print((songChordsError?.error as? SongChordsError)?.desc ?? songChordsError?.error.localizedDescription ?? "??")
     }
+}
+
+nonisolated
+struct ResourceHelper {
+    static let localeCode = Locale.current.language.languageCode == .german ? "de" : "en"
+
+    static func helpBase() -> String {
+        return "AppResources/Help/\(localeCode)"
+    }
+    
+    static func privacyText() -> String? {
+        let base = "AppResources/PrivacyPolicy/\(localeCode)"
+        
+        guard let url = Bundle.main.url(forResource: "PrivacyPolicy", withExtension: "txt", subdirectory: base) else {
+            return nil
+        }
+        
+        do {
+            let data = try Data(contentsOf: url)
+            return String(data: data, encoding: .utf8)
+        } catch {
+            print("Failed to load PrivacPolicy:", error)
+            return nil
+        }
+    }
+}
+
+nonisolated
+struct GlobalFunctions {
+    public static func formatTimeInterval(_ timeInterval: TimeInterval) -> String {
+        let formatter = DateComponentsFormatter()
+        formatter.allowedUnits = [.minute, .second]
+        formatter.unitsStyle = .positional
+        formatter.zeroFormattingBehavior = [.pad]
+        return formatter.string(from: round(timeInterval)) ?? "00:00"
+    }
+
+    public static func mp3Path() throws -> URL {
+        let fileManager = FileManager.default
+        let dest = try fileManager.url(for: .documentDirectory, in: .userDomainMask, appropriateFor: nil, create: true)
+        let destDir = dest.appendingPathComponent("mp3")
+        
+        if !fileManager.fileExists(atPath: destDir.path) {
+            try fileManager.createDirectory(at: destDir, withIntermediateDirectories: true)
+        }
+        
+        return destDir
+    }
+    
+    public static func isDisabled(song: Song) -> Bool {
+        return song.musicItemId.isEmpty || (song.musicItemId.starts(with: "local@") && !song.mp3FileExists())
+    }
+}
+
+// Global access point for a ModelContainer used by wrappers to export Files.
+// Set this once during app startup, e.g., in the App struct after creating the container.
+struct GlobalModelContainer {
+    static var shared: ModelContainer?
 }

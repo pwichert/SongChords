@@ -60,6 +60,24 @@ struct DemoHelper {
         """
         )
         
+        let playerLoops1 = [
+            PlayerLoop(start: 5, stop: 18, title: "Vers1"),
+            PlayerLoop(start: 60, stop: 78, title: "Chorus")
+        ]
+        
+        let sectionAnchors1 = [
+            SectionAnchor(id: 0, time: 18),
+            SectionAnchor(id: 1, time: 35),
+            SectionAnchor(id: 2, time: 110),
+            SectionAnchor(id: 3, time: 122),
+            SectionAnchor(id: 4, time: 132),
+            SectionAnchor(id: 5, time: 181),
+            SectionAnchor(id: 6, time: 220)
+        ]
+        
+        song1.playerLoops = playerLoops1
+        song1.sectionAnchors = sectionAnchors1
+        
         // Demo Song 2
         let song2 = try Song(
             title: "Fire in the Sky",
@@ -105,6 +123,23 @@ struct DemoHelper {
         """
         )
         
+        let playerLoops2 = [
+            PlayerLoop(start: 5, stop: 12, title: "Intro")
+        ]
+        
+        let sectionAnchors2 = [
+            SectionAnchor(id: 0, time: 15),
+            SectionAnchor(id: 1, time: 55),
+            SectionAnchor(id: 2, time: 120),
+            SectionAnchor(id: 3, time: 136),
+            SectionAnchor(id: 4, time: 178),
+            SectionAnchor(id: 5, time: 190),
+            SectionAnchor(id: 6, time: 210)
+        ]
+        
+        song2.playerLoops = playerLoops2
+        song2.sectionAnchors = sectionAnchors2
+
         // Beziehungen setzen
         song1.toPlaylist(playlist: demoPlaylist)
         song2.toPlaylist(playlist: demoPlaylist)

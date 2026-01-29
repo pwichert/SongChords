@@ -1,86 +1,90 @@
 # Audio Player & Loops
 
-SongChords can play audio tracks directly while displaying the song.
-This allows you to rehearse and perform with perfect timing.
+SongChords can play audio while a song is displayed. This lets you practice and perform with perfect timing.
 
-You can use:
+You can choose:
 
-- **Apple Music** (requires a subscription)
-- **Local MP3 files** (imported into the app)
-
----
-
-## Connecting a Song to Audio
-
-Each song can be linked to one audio track.
-
-- If the song is linked to **Apple Music**, a music note icon (♪) is shown.
-- If the song is linked to a **local MP3**, a waveform icon is shown.
-
-Tap the icon to open the Audio Player.
+* **Apple Music** (Apple Music subscription required)
+* **Local MP3 files**
 
 ---
 
-## Playback Controls
+## Linking a song
 
-The Audio Player provides:
+Each song can be linked to an audio track.
 
-- Play / Pause
-- Seek forward and backward
-- Current time display
-- Loop indicators
+* if the song is linked with **Apple Music**, a note ♪ is shown.
+* if the song is linked with a **local MP3 file**, a waveform {icon:waveform} is shown.
+* the waveform is disabled if the MP3 file is linked on another device. You can still assign a file on your device.
 
-When a song is playing, Autoscroll can be synchronized with the audio.
+When the song is displayed, you can tap the note icon {icon:music.note.list} to open the audio player.
+
+* at the bottom of the player there are two buttons: `Search Apple Music` and `Import MP3 File`
+* you can choose whether to link with Apple Music or a local MP3
+* depending on your selection, a new dialog starts in which the desired link can be created
 
 ---
 
-## Player Loops
+## Playback controls
 
-Loops allow you to repeat a specific part of the song.
+The audio player can:
+
+* play / pause / stop
+* seek forward and backward
+* change playback speed
+* for MP3: change the song's pitch
+* display the current time
+* show and edit loop sections
+
+While the song is playing, autoscroll synchronizes with audio.
+
+---
+
+## Player loops
+
+With loops, certain sections of the song can be repeated as many times as you like.
 
 This is useful for:
-- practicing difficult sections
-- repeating intros or solos
-- rehearsing transitions
 
-A song can contain multiple loops.
+* practicing difficult sections
+* repeating intros and solos
+* practicing transitions
 
----
-
-## Creating a Loop
-
-1. Start playing the song
-2. Open the section menu (long press or right click)
-3. Choose **Set Loop Start**
-4. Jump to another position in the song
-5. Open the menu again and choose **Set Loop End**
-
-The loop is now stored with the song.
+A song can have multiple loops.
 
 ---
 
-## Activating a Loop
+## Creating a loop
 
-- Open the loop menu in the Audio Player
-- Select one of the stored loops
-- Playback will repeat this section continuously
+*1 start playback of the song with the audio player.
+*2 press **Start** when the desired start position of the loop is reached.
+*3 wait or go to another position in the song.
+*4 press **End** when the desired end position is reached.
+*5 give the loop a name in the text field.
+*6 executing **Save** saves the loop permanently.
 
-To stop looping, disable the loop in the player.
+The loop is now ready to use and saved.
 
 ---
 
-## Autoscroll with Audio
+## Activating the loop
 
-When Autoscroll is enabled and the Audio Player is running:
+* check **Activate** and play the song if you want the loop to run.
+* to stop repetitions, uncheck **Activate**.
 
-- The song scrolls automatically to the next section
-- Timing is taken from the audio position
+---
 
-This keeps your hands free while playing.
+## Autoscroll with audio
+
+When autoscroll is enabled and the audio player is running:
+
+* the song scrolls automatically to the next section.
+* the timing is taken from the audio position.
+
+Your hands are free for the instrument.
 
 ---
 
 ## Tip
 
-> You can create loops even while the song is playing.  
-> They are saved automatically and available next time.
+> You can also easily create loops while the audio player is running.

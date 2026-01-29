@@ -2,45 +2,44 @@
 
 SongChords is a setlist and song manager for musicians.
 
-It lets you:
-- organize songs and playlists
-- display lyrics with chords
-- play audio tracks
-- scroll songs automatically
-- export professional PDF setlists
-
-Everything is designed so you can **keep your hands on your instrument**.
+You can use it to:
+* Organize songs and playlists
+* Display lyrics together with chords
+* Also display lyrics and chords separately
+* Play audio tracks and loops
+* Automatically scroll songs
+* Create song lyrics and setlists in PDF format
+* Adjust chord and text sizes as you like
 
 ---
 
-## How SongChords Works
+## How SongChords works
 
-Each song contains **ChordPro text**.  
+Every song contains **ChordPro text**.  
 From this text, SongChords creates:
 
-- the on-screen song view
-- chord diagrams
-- printable PDF sheets
-- timing information for Autoscroll
+* the live song view
+* printable PDF pages
+* timing information for autoscroll
 
 You can edit this text directly or import it from files.
 
 ---
 
-## Main Areas
+## Main topics
 
-- **Playlists** – organize your setlists  
-- **Songs** – each song contains ChordPro text  
-- **Detail View** – shows lyrics, chords, sections  
-- **Audio Player** – play MP3 or Apple Music  
-- **Autoscroll** – scrolls your song automatically  
+* **Playlists** – organize your setlists
+* **Songs** – every song contains ChordPro text
+* **Detail view** – display lyrics, chords, and sections  
+* **Audio player** – play MP3 or Apple Music  
+* **Autoscroll** – automatically scrolls your song  
 
-Use the sidebar to switch between playlists and songs.
+Use the sidebar to switch between your setlists and songs
 
 ---
 
 ## Tip
 
-> Tap and hold on section headers to access context menus with timing and player options.
+> Tap and hold (or right-click) the section headers to edit timing options in autoscroll mode.
 
-Enjoy playing! 🎸🎹
+Have fun! 🎸🎹

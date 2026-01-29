@@ -16,7 +16,7 @@ struct GhostMP3 {
 
 final class MP3GhostCleaner {
 
-    static func findGhosts(in directory: URL, referencedIDs: Set<String>) throws -> [GhostMP3] {
+    func findGhosts(in directory: URL, referencedIDs: Set<String>) throws -> [GhostMP3] {
         let fm = FileManager.default
         let files = try fm.contentsOfDirectory(
             at: directory,
@@ -38,7 +38,7 @@ final class MP3GhostCleaner {
         return ghosts
     }
 
-    static func delete(_ ghosts: [GhostMP3]) throws {
+    func delete(_ ghosts: [GhostMP3]) throws {
         for g in ghosts {
             try FileManager.default.removeItem(at: g.url)
         }
@@ -76,10 +76,10 @@ final class MP3GhostCleaner {
             )
             
             let mp3Dir = try GlobalFunctions.mp3Path()
-            let ghosts = try MP3GhostCleaner.findGhosts(in: mp3Dir, referencedIDs: usedIDs)
+            let ghosts = try findGhosts(in: mp3Dir, referencedIDs: usedIDs)
             
             ghosts.forEach { print("ghost: \($0.url.lastPathComponent) \($0.size)") }
-            try MP3GhostCleaner.delete(ghosts)
+            try delete(ghosts)
             ghostLog.info("Ghost MP3 scan successfully finished: \(ghosts.count) ghosts deleted")
             return true
         } catch is CancellationError {

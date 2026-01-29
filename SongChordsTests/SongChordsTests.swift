@@ -227,7 +227,7 @@ struct SongChordsTests {
     }
     
     @Test func testReverse() async throws {
-        var englishDutchRoot: any ChordRoot = EnglishDutchRoot()
+        let englishDutchRoot: any ChordRoot = EnglishDutchRoot()
 
         var inputText = """
               C                            F   Gsus4
@@ -238,8 +238,8 @@ struct SongChordsTests {
         
         """
         
-        var chordProReverseParser = ChordProReverseParser()
-        let _ = chordProReverseParser.parse(input: inputText, rootSystem: &englishDutchRoot)
+        var chordProReverseParser = ChordProReverseParser(rootSystem: englishDutchRoot)
+        let _ = chordProReverseParser.parse(input: inputText)
         #expect(chordProReverseParser.toString() == expectedResult)
         
         inputText = """
@@ -253,8 +253,8 @@ struct SongChordsTests {
         
         """
         
-        chordProReverseParser = ChordProReverseParser()
-        let _ = chordProReverseParser.parse(input: inputText, rootSystem: &englishDutchRoot)
+        chordProReverseParser = ChordProReverseParser(rootSystem: englishDutchRoot)
+        let _ = chordProReverseParser.parse(input: inputText)
         #expect(chordProReverseParser.toString() == expectedResult)
 
         inputText = """
@@ -275,8 +275,8 @@ struct SongChordsTests {
         You've g[C]ot to roll with the punches to get to what'[F]s real [Gsus4]
         
         """
-        chordProReverseParser = ChordProReverseParser()
-        let _ = chordProReverseParser.parse(input: inputText, rootSystem: &englishDutchRoot)
+        chordProReverseParser = ChordProReverseParser(rootSystem: englishDutchRoot)
+        let _ = chordProReverseParser.parse(input: inputText)
         #expect(chordProReverseParser.toString() == expectedResult)
 
         inputText = """
@@ -292,8 +292,8 @@ struct SongChordsTests {
         (Keyboard Solo)
         
         """
-        chordProReverseParser = ChordProReverseParser()
-        let _ = chordProReverseParser.parse(input: inputText, rootSystem: &englishDutchRoot)
+        chordProReverseParser = ChordProReverseParser(rootSystem: englishDutchRoot)
+        let _ = chordProReverseParser.parse(input: inputText)
         #expect(chordProReverseParser.toString() == expectedResult)
 
         inputText = """
@@ -309,8 +309,8 @@ struct SongChordsTests {
         [C#m]
         
         """
-        chordProReverseParser = ChordProReverseParser()
-        let _ = chordProReverseParser.parse(input: inputText, rootSystem: &englishDutchRoot)
+        chordProReverseParser = ChordProReverseParser(rootSystem: englishDutchRoot)
+        let _ = chordProReverseParser.parse(input: inputText)
         #expect(chordProReverseParser.toString() == expectedResult)
 
         inputText = """
@@ -332,8 +332,8 @@ struct SongChordsTests {
         [Cm7]More than a feeling, [F]that's the power of love
         
         """
-        chordProReverseParser = ChordProReverseParser()
-        let _ = chordProReverseParser.parse(input: inputText, rootSystem: &englishDutchRoot)
+        chordProReverseParser = ChordProReverseParser(rootSystem: englishDutchRoot)
+        let _ = chordProReverseParser.parse(input: inputText)
         #expect(chordProReverseParser.toString() == expectedResult)
     }
 }

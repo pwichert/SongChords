@@ -510,105 +510,10 @@ struct PlaylistSelectionSheet: View {
     }
 }
 
-//struct OnboardingSheet: View {
-//    @Environment(\.dismiss) var dismiss
-//        
-//    var body: some View {
-//        InfoView()
-//    }
-//}
-
-struct PrivacyTextView: View {
-    var body: some View {
-        Text(
-        """
-        The protection of your personal data is very important for us. This privacy policy explains how we collect, use, store, and protect your data when you use our app.
-
-        1. Data Controller
-
-        The responsible party for data processing is:
-
-        Peter Wichert
-        Brockenscheidter Straße 15c
-        45731 Waltrop
-        Phone: +49 2309 569304
-        Email: sc_app@icloud.com
-
-        2. Data Collected
-
-        a) Automatically collected data:
-
-        • Usage data: Information about the use of the app, such as device information, operating system version, and error logs.
-
-        • Analytics data: Anonymized usage data may be collected to improve the app (e.g., crash reports).
-
-        b) User-provided data:
-
-        • Song data: Song lyrics, chords, playlists, and other content you create or store in the app. These data are solely for the app’s functionality and are not accessible to us.
-
-        • iCloud synchronization: If enabled, your data is stored in your iCloud account.
-
-        3. Use of Data
-
-        Your data is used exclusively for the following purposes:
-
-        • Providing and improving app functionality.
-
-        • Synchronizing your data between your devices via iCloud.
-
-        • Fixing bugs and optimizing app performance.
-
-        4. Data Sharing
-
-        We do not share your personal data with third parties unless:
-
-        • You have explicitly consented.
-
-        • We are legally obligated to do so.
-
-        • It is necessary to provide technical services (e.g., iCloud by Apple).
-
-        No data is used for tracking purposes. No data is shared with advertising networks.
-
-        5. iCloud Synchronization
-
-        The iCloud synchronization is provided by Apple. Your data is securely stored and encrypted in your personal iCloud account. Please refer to Apple’s Privacy Policy as Apple is responsible for processing your data in connection with iCloud usage.
-
-        6. Data Security
-
-        We implement technical and organizational measures to protect your data from unauthorized access, loss, or misuse.
-
-        7. Your Rights
-
-        You have the right to:
-
-        • Access the data we store about you.
-
-        • Request the correction of incorrect data.
-
-        • Request the deletion of your data, provided there are no legal retention requirements.
-
-        Please contact us at: sc_app@icloud.com
-
-        8. Changes to the Privacy Policy
-
-        We reserve the right to update this privacy policy if necessary. Changes will be published in the app or on our website.
-
-        9. Contact
-
-        If you have any questions or concerns regarding privacy, please contact us at:
-
-        sc_app@icloud.com
-
-        Last updated: January 2025
-        """)
-    }
-}
-
 struct PrivacyView: View {    
     var body: some View {
         InfoContentView("Datenschutz") {
-            PrivacyTextView()
+            Text(ResourceHelper.privacyText() ?? "")
         }
     }
 }
