@@ -24,7 +24,7 @@ final class HelpBookLoader {
 
     init(initialChapter: String?) {
         self.initialChapter = initialChapter
-        self.base = ResourceHelper.helpBase()
+        self.base = ResourceHelper.resourceBase(base: "Help")
     }
     
     func load() {

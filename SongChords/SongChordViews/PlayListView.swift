@@ -512,8 +512,6 @@ struct PlaylistSelectionSheet: View {
 
 struct PrivacyView: View {    
     var body: some View {
-        InfoContentView("Datenschutz") {
-            Text(ResourceHelper.privacyText() ?? "")
-        }
+        MarkdownResourceView(title: String(localized: "Privacy Policy"), base: "PrivacyPolicy", name: "PrivacyPolicy")
     }
 }

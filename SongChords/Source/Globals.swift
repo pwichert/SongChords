@@ -31,24 +31,8 @@ nonisolated
 struct ResourceHelper {
     static let localeCode = Locale.current.language.languageCode == .german ? "de" : "en"
 
-    static func helpBase() -> String {
-        return "AppResources/Help/\(localeCode)"
-    }
-    
-    static func privacyText() -> String? {
-        let base = "AppResources/PrivacyPolicy/\(localeCode)"
-        
-        guard let url = Bundle.main.url(forResource: "PrivacyPolicy", withExtension: "txt", subdirectory: base) else {
-            return nil
-        }
-        
-        do {
-            let data = try Data(contentsOf: url)
-            return String(data: data, encoding: .utf8)
-        } catch {
-            print("Failed to load PrivacPolicy:", error)
-            return nil
-        }
+    static func resourceBase(base: String) -> String {
+        return "AppResources/\(base)/\(ResourceHelper.localeCode)"
     }
 }
 
