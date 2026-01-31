@@ -68,7 +68,7 @@ class PrintSongDelegate: NSObject, PrintDelegateBase {
                 for rowEvent in rowEvents { rowEvent() }
                 rowEvents = []
 
-                pdfGenerator.draw(RowView(song: song, modelContext: nil, globals: nil, audioPlayer: nil, darkColor: darkColor, lightColor: lightColor, rowContent: rowContent, forPrinting: true, autoScroll: autoScroll))                
+                pdfGenerator.draw(RowView(song: song, modelContext: nil, globals: nil, audioPlayer: nil, darkColor: darkColor, lightColor: lightColor, rowContent: rowContent, forPrinting: true, autoScroll: autoScroll, currentSectionID: nil))
             }
         }
         

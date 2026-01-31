@@ -102,6 +102,10 @@ final class AudioPlayer {
             engine?.position = newValue
         }}
     
+    // genaue engine-Position für Loop-Set-Button. transport.position kann um tickerSleepInterval abweichen.
+    @ObservationIgnored
+    var enginePosition: TimeInterval { get { engine?.position ?? position }}
+    
     var rate: Float { get { transport.rate }
         set {
             print("rate = \(newValue)")
@@ -124,7 +128,6 @@ final class AudioPlayer {
         print("AudioPlayer deinit")
         stop()
     }
-    
     
     func load(song: Song) async throws {
         print("AudioPlayer load")
@@ -467,14 +470,7 @@ final class MP3Engine: AudioEngine {
             engine.attach(pitchNode)
             engine.connect(node, to: pitchNode, format: nil)
             engine.connect(pitchNode, to: engine.mainMixerNode, format: nil)
-            
-//            engine.attach(node)
-//            engine.attach(pitchNode)
-//            let mainMixer = engine.mainMixerNode
-//            engine.connect(node, to: pitchNode, format: nil)
-//            engine.connect(pitchNode, to: mainMixer, format: nil)
-//            engine.connect(mainMixer, to: engine.outputNode, format: nil) // Mixer → Output
-            
+                        
             #if os(iOS)
             do {
                 try AVAudioSession.sharedInstance().setCategory(.playback, mode: .default, options: [])

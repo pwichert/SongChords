@@ -48,7 +48,6 @@ internal struct SongViewX: View {
     @State private var showAudioPlayer: Bool = false
     @State private var showSongEditView: Bool = false
     @State private var showRemoveAllAnchors: Bool = false
-    @State private var showHowtoAutoscroll: Bool = false
     @State private var showFileExport: Bool = false
 
     @State private var pdfUrl: URL?
@@ -74,7 +73,7 @@ internal struct SongViewX: View {
                             .navigationBarTitleDisplayMode(.inline)
                         #endif
                     } else {
-                        DetailContent(song: song, darkColor: darkColor, lightColor: lightColor, autoScroll: autoScrollEnabled)
+                        DetailContent(song: song, darkColor: darkColor, lightColor: lightColor, autoScroll: autoScrollEnabled, currentSectionID: currentSectionID)
                         #if os(iOS)
                             .navigationBarTitleDisplayMode(.large)
                         #endif
@@ -97,8 +96,12 @@ internal struct SongViewX: View {
             .overlay(alignment: .topTrailing) {
                 if MarkerTimer.shared.isRunning {
                     VStack(alignment: .trailing) {
-                        TimerOverlayView(time: MarkerTimer.shared.time, darkColor: darkColor, lightColor: lightColor)
-                            .offset(x: -5, y: 5)
+                        TimerOverlayView(time: MarkerTimer.shared.time, darkColor: darkColor, lightColor: lightColor) {
+                            // Button action
+                            MarkerTimer.shared.stop()
+//                            currentSectionID = nil
+                        }
+                        .offset(x: -5, y: 5)
                     }
                 }
             }
@@ -179,11 +182,6 @@ internal struct SongViewX: View {
                 }
             }, alignment: .bottom
         )
-        .sheet(isPresented: $showHowtoAutoscroll) {
-            NavigationStack {
-                InfoAutoscrollView()
-            }
-        }
         .sheet(isPresented: $showSongEditView) {
             NavigationStack {
                 if let playlist = song.playlist {
@@ -223,6 +221,9 @@ internal struct SongViewX: View {
             // Wenn nach der PDF-Ansicht ein anderer Song selektiert wird,
             // kann man sonst noch kurz den alten Song sehen
             SongTaskManager.shared.representationHolder.resetRowContent()
+            
+            MarkerTimer.shared.stop()
+            currentSectionID = nil
         }
     }
     
@@ -233,14 +234,18 @@ internal struct SongViewX: View {
                     Button(MarkerTimer.shared.isRunning ? "Stop timer" : "Start timer", systemImage: MarkerTimer.shared.isRunning ? "autostartstop.slash" : "autostartstop", action: {
                         if MarkerTimer.shared.isRunning {
                             MarkerTimer.shared.stop()
-                            currentSectionID = nil
+//                            currentSectionID = nil
                         } else {
                             audioPlayer.stop()
                             MarkerTimer.shared.start()
                         }
                     })
                 }
-                Button("Autoscroll mode off", systemImage: "rectangle.stack.slash", action: { autoScrollEnabled = false; MarkerTimer.shared.stop() })
+                Button("Autoscroll mode off", systemImage: "rectangle.stack.slash", action: {
+                    autoScrollEnabled = false
+                    MarkerTimer.shared.stop()
+                    currentSectionID = nil
+                })
                 Divider()
                 Button("Remove all timestamps", systemImage: "x.square", action: { showRemoveAllAnchors.toggle() }).disabled(song.sectionAnchors.isEmpty)
                 
@@ -252,9 +257,7 @@ internal struct SongViewX: View {
 //                        print("\(s.id) \(s.time)")
 //                    }
                 }).help("Set autoscroll mode on")
-            }
-            
-            Button("How to autoscroll", systemImage: "questionmark.circle", action: { showHowtoAutoscroll.toggle() })
+            }            
         } label: {
             Label(title: { Text("Autoscroll") },
                   icon: { if autoScrollEnabled { Image(systemName: "rectangle.stack").symbolVariant(.fill) } else { Image(systemName: "rectangle.stack") }}
@@ -273,7 +276,7 @@ internal struct SongViewX: View {
                 if let rowID = section.headerRowID {
                     withAnimation(.linear(duration: 0.25)) {
                         print("scrollTo \(section.id)")
-                        proxy.scrollTo(rowID, anchor: .topLeading)
+                        proxy.scrollTo("anchor-\(rowID)", anchor: .topLeading)      // wenn nur rowID für die Zeile wird nicht ganz nach links gescrolled
                     }
                 }// else { print("section hat keine headerRowID") }
                 
@@ -294,6 +297,7 @@ internal struct SongViewX: View {
         return nil
     }
     
+    /// Sicherstellen, dass alle Sections des Songs auch im srcText vorkommen. Ggfls. sectionAnchors bereinigen
     private func syncAnchors() {
         print("syncAnchors")
         guard !SongTaskManager.shared.representationHolder.rows.isEmpty else { return }
@@ -354,7 +358,10 @@ struct DetailContent: View {
     let darkColor: Color
     let lightColor: Color
     let autoScroll: Bool
+    let currentSectionID: Int?
         
+    let padding = 10.0
+    
     @Environment(\.modelContext) private var modelContext
     @Environment(Globals.self) private var globals
     @Environment(AudioPlayer.self) private var audioPlayer
@@ -367,18 +374,26 @@ struct DetailContent: View {
         
         VStack(alignment: .leading, spacing: 0) {
             #if os(macOS)
-            Text(song.title).font(.title).fontWeight(.bold).padding(.bottom, 10)
+            Text(song.title).font(.title).fontWeight(.bold).padding(EdgeInsets(top: 0, leading: padding, bottom: 10, trailing: 0))
             #endif
 
             // sinnlose rows (wie .sectionEnded) werden in ViewFilter entfernt
             // PDF-Events (.newpage, .columnbreak) werden in .append() vorher entfernt
             
             ForEach(rows) { rowContent in
-                RowView(song: song, modelContext: modelContext, globals: globals, audioPlayer: audioPlayer,
-                        darkColor: darkColor, lightColor: lightColor, rowContent: rowContent, forPrinting: false, autoScroll: autoScroll)
+                HStack(spacing: 0) {
+                    // das .leading-Padding ist der Scrollanchor, sonst wird nicht ganz nach links gescrolled
+                    // die RowContent.id wird mit "anchor-..." in den unsichtbaren padding-frame gepflanzt und dieser als scrollanchor benutzt.
+                    Color.clear
+                        .frame(width: padding)          // = .padding(.leading)
+                        .id("anchor-\(rowContent.id)")
+                    
+                    RowView(song: song, modelContext: modelContext, globals: globals, audioPlayer: audioPlayer,
+                            darkColor: darkColor, lightColor: lightColor, rowContent: rowContent, forPrinting: false, autoScroll: autoScroll, currentSectionID: currentSectionID)
+                }
             }
         }
-        .padding()
+        .padding(EdgeInsets(top: padding, leading: 0, bottom: padding, trailing: padding))
     }
 }
 
@@ -392,6 +407,7 @@ struct RowView: View {
     let rowContent: RowContent
     let forPrinting: Bool
     let autoScroll: Bool
+    let currentSectionID: Int?
     
     @Environment(UserSettings.self) private var userSettings
     
@@ -404,24 +420,24 @@ struct RowView: View {
             
             switch rowContent.chunkContent {
             case .sectionStarted(let str, let sectionId):
-                SectionHeaderView(song: song, modelContext: modelContext, globals: globals, audioPlayer: audioPlayer, autoScroll: autoScroll, sectionId: sectionId, header: str, lightColor: lightColor, darkColor: darkColor).font(Font(forPrinting ? userSettings.headerPDFUIFont : userSettings.headerUIFont))
+                SectionHeaderView(song: song, modelContext: modelContext, globals: globals, audioPlayer: audioPlayer, autoScroll: autoScroll, sectionId: sectionId, isActive: sectionId == currentSectionID, header: str, lightColor: lightColor, darkColor: darkColor).font(Font(forPrinting ? userSettings.headerPDFUIFont : userSettings.headerUIFont))
                 
-            case .chordline(let line):
-                ChordsLineView(line: line, lightColor: lightColor, darkColor: darkColor).font(Font(forPrinting ? userSettings.chordPDFUIFont : userSettings.chordUIFont))
+            case .chordline(let chords):
+                ChordsLineView(chords: chords, lightColor: lightColor, darkColor: darkColor).font(Font(forPrinting ? userSettings.chordPDFUIFont : userSettings.chordUIFont))
                 
-            case .chordplainline(let line):
-                ChordsPlainView(line: line, lightColor: lightColor, darkColor: darkColor).font(Font(forPrinting ? userSettings.chordPDFUIFont : userSettings.chordUIFont))
+            case .chordplainline(let chords):
+                ChordsPlainView(chords: chords, lightColor: lightColor, darkColor: darkColor).font(Font(forPrinting ? userSettings.chordPDFUIFont : userSettings.chordUIFont))
                 
-            case .textline(let line, _):
-                TextsLineView(line: line).font(Font(forPrinting ? userSettings.txtPDFUIFont : userSettings.txtUIFont))
+            case .textline(let texts, _):
+                TextsLineView(texts: texts).font(Font(forPrinting ? userSettings.txtPDFUIFont : userSettings.txtUIFont))
                 
             case .textplainline(let line):
                 Text(line).font(Font(forPrinting ? userSettings.txtPDFUIFont : userSettings.txtUIFont))
                                 
             case .splittedline(chords: let chords, texts: let texts, _):
-                ChordsLineView(line: chords, lightColor: lightColor, darkColor: darkColor).font(Font(forPrinting ? userSettings.chordPDFUIFont : userSettings.chordUIFont))
+                ChordsLineView(chords: chords, lightColor: lightColor, darkColor: darkColor).font(Font(forPrinting ? userSettings.chordPDFUIFont : userSettings.chordUIFont))
                     .padding(EdgeInsets(top: 0, leading: 0, bottom: 1, trailing: 0))
-                TextsLineView(line: texts).font(Font(forPrinting ? userSettings.txtPDFUIFont : userSettings.txtUIFont))
+                TextsLineView(texts: texts).font(Font(forPrinting ? userSettings.txtPDFUIFont : userSettings.txtUIFont))
                 
             case .emptyline:
                 Text(" ").font(Font(forPrinting ? userSettings.txtPDFUIFont : userSettings.txtUIFont))
@@ -441,20 +457,20 @@ struct RowView: View {
 }
 
 struct TextsLineView: View {
-    let line: [TextElement]
+    let texts: [TextElement]
     
     var body: some View {
         ZStack(alignment: .topLeading) {
-            ForEach(line) { text in
+            ForEach(texts) { text in
                 HStack(alignment: .center, spacing: 0) {
-                    if line.last == text {
+                    if texts.last == text {
                         Color.clear.frame(width: text.fontOffset, height: 0.1, alignment: .leading)
                         
                         Text(text.txt)
-                            .lineLimit(1)
+//                            .lineLimit(1)
                     } else {
                         Text(text.txt)
-                            .lineLimit(1)
+//                            .lineLimit(1)
                             .offset(CGSize(width: text.fontOffset, height: 0))
                     }
                 }
@@ -464,7 +480,7 @@ struct TextsLineView: View {
 }
 
 struct ChordsLineView: View {
-    let line: [TextElement]
+    let chords: [TextElement]
     let lightColor: Color
     let darkColor: Color
     
@@ -472,30 +488,29 @@ struct ChordsLineView: View {
     
     var body: some View {
         ZStack(alignment: .topLeading) {
-            ForEach(line) { chordTxt in
+            ForEach(chords) { chord in
                 HStack(alignment: .center, spacing: 0) {
-                    if line.last == chordTxt {
-                        Color.clear.frame(width: chordTxt.fontOffset, height: 0.1, alignment: .leading)
+                    if chords.last == chord {
+                        Color.clear.frame(width: chord.fontOffset, height: 0.1, alignment: .leading)
                         
-                        PopoverButtonView(chordTxt: chordTxt)
-                            .lineLimit(1)
+                        PopoverButtonView(chord: chord)
+//                            .lineLimit(1)
                             .padding(.horizontal, 0.8)
-                            .background(chordTxt.background ? (colorScheme == .dark ? darkColor : lightColor) : Color.clear)
+                            .background(chord.background ? (colorScheme == .dark ? darkColor : lightColor) : Color.clear)
                             .clipShape(RoundedRectangle(cornerRadius: 4, style: .circular))
                     } else {
-                        PopoverButtonView(chordTxt: chordTxt)
-                            .lineLimit(1)
+                        PopoverButtonView(chord: chord)
+//                            .lineLimit(1)
                             .padding(.horizontal, 0.8)
-                            .background(chordTxt.background ? (colorScheme == .dark ? darkColor : lightColor) : Color.clear)
+                            .background(chord.background ? (colorScheme == .dark ? darkColor : lightColor) : Color.clear)
                             .clipShape(RoundedRectangle(cornerRadius: 4, style: .circular))
-                            .offset(CGSize(width: chordTxt.fontOffset, height: 0))
+                            .offset(CGSize(width: chord.fontOffset, height: 0))
                     }
                 }.buttonStyle(PlainButtonStyle())
             }
         }
     }
 }
-
 
 struct SectionHeaderView: View {
     let song: Song
@@ -504,10 +519,11 @@ struct SectionHeaderView: View {
     let audioPlayer: AudioPlayer?
     let autoScroll: Bool
     let sectionId: Int
+    let isActive: Bool
     let header: String
     let lightColor: Color
     let darkColor: Color
-    
+        
     @Environment(\.colorScheme) var colorScheme
 
     var body: some View {
@@ -517,18 +533,22 @@ struct SectionHeaderView: View {
             Spacer()
         }
         .padding(1)
-        .background(colorScheme == .dark ? darkColor : lightColor)
+        .background(
+            autoScroll && isActive
+                ? (colorScheme == .dark ? Color.orange.opacity(0.45) : Color.orange.opacity(0.35))
+                : (colorScheme == .dark ? darkColor : lightColor))
+        .animation(.easeInOut(duration: 0.4), value: isActive)
         .cornerRadius(5)
         .contextMenu {
-            if let modelContext, let globals, autoScroll {
+            if let modelContext, let globals, let audioPlayer, autoScroll {
                 Button("Set section timestamp") {
                     do {
                         var tm: TimeInterval?
                         if MarkerTimer.shared.isRunning {
-                            tm = MarkerTimer.shared.time
+                            tm = MarkerTimer.shared.exactTime
                         }
-                        else if let audioPlayer {
-                            tm = audioPlayer.position
+                        else {
+                            tm = audioPlayer.enginePosition
                         }
                         if let tm {
                             saveAnchor(songPosition: tm)
@@ -577,7 +597,7 @@ struct SectionHeaderView: View {
 }
 
 struct ChordsPlainView: View {
-    let line: [TextElement]
+    let chords: [TextElement]
     let lightColor: Color
     let darkColor: Color
     
@@ -585,11 +605,11 @@ struct ChordsPlainView: View {
     
     var body: some View {
         HStack(alignment: .center, spacing: 0) {
-            ForEach(line) { chord in
-                if chord != line.first { Text(" ").lineLimit(1) }
+            ForEach(chords) { chord in
+                if chord != chords.first { Text(" ") }//.lineLimit(1) }
                 
-                PopoverButtonView(chordTxt: chord)
-                    .lineLimit(1)
+                PopoverButtonView(chord: chord)
+//                    .lineLimit(1)
                     .padding(.horizontal, 0.8)
                     .background(chord.background ? (colorScheme == .dark ? darkColor : lightColor) : Color.clear)
                     .clipShape(RoundedRectangle(cornerRadius: 4, style: .circular))
@@ -600,27 +620,27 @@ struct ChordsPlainView: View {
 }
 
 struct PopoverButtonView: View {
-    let chordTxt: TextElement
+    let chord: TextElement
     
     @State private var showChordShape: Bool = false
 
     var body: some View {
         Group {
-            if chordTxt.chord != nil {
+            if chord.chord != nil {
                 Button { showChordShape.toggle() } label: {
-                    Text(chordTxt.txt)
+                    Text(chord.txt)
                 }
             } else {
-                Text(chordTxt.txt)
+                Text(chord.txt)
             }
         }
         .popover(isPresented: $showChordShape) {
-            /// iOS (nicht iPadOS) bekommt einen exit-Button, da ein ganzes sheet aufgemacht wird
+            // iOS (nicht iPadOS) bekommt einen exit-Button, da ein ganzes sheet aufgemacht wird
             #if os(macOS)
-            ChordDiagramView(chordTxt: chordTxt)
+            ChordDiagramView(chord: chord)
             #else
             if UIDevice.current.userInterfaceIdiom == .pad {
-                ChordDiagramView(chordTxt: chordTxt)
+                ChordDiagramView(chord: chord)
             } else {
                 VStack {
                     HStack {
@@ -630,7 +650,7 @@ struct PopoverButtonView: View {
                         }
                         .padding()
                     }
-                    ChordDiagramView(chordTxt: chordTxt)
+                    ChordDiagramView(chord: chord)
                     Spacer()
                 }
             }
@@ -643,25 +663,22 @@ struct TimerOverlayView: View {
     let time: TimeInterval
     let darkColor: Color
     let lightColor: Color
+    let action: () -> Void
 
     @Environment(\.colorScheme) var colorScheme
 
     var body: some View {
-        Text(String(GlobalFunctions.formatTimeInterval(time)))
-            .font(.headline)
-            .monospacedDigit()
-            .padding(.horizontal, 10)
-            .padding(.vertical, 6)
-            .background(colorScheme == .dark ? darkColor : lightColor)
-            .clipShape(RoundedRectangle(cornerRadius: 6))
-            .shadow(radius: 3)
-    }
-}
-
-struct InfoAutoscrollView: View {
-    var body: some View {
-        InfoContentView("Autoscroll") {
-            Text("How To Autoscroll")
-        }
+        Button {
+            action()
+        } label: {
+            Text(String(GlobalFunctions.formatTimeInterval(time)))
+                .font(.headline)
+                .monospacedDigit()
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
+                .background(colorScheme == .dark ? darkColor : lightColor)
+                .clipShape(RoundedRectangle(cornerRadius: 6))
+                .shadow(radius: 3)
+        }.buttonStyle(.plain)
     }
 }

@@ -2,7 +2,9 @@
 
 Autoscroll scrollt den Song automatisch zur nächsten Sektion. Dadurch bleiben deine Hände für das Instrument frei.
 
-Das Scrolling wird entweder von einem laufendem Timer oder dem Audio Player gesteuert.
+Gesteuert wird das Scrolling entweder durch einen Timer, der die Sekunden zählt, oder durch den Audioplayer, wenn damit ein Song abgespielt wird. Falls die ChordPro-Direktive "duration" gesetzt ist, wird die Zeit des Timers damit begrenzt.
+
+Wenn alle Sektionen einen Zeitstempel bekommen haben, kann durch Aus- bzw. Einschalten des Timers oder durch Abspielen mit dem Audioplayer das Autoscroll gestartet werden.
 
 ---
 
@@ -53,3 +55,5 @@ Der Song scrollt automatisch.
 ## Tipp
 
 > Autoscroll funktioniert auch ohne AppleMusic-Abo mit dem eingebauten Timer.
+
+> Klick auf die Timeranzeige stoppt den Timer

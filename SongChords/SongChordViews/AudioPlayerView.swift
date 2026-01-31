@@ -683,7 +683,7 @@ struct SetButtonView: View {
     var body: some View {
         VStack(alignment: .center) {
             Text(txt).font(.footnote)
-            Button { point = audioPlayer.position } label: { Image(systemName: "button.programmable").font(.title) }.disabled(GlobalFunctions.isDisabled(song: song))
+            Button { point = audioPlayer.enginePosition } label: { Image(systemName: "button.programmable").font(.title) }.disabled(GlobalFunctions.isDisabled(song: song))
             Text(GlobalFunctions.formatTimeInterval(point)).font(.footnote)
         }
     }

@@ -92,9 +92,6 @@ struct SongChordsApp: App {
     
     private func scenePhaseChanged(_ phase: ScenePhase) async {
         if scenePhase == .active {
-//#if DEBUG
-//UserDefaults.standard.removeObject(forKey: "isOnboarding")
-//#endif
             print("-> active")
             Task {
                 do {

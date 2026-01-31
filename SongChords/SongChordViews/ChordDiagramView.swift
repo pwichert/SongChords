@@ -9,17 +9,17 @@
 import SwiftUI
 
 struct ChordDiagramView: View {
-    let chordTxt: TextElement
+    let chord: TextElement
     let frets: [ChordFretVariant]
     
-    init(chordTxt: TextElement) {
-        self.chordTxt = chordTxt
-        frets = chordTxt.chord?.getFrets() ?? []
+    init(chord: TextElement) {
+        self.chord = chord
+        frets = chord.chord?.getFrets() ?? []
     }
     
     var body: some View {
         VStack(spacing: 0) {
-            Text(chordTxt.txt)
+            Text(chord.txt)
                 .font(.title)
                 .bold()
                 .padding()

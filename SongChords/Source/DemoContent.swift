@@ -66,10 +66,10 @@ struct DemoHelper {
         ]
         
         let sectionAnchors1 = [
-            SectionAnchor(id: 0, time: 18),
-            SectionAnchor(id: 1, time: 35),
-            SectionAnchor(id: 2, time: 110),
-            SectionAnchor(id: 3, time: 122),
+            SectionAnchor(id: 0, time: 5),
+            SectionAnchor(id: 1, time: 12),
+            SectionAnchor(id: 2, time: 18),
+            SectionAnchor(id: 3, time: 28),
             SectionAnchor(id: 4, time: 132),
             SectionAnchor(id: 5, time: 181),
             SectionAnchor(id: 6, time: 220)
@@ -128,8 +128,8 @@ struct DemoHelper {
         ]
         
         let sectionAnchors2 = [
-            SectionAnchor(id: 0, time: 15),
-            SectionAnchor(id: 1, time: 55),
+            SectionAnchor(id: 0, time: 5),
+            SectionAnchor(id: 1, time: 15),
             SectionAnchor(id: 2, time: 120),
             SectionAnchor(id: 3, time: 136),
             SectionAnchor(id: 4, time: 178),

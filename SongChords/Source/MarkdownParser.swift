@@ -1,5 +1,5 @@
 //
-//  SimpleMarkdownParser.swift
+//  MarkdownParser.swift
 //  SongChords
 //
 //  Created by Peter Wichert on 26.01.26.

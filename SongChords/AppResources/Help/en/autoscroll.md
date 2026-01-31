@@ -2,7 +2,9 @@
 
 Autoscroll automatically scrolls the song to the next section. This keeps your hands free for the instrument.
 
-Scrolling is controlled either by a running timer or the audio player.
+Autoscroll can be controlled either by a timer, which counts the seconds, or by the audio player while a song is playing. If the ChordPro directive duration is set, it limits the total time of the timer.
+
+Once all sections have a time stamp, Autoscroll can be started by turning the timer on or off, or by playing the song with the audio player.
 
 ---
 
@@ -54,3 +56,4 @@ The song scrolls automatically.
 
 > Autoscroll also works without an Apple Music subscription using the built-in timer.
 
+> tapping the timer display stopps the timer
