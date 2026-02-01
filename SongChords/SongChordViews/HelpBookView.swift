@@ -34,6 +34,9 @@ struct HelpBookView: View {
                 .onChange(of: current) { scrollPosition = ScrollPosition(edge: .top) }
                 .scrollPosition($scrollPosition)
                 .navigationTitle(chapter.title)
+                #if os(iOS)
+                .navigationBarTitleDisplayMode(.inline)
+                #endif
             } else {
                 ContentUnavailableView("Select a topic", systemImage: "book")
             }
