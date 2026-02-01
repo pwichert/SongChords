@@ -23,7 +23,6 @@ struct HelpBookView: View {
             List(loader.chapters, selection: $loader.currentID) { chapter in
                 Text(chapter.title)
             }
-            .navigationTitle("Help")
         } detail: {
             if let current = loader.currentID, let chapter = loader.chapters.first(where: { $0.id == current }) {
                 let nodes = MarkdownParser.parse(loader.loadMarkdown(chapter))
@@ -34,7 +33,7 @@ struct HelpBookView: View {
                 }
                 .onChange(of: current) { scrollPosition = ScrollPosition(edge: .top) }
                 .scrollPosition($scrollPosition)
-                
+                .navigationTitle(chapter.title)
             } else {
                 ContentUnavailableView("Select a topic", systemImage: "book")
             }

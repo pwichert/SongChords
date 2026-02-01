@@ -350,9 +350,7 @@ struct AudioPlayerView: View {
                     try await audioPlayer.load(song: song)
                 }
                 try await audioPlayer.play()
-            } catch (let error) { throw error }
-            
-            MarkerTimer.shared.stop()
+            } catch (let error) { throw error }            
         }
     }
     

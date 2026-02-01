@@ -180,7 +180,7 @@ internal struct SongListViewX: View {
                     Button(role: .destructive, action: { prepareDelete(songIDs: selectedSongIDs.contains(song.id) ? selectedSongIDs : [song.id]) }) { Label("Delete", systemImage: "trash")}
                 }
                 // TODO: Mehrfachselektion in iOS zeigt bei drag-Beginn falsche Anzahl im Ball an
-                .draggable(SongTransferable(from: song, includeCodable: true, includeData: true, autoScroll: false)) { Text(song.title) }
+                .draggable(SongTransferable(from: song, includeCodable: true, includeData: true)) { Text(song.title) }
             }
             .onMove(perform: moveSongs)
             .onDelete { indexSet in

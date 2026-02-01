@@ -45,7 +45,7 @@ struct PlayListTransferable: Transferable, Codable, Identifiable {
         self.persistentId = playlist.id
         self.seq = playlist.seq
         self.title = playlist.title
-        self.songs = (playlist.songs ?? []).compactMap { SongTransferable(from: $0, includeCodable: includeCodable, includeData: includeData, includePDF: includePDF, autoScroll: false) }
+        self.songs = (playlist.songs ?? []).compactMap { SongTransferable(from: $0, includeCodable: includeCodable, includeData: includeData, includePDF: includePDF) }
     }
     
     public init(from decoder: Decoder) throws {
@@ -144,10 +144,8 @@ struct SongTransferable: Transferable, Codable, Identifiable {
     let includeCodable: Bool
     let includeData: Bool
     let includePDF: Bool
-
-    let autoScroll: Bool
     
-    init(from song: Song, includeCodable: Bool = false, includeData: Bool = false, includePDF: Bool = false, autoScroll: Bool) {
+    init(from song: Song, includeCodable: Bool = false, includeData: Bool = false, includePDF: Bool = false) {
         self.persistentId = song.id
         self.seq = song.seq
         self.title = song.title
@@ -165,8 +163,6 @@ struct SongTransferable: Transferable, Codable, Identifiable {
         self.includePDF = includePDF
         self.includeData = includeData
         self.includeCodable = includeCodable
-        
-        self.autoScroll = autoScroll
     }
     
     enum CodingKeys: CodingKey {
@@ -189,7 +185,6 @@ struct SongTransferable: Transferable, Codable, Identifiable {
         self.includeCodable = false
         self.includeData = false
         self.includePDF = false
-        self.autoScroll = false
 
         let container = try decoder.container(keyedBy: CodingKeys.self)
         persistentId = try container.decode(PersistentIdentifier.self, forKey: .persistentid)
@@ -326,7 +321,7 @@ struct PDFHelper {
         do {
             let modelContainer: ModelContainer? = GlobalModelContainer.shared
             guard let modelContainer else { throw NSError(domain: "PDFCreationError", code: 5, userInfo: ["reason": "Missing ModelContainer for PDF export"]) }
-            let delegate = await PrintSongDelegate(songID: id, modelContainer: modelContainer, autoScroll: false)
+            let delegate = await PrintSongDelegate(songID: id, modelContainer: modelContainer)
             guard let delegate = delegate, let pdfUrl = delegate.createPDF() else {
                 throw NSError(domain: "PDFCreationError", code: 4, userInfo: ["reason": "Failed to create PDF"])
             }

@@ -16,11 +16,9 @@ protocol PrintDelegateBase {
 class PrintSongDelegate: NSObject, PrintDelegateBase {
     let userSettings = UserSettings()
     let song: Song
-    let autoScroll: Bool
     
-    init?(songID: PersistentIdentifier, modelContainer: ModelContainer, autoScroll: Bool) async {
+    init?(songID: PersistentIdentifier, modelContainer: ModelContainer) async {
         let modelContext = ModelContext(modelContainer)
-        self.autoScroll = autoScroll
         
         // bei fetchSong() nicht die Task-Variante, weil asynchron evtl. zu spät fertig ist und songRepresentation überschreibt
         guard let song = Song.fetchSong(with: songID, in: modelContext) else { return nil }
@@ -68,7 +66,7 @@ class PrintSongDelegate: NSObject, PrintDelegateBase {
                 for rowEvent in rowEvents { rowEvent() }
                 rowEvents = []
 
-                pdfGenerator.draw(RowView(song: song, modelContext: nil, globals: nil, audioPlayer: nil, darkColor: darkColor, lightColor: lightColor, rowContent: rowContent, forPrinting: true, autoScroll: autoScroll, currentSectionID: nil))
+                pdfGenerator.draw(RowView(song: song, modelContext: nil, globals: nil, audioPlayer: nil, autoScroll: false, darkColor: darkColor, lightColor: lightColor, rowContent: rowContent, forPrinting: true, currentSectionID: nil))
             }
         }
         
