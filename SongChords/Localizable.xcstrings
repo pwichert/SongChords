@@ -819,7 +819,14 @@
       }
     },
     "Pitch" : {
-      "shouldTranslate" : false
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pitch"
+          }
+        }
+      }
     },
     "Play" : {
       "shouldTranslate" : false

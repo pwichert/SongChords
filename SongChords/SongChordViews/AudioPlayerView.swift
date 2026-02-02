@@ -28,10 +28,10 @@ struct AudioPlayerView: View {
     @State private var loopActive: Bool = false
     
     @State private var songSpeed: Float = 1
-    @State private var songPosition: TimeInterval = 0
+//    @State private var songPosition: TimeInterval = 0
     @State private var songPitch: Float = 0
     
-    @State private var inPositionEditing: Bool = false
+//    @State private var inPositionEditing: Bool = false
     @State private var inRateEditing: Bool = false
     @State private var inPitchEditing: Bool = false
 
@@ -93,37 +93,8 @@ struct AudioPlayerView: View {
             
             if !showSmallView {
                 Grid(alignment: .trailing, verticalSpacing: 0) {
-                    GridRow(alignment: .center) {
-                        Text("Pos")
-                        #if os(macOS)
-                        Slider(
-                            value: $songPosition,       // durch Schattenvariable Scrubbing verhindern
-                            in: 0...audioPlayer.duration,
-                            onEditingChanged: { editing in
-                                inPositionEditing = editing
-                            }
-                        )
-                        .disabled(GlobalFunctions.isDisabled(song: song))
-                        #else
-                        Slider(
-                            value: $songPosition,       // durch Schattenvariable Scrubbing verhindern
-                            in: 0...audioPlayer.duration
-                        )
-                        .simultaneousGesture (      // onEditingChanged geht manchmal verloren, Gesture ist sicherer
-                            DragGesture(minimumDistance: 0)
-                                .onChanged { _ in
-                                    if !inPositionEditing {
-                                        inPositionEditing = true
-                                    }
-                                }
-                                .onEnded { _ in
-                                    inPositionEditing = false
-                                }
-                            )
-                        .disabled(GlobalFunctions.isDisabled(song: song))
-                        #endif
-                        Text(GlobalFunctions.formatTimeInterval(inPositionEditing ? songPosition : audioPlayer.position)).font(.footnote).frame(width: 50).lineLimit(1)
-                    }.padding(.bottom, gridVerticalSpacing * 1.5)
+                    PositionGridRow(song: song)
+                    .padding(.bottom, gridVerticalSpacing * 1.5)
                     GridRow(alignment: .center) {
                         Text("Speed")
                         Slider(
@@ -242,17 +213,6 @@ struct AudioPlayerView: View {
         }
         .onChange(of: audioPlayer.rate) { _, newValue in
             songSpeed = newValue
-        }
-        // bidirektionale Kopplung zwischen audioPlayer.position und songPosition
-        // außer bei inPositionEditing == true, wenn also der Slider bewegt wird.
-        // Scrubbing verhindern durch Kopie für Slider in $songPosition und nicht direkt auf audioPlayer.songPosition
-        .onChange(of: inPositionEditing) {
-//            print("change inPositionEditing \(inPositionEditing)")
-            if !inPositionEditing { audioPlayer.position = songPosition }
-        }
-        .onChange(of: audioPlayer.position) { _, newValue in
-//            print("position changed \(newValue)")
-            if !inPositionEditing { songPosition = newValue }
         }
         // Loop selektiert
         .onChange(of: selectedLoop) {
@@ -401,14 +361,66 @@ struct AudioPlayerView: View {
                 
                 song.setMP3Info(uuid: uuid, pitch: pitch)
                 print("\(song.musicItemId)")
-                //                songPitch = pitch / 10.0
-                //                audioPlayer.isMP3Player = true
                 
                 break
             }
         } catch(let error) {
             print("Fehler beim mp3-Laden: \(error.localizedDescription)")
             globals.setSongChordsError(error: error)
+        }
+    }
+}
+
+struct PositionGridRow: View {
+    let song: Song
+    
+    @State private var inPositionEditing: Bool = false
+    @State private var songPosition: TimeInterval = 0
+    
+    @Environment(AudioPlayer.self) private var audioPlayer
+
+    var body: some View {
+        GridRow(alignment: .center) {
+            Text("Pos")
+            #if os(macOS)
+            Slider(
+                value: $songPosition,       // durch Schattenvariable Scrubbing verhindern
+                in: 0...audioPlayer.duration,
+                onEditingChanged: { editing in
+                    inPositionEditing = editing
+                }
+            )
+            .disabled(GlobalFunctions.isDisabled(song: song))
+            #else
+            Slider(
+                value: $songPosition,       // durch Schattenvariable Scrubbing verhindern
+                in: 0...audioPlayer.duration
+            )
+            .simultaneousGesture (      // onEditingChanged geht manchmal verloren, Gesture ist sicherer
+                DragGesture(minimumDistance: 0)
+                    .onChanged { _ in
+                        if !inPositionEditing {
+                            inPositionEditing = true
+                        }
+                    }
+                    .onEnded { _ in
+                        inPositionEditing = false
+                    }
+            )
+            .disabled(GlobalFunctions.isDisabled(song: song))
+            #endif
+            Text(GlobalFunctions.formatTimeInterval(inPositionEditing ? songPosition : audioPlayer.position)).font(.footnote).frame(width: 50).lineLimit(1)
+        }
+        // bidirektionale Kopplung zwischen audioPlayer.position und songPosition
+        // außer bei inPositionEditing == true, wenn also der Slider bewegt wird.
+        // Scrubbing verhindern durch Kopie für Slider in $songPosition und nicht direkt auf audioPlayer.position
+        .onChange(of: audioPlayer.position) { _, newValue in
+//            print("position changed \(newValue)")
+            if !inPositionEditing { songPosition = newValue }
+        }
+        .onChange(of: inPositionEditing) {
+//            print("change inPositionEditing \(inPositionEditing)")
+            if !inPositionEditing { audioPlayer.position = songPosition }
         }
     }
 }

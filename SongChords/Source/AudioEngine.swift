@@ -100,8 +100,6 @@ final class AudioPlayer {
             print("position = \(newValue)")
             transport.position = newValue
             engine?.position = newValue
-            lastClockTime = newValue      // Clock reset auf neue Basis
-            lastTickDate = ContinuousClock.now
         }}
     
     // genaue engine-Position für Loop-Set-Button. transport.position kann um tickerSleepInterval abweichen.
@@ -124,15 +122,6 @@ final class AudioPlayer {
 
     @ObservationIgnored
     private var ticker: Task<Void, Never>?
-    
-    @ObservationIgnored
-    var lastClockTime: TimeInterval = 0
-
-    @ObservationIgnored
-    var lastTickDate = ContinuousClock.now
-    
-    @ObservationIgnored
-    var lastEngineSyncDate = ContinuousClock.now
     
     isolated
     deinit {
@@ -190,76 +179,6 @@ final class AudioPlayer {
         engine = nil
         position = 0
         state = .stopped
-    }
-
-    private func startTickerII() {
-        stopTicker()
-
-        lastTickDate = ContinuousClock.now
-        lastClockTime = position
-        
-        ticker = Task {
-            while !Task.isCancelled {
-                guard var e = engine else { return }
-
-                let x = ContinuousClock.now.duration(to: lastTickDate)
-                let elapsed = abs(Double(x.components.seconds) + Double(x.components.attoseconds) / 1_000_000_000_000_000_000)
-                lastTickDate = ContinuousClock.now
-
-                let scaledElapsed = elapsed * Double(transport.rate)
-                var newClockTime = lastClockTime + scaledElapsed
-
-                lastClockTime = newClockTime
-                
-                // Loop handling
-                if let l = self.loop, self.isValidLoop(loop: l) {
-                    if newClockTime < l.start || newClockTime >= l.stop {
-//                        print("korrigiert von \(newClockTime) auf \(l.start) ende ist \(l.stop)")
-                        e.position = l.start
-                        newClockTime = l.start
-                        lastClockTime = l.start
-                    }
-                }
-
-                // publish clock
-                transport.position = newClockTime
-
-                // engine drift correction (throttled to ~2s)
-                let syncElapsed = ContinuousClock.now.duration(to: lastEngineSyncDate)
-                let syncSeconds = abs(Double(syncElapsed.components.seconds) + Double(syncElapsed.components.attoseconds) / 1_000_000_000_000_000_000)
-                if syncSeconds >= 2.0 {
-                    lastEngineSyncDate = ContinuousClock.now
-                    let real = e.position
-                    let estimated = newClockTime
-                    let drift = real - estimated
-                    if abs(drift) > 0.15 {
-                        print("drift \(drift)")
-                        let correction = drift * 0.5
-                        newClockTime += correction
-                        lastClockTime = newClockTime
-                        transport.position = newClockTime
-                    }
-                }
-                
-                // stop if audio stopped
-                if e.isPlaying == false {
-                    stop()
-                    print("engine stopped")
-                    return
-                }
-
-                var sleepInterval = tickerSleepInterval
-                
-                if let l = loop, isValidLoop(loop: l), transport.rate != 0 {
-                    let timeToLoopEnd = (l.stop - newClockTime) / Double(transport.rate)
-                    if timeToLoopEnd > 0 && timeToLoopEnd < sleepInterval {
-                        sleepInterval = timeToLoopEnd
-                    }
-                }
-
-                try? await Task.sleep(for: .seconds(sleepInterval))
-            }
-        }
     }
     
     private func startTicker() {
