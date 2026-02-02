@@ -1,5 +1,3 @@
-# Audio Player & Loops
-
 SongChords can play audio while a song is displayed. This lets you practice and perform with perfect timing.
 
 You can choose:

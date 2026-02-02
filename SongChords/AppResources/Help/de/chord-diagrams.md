@@ -1,5 +1,3 @@
-# Akkord-Diagramme
-
 SongChords kann **Akkord-Diagramme** anzeigen, um die Griffbilder für Gitarrenakkorde schnell sichtbar zu machen.  
 Dies ist besonders hilfreich beim Lernen neuer Songs oder beim spontanen Nachschlagen unbekannter Akkorde.
 

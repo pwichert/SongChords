@@ -54,13 +54,14 @@ struct ChordDiagramView: View {
     
 struct ChordFretboardView: View {
     let variant: ChordFretVariant
-    let stringSpacing: CGFloat = 25
-    let fretSpacing: CGFloat = 30
-    let fretCount: Int = 5
     
-    let baseSpacingLeft: CGFloat = 12   // baseFret-Zahl-Start
-    let spacingLeft: CGFloat = 19 + 12   // + baseSpacingLeft: Platz für baseFret-Zahl
-    let spacingTop: CGFloat = 15    // Platz für x o
+    private let stringSpacing: CGFloat = 25
+    private let fretSpacing: CGFloat = 30
+    private let fretCount: Int = 5
+    
+    private let baseSpacingLeft: CGFloat = 12   // baseFret-Zahl-Start
+    private let spacingLeft: CGFloat = 19 + 12   // + baseSpacingLeft: Platz für baseFret-Zahl
+    private let spacingTop: CGFloat = 15    // Platz für x o
     
     var body: some View {
         ZStack {
@@ -135,7 +136,7 @@ struct ChordFretboardView: View {
         }
     }
     
-    var barrePositions: (start: CGFloat?, end: CGFloat?) {
+    private var barrePositions: (start: CGFloat?, end: CGFloat?) {
         var start: CGFloat? = nil
         var end: CGFloat? = nil
         

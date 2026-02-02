@@ -1,5 +1,3 @@
-# Schnelleinstieg
-
 Diese kurze Einführung zeigt, wie du **möglichst schnell zu einem spielbaren Song** kommst – ohne lange Einrichtung.
 
 ---

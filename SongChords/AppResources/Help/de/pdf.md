@@ -1,5 +1,3 @@
-# PDF & Drucken
-
 SongChords ermöglicht es, Songs und Playlisten als **PDF** zu exportieren oder direkt darzustellen.  
 So lassen sich Inhalte auch außerhalb der App nutzen, z. B. auf der Bühne, im Proberaum oder als Ausdruck.
 

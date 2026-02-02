@@ -34,7 +34,7 @@ class PrintSongDelegate: NSObject, PrintDelegateBase {
         return songToPdf(userSettings: userSettings)
     }
     
-    func songToPdf(userSettings: UserSettings) -> URL? {
+    private func songToPdf(userSettings: UserSettings) -> URL? {
         let mgr = SongTaskManager.shared.representationHolder.directiveManager
         let margins = EdgeInsets(top: userSettings.margintop, leading: userSettings.marginleft, bottom: userSettings.marginbottom, trailing: userSettings.marginright)
         let pdfConfiguration = PDFConfiguration(mediaBox: userSettings.mediabox, margins: margins, columns: mgr.columns, scale: userSettings.printingscale / 100.0)
@@ -94,7 +94,7 @@ class PrintSetlistDelegate: NSObject, PrintDelegateBase {
         return setlistToPDF(playlist: playlist, userSettings: userSettings)
     }
         
-    func setlistToPDF(playlist: PlayList, userSettings: UserSettings) -> URL? {
+    private func setlistToPDF(playlist: PlayList, userSettings: UserSettings) -> URL? {
         // 2-spaltig
         let margins = EdgeInsets(top: userSettings.margintop, leading: userSettings.marginleft, bottom: userSettings.marginbottom, trailing: userSettings.marginright)
         let pdfConfiguration = PDFConfiguration(mediaBox: userSettings.mediabox, margins: margins, columns: 2, scale: userSettings.printingscale / 100.0)

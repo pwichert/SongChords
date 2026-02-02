@@ -1,5 +1,3 @@
-# Welcome to SongChords
-
 SongChords is a setlist and song manager for musicians.
 
 You can use it to:

@@ -273,7 +273,7 @@ struct AudioPlayerView: View {
         }
     }
     
-    var playbackButtonsView: some View {
+    private var playbackButtonsView: some View {
         HStack {
             Spacer()
             Button(action: { rewindPlayback() }) {
@@ -312,7 +312,7 @@ struct AudioPlayerView: View {
         }.buttonStyle(BorderedButtonStyle()).font(.footnote)
     }
     
-    var smallLargeToggleView: some View {
+    private var smallLargeToggleView: some View {
         HStack {
             Spacer()
             Button(action: { showSmallView.toggle() }) { Label("", systemImage: showSmallView ? "chevron.up.circle" : "chevron.down.circle").font(.body).bold().labelStyle(.iconOnly) }

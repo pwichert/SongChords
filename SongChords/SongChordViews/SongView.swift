@@ -221,7 +221,7 @@ internal struct SongViewX: View {
         }
     }
     
-    var autoScrollMenu: some View {
+    private var autoScrollMenu: some View {
         Menu {
             if autoScrollEnabled {
                 HStack {
@@ -280,7 +280,7 @@ internal struct SongViewX: View {
         }
     }
 
-    func sectionForTime(_ time: TimeInterval, anchors: [SectionAnchor]) -> SectionModel? {
+    private func sectionForTime(_ time: TimeInterval, anchors: [SectionAnchor]) -> SectionModel? {
         if let secId = anchors.sorted(by: { $0.time < $1.time }).last(where: { $0.time <= time })?.id {
             return SongTaskManager.shared.representationHolder.sections[secId]
         }
@@ -351,7 +351,7 @@ struct DetailContent: View {
     let autoScroll: Bool
     let currentSectionID: Int?
         
-    let padding = 10.0
+    private let padding = 10.0
     
     @Environment(\.modelContext) private var modelContext
     @Environment(Globals.self) private var globals
@@ -376,7 +376,7 @@ struct DetailContent: View {
                     // das .leading-Padding ist der Scrollanchor, sonst wird nicht ganz nach links gescrolled
                     // die RowContent.id wird mit "anchor-..." in den unsichtbaren padding-frame gepflanzt und dieser als scrollanchor benutzt.
                     Color.clear
-                        .frame(width: padding)          // = .padding(.leading)
+                        .frame(width: padding, height: 0.1)          // = .padding(.leading)
                         .id("anchor-\(rowContent.id)")
                     
                     RowView(song: song, modelContext: modelContext, globals: globals, audioPlayer: audioPlayer, autoScroll: autoScroll,
@@ -562,24 +562,24 @@ struct SectionHeaderView: View {
         }
     }
     
-    func sectionTime() -> String {
+    private func sectionTime() -> String {
         if let anchor = song.sectionAnchors.first(where: { $0.id == sectionId } ) {
             return GlobalFunctions.formatTimeInterval(anchor.time)
         }
         return ""
     }
     
-    func sectionInAnchors() -> Bool {
+    private func sectionInAnchors() -> Bool {
         song.sectionAnchors.first(where: { $0.id == sectionId } ) != nil
     }
     
-    func saveAnchor(songPosition: Double) {
+    private func saveAnchor(songPosition: Double) {
         removeAnchor()
         print("hinzugefügt section \(sectionId) an position \(Int(songPosition))")
         song.sectionAnchors.append(SectionAnchor(id: sectionId, time: songPosition))
     }
 
-    func removeAnchor() {
+    private func removeAnchor() {
         if sectionInAnchors() {
             print("entferne section \(sectionId)")
             song.sectionAnchors.removeAll(where: { $0.id == sectionId })

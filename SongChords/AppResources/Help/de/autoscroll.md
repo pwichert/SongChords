@@ -1,5 +1,3 @@
-# Autoscroll
-
 Autoscroll scrollt den Song automatisch zur nächsten Sektion. Dadurch bleiben deine Hände für das Instrument frei.
 
 Gesteuert wird das Scrolling entweder durch einen Timer, der die Sekunden zählt, oder durch den Audioplayer, wenn damit ein Song abgespielt wird. Falls die ChordPro-Direktive "duration" gesetzt ist, wird die Zeit des Timers damit begrenzt.

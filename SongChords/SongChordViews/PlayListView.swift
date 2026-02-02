@@ -190,7 +190,7 @@ struct PlayListView: View {
         }
         .sheet(isPresented: $showPrivacyView) {
             NavigationStack {
-                PrivacyView()
+                MarkdownResourceView(title: String(localized: "Privacy Policy"), base: "PrivacyPolicy", name: "PrivacyPolicy")
             }
         }
         #if os(iOS)
@@ -394,7 +394,7 @@ struct PlaylistEditView: View {
 
     @State private var playlistTitle: String = ""
 
-    enum FocusedField: Hashable {
+    private enum FocusedField: Hashable {
         case playlistTitle
     }
     @FocusState private var focusedField: FocusedField?
@@ -507,11 +507,5 @@ struct PlaylistSelectionSheet: View {
         #else
             .frame(idealHeight: 400)
         #endif
-    }
-}
-
-struct PrivacyView: View {    
-    var body: some View {
-        MarkdownResourceView(title: String(localized: "Privacy Policy"), base: "PrivacyPolicy", name: "PrivacyPolicy")
     }
 }

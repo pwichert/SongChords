@@ -1,5 +1,3 @@
-# Chord Diagrams
-
 SongChords can display **chord diagrams** to quickly show fingering shapes for guitar chords.  
 This is especially helpful when learning new songs or quickly looking up unfamiliar chords.
 

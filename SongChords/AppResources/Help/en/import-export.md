@@ -1,12 +1,9 @@
-# Import and Export
-
-
 ## Importing a ChordPro file
 
 If you already have a **ChordPro file** (`.cho`, `.chordpro`, `.pro`):
 
 *1 select a playlist.
-*2 choose in the menu ({icon:ellipsis.circle}) `Import ChordPro File`.
+*2 choose in the menu {icon:ellipsis.circle} `Import ChordPro File`.
 *2 select the ChordPro file.
 
 The song is then ready to play immediately and will be shown in the live view.
@@ -21,7 +18,7 @@ If you already have lyrics with chords somewhere (e.g., from a website, text fil
 *1 copy the lyrics to the **clipboard**.
 *2 open SongChords.
 *3 select a playlist.
-*4 choose in the menu ({icon:ellipsis.circle}) `Import Text from Clipboard`. You may be asked for permission.
+*4 choose in the menu {icon:ellipsis.circle} `Import Text from Clipboard`. You may be asked for permission.
 *5 **Done**. You now have a new song in the list.
 
 > Tip: Even simple text formats with chords above the lines or in brackets are usually recognized correctly.

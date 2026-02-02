@@ -1,5 +1,3 @@
-# Quick Start
-
 This short introduction shows how to **get to a playable song as quickly as possible** – without any lengthy setup.
 
 ---
