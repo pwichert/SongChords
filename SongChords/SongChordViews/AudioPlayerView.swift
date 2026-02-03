@@ -96,7 +96,11 @@ struct AudioPlayerView: View {
                             value: $songSpeed,       // durch Schattenvariable Scrubbing verhindern
                             in: 0.3...1,
                             onEditingChanged: { editing in
-                                if !editing { audioPlayer.rate = songSpeed }
+                                if !editing {
+                                    audioPlayer.rate = songSpeed
+                                    // in sync bleiben
+                                    ScrollTimer.shared.setRate(Double(songSpeed), audioPosition: audioPlayer.enginePosition)
+                                }
                             }
                         ).disabled(GlobalFunctions.isDisabled(song: song))
                         Text("\(Int(round(songSpeed * 100.0)))%").font(.footnote).frame(width: 50).lineLimit(1)

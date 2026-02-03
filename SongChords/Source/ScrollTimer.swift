@@ -22,9 +22,13 @@ final class ScrollTimer {
 
     private(set) var trackingMode: TrackingMode = .none
 
+    // Playback rate (1.0 = normal)
+    @ObservationIgnored
+    private var rate: Double = 1.0
+
     // Exakte Zeit (nicht gedrosselt)
     @ObservationIgnored
-    var exactTime: TimeInterval { get { Date().timeIntervalSince(startTime) }}
+    var exactTime: TimeInterval { Date().timeIntervalSince(startTime) * rate }
 
     @ObservationIgnored
     private var startTime = Date()
@@ -53,7 +57,7 @@ final class ScrollTimer {
 
         task = Task {
             while !Task.isCancelled {
-                let t = Date().timeIntervalSince(startTime)
+                let t = Date().timeIntervalSince(startTime) * rate
                 let newSecond = Int(floor(t))
                 let uiSecond = Int((time ?? -1).rounded(.down))
 
@@ -77,6 +81,15 @@ final class ScrollTimer {
     }
     
     func syncToAudio(position: TimeInterval) {
-        startTime = Date().addingTimeInterval(-position)
+        // phase lock: exactTime(now) == position
+        startTime = Date().addingTimeInterval(-(position / rate))
+    }
+    
+    // Change playback rate while keeping phase locked to audio
+    func setRate(_ newRate: Double, audioPosition: TimeInterval) {
+        guard newRate > 0 else { return }
+        rate = newRate
+        // keep clock aligned to current audio position
+        startTime = Date().addingTimeInterval(-(audioPosition / rate))
     }
 }
