@@ -42,7 +42,7 @@ final class ScrollTimer {
 
     func startTracking(_ trackingMode: TrackingMode) {
         self.trackingMode = trackingMode
-        start()
+        startTicker()
     }
     
     func stopTracking() {
@@ -50,7 +50,7 @@ final class ScrollTimer {
         stop()
     }
     
-    private func start() {
+    private func startTicker() {
         stop()
 
         startTime = Date()
