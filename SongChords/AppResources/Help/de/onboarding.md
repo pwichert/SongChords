@@ -22,7 +22,7 @@ Wenn du einen Songtext mit Akkorden bereits irgendwo hast (z. B. aus einer Websi
 *1 kopiere den Songtext in die **Zwischenablage**.
 *2 öffne SongChords.
 *3 wähle eine Playliste aus.
-*4 wähle im Menü ({icon:ellipsis.circle}) `Text von Zwischenablage importieren`. Evtl. wird noch um Erlaubnis gefragt.
+*4 wähle im Menü {icon:ellipsis.circle} `Text von Zwischenablage importieren`. Evtl. wird noch um Erlaubnis gefragt.
 *5 **Fertig**. Du hast jetzt einen neuen Song in der Liste.
 
 > Tipp: Auch einfache Textformate mit Akkorden über den Zeilen oder in Klammern werden meist korrekt erkannt.
@@ -34,7 +34,7 @@ Wenn du einen Songtext mit Akkorden bereits irgendwo hast (z. B. aus einer Websi
 Wenn du bereits eine **ChordPro-Datei** hast (`.cho`, `.chordpro`, `.pro`):
 
 *1 wähle eine Playliste aus.
-*2 wähle im Menü ({icon:ellipsis.circle}) `ChordPro-Datei importieren`.
+*2 wähle im Menü {icon:ellipsis.circle} `ChordPro-Datei importieren`.
 *2 wähle die ChordPro-Datei aus.
 
 Der Song ist danach sofort spielbereit und wird in der Live-Darstellung angezeigt.

@@ -88,6 +88,7 @@ internal struct SongViewX: View {
                         TimerOverlayView(scrollTimer: scrollTimer, darkColor: darkColor, lightColor: lightColor) {
                             // Button action
                             scrollTimer.stopTracking()
+                            currentSectionID = nil
                         }
                         .offset(x: -5, y: 5)
                     }
@@ -96,6 +97,7 @@ internal struct SongViewX: View {
             .scrollPosition($scrollPosition)
             .onChange(of: scrollTimer.time) {
                 guard autoScrollEnabled else { return }
+                guard scrollTimer.time != nil else { return }
                 handleAutoscroll(proxy: proxy)
             }
         }
@@ -226,7 +228,7 @@ internal struct SongViewX: View {
             if autoScrollEnabled {
                 HStack {
                     Button(scrollTimer.trackingMode == .timer ? "Stop timer" : "Start timer", systemImage: scrollTimer.trackingMode == .timer ? "autostartstop.slash" : "autostartstop", action: {
-                        if scrollTimer.trackingMode == .timer { scrollTimer.stopTracking() } else { audioPlayer.stop(); scrollTimer.startTracking(.timer) }
+                        if scrollTimer.trackingMode == .timer { scrollTimer.stopTracking(); currentSectionID = nil } else { audioPlayer.stop(); scrollTimer.startTracking(.timer) }
                     })
                 }
                 Button("Autoscroll mode off", systemImage: "rectangle.stack.slash", action: {
@@ -257,8 +259,15 @@ internal struct SongViewX: View {
     private func handleAutoscroll(proxy: ScrollViewProxy) {
         var time: TimeInterval?
         
-        if scrollTimer.trackingMode == .timer { time = scrollTimer.exactTime }
-        if scrollTimer.trackingMode == .audio { time = audioPlayer.position }
+        if scrollTimer.trackingMode == .timer { time = scrollTimer.time ?? 0.0 }
+        
+        // Scrolltimer mit Audio syncronisieren
+        if scrollTimer.trackingMode == .audio {
+            let pos = audioPlayer.enginePosition
+            time = pos
+            scrollTimer.syncToAudio(position: pos)
+//            print("scroll \(scrollTimer.time ?? 0.0) audio \(pos)")
+        }
         
         let duration = SongTaskManager.shared.representationHolder.directiveManager.duration
         if let time, duration > 0 && time >= TimeInterval(duration) && scrollTimer.trackingMode == .timer {
@@ -269,6 +278,7 @@ internal struct SongViewX: View {
         if let time, let section = sectionForTime(time, anchors: song.sectionAnchors), section.id != currentSectionID, let rowID = section.headerRowID {
             currentSectionID = section.id
             withAnimation(.linear(duration: 0.25)) {
+                print("scroll to \(section.id)")
                 proxy.scrollTo("anchor-\(rowID)", anchor: .topLeading)
             }
             
@@ -281,7 +291,7 @@ internal struct SongViewX: View {
     }
 
     private func sectionForTime(_ time: TimeInterval, anchors: [SectionAnchor]) -> SectionModel? {
-        if let secId = anchors.sorted(by: { $0.time < $1.time }).last(where: { $0.time <= time })?.id {
+        if let secId = anchors.sorted(by: { $0.time < $1.time }).last(where: { $0.time.rounded(.down) <= time })?.id {
             return SongTaskManager.shared.representationHolder.sections[secId]
         }
         
@@ -297,7 +307,6 @@ internal struct SongViewX: View {
     private func songChangedAction() {
         print("songChangedAction")
         
-//        scrollTimer.stopTracking()
         currentSectionID = nil
         
         // bei Songwechsel auf Livedarstellung schalten
@@ -372,7 +381,7 @@ struct DetailContent: View {
             // PDF-Events (.newpage, .columnbreak) werden in .append() vorher entfernt
             
             ForEach(rows) { rowContent in
-                HStack(spacing: 0) {
+                HStack(alignment: .top, spacing: 0) {
                     // das .leading-Padding ist der Scrollanchor, sonst wird nicht ganz nach links gescrolled
                     // die RowContent.id wird mit "anchor-..." in den unsichtbaren padding-frame gepflanzt und dieser als scrollanchor benutzt.
                     Color.clear
@@ -535,11 +544,11 @@ struct SectionHeaderView: View {
                 Button("Set section timestamp") {
                     do {
                         var tm: TimeInterval?
-                        if ScrollTimer.shared.trackingMode == .timer {
-                            tm = ScrollTimer.shared.exactTime
+                        if ScrollTimer.shared.trackingMode == .timer, let time = ScrollTimer.shared.time {
+                            tm = time
                         }
                         else {
-                            tm = audioPlayer.enginePosition
+                            tm = audioPlayer.position
                         }
                         if let tm {
                             saveAnchor(songPosition: tm)
@@ -564,7 +573,7 @@ struct SectionHeaderView: View {
     
     private func sectionTime() -> String {
         if let anchor = song.sectionAnchors.first(where: { $0.id == sectionId } ) {
-            return GlobalFunctions.formatTimeInterval(anchor.time)
+            return GlobalFunctions.formatTimeInterval(anchor.time.rounded(.down))
         }
         return ""
     }
@@ -662,7 +671,7 @@ struct TimerOverlayView: View {
         Button {
             action()
         } label: {
-            Text(String(GlobalFunctions.formatTimeInterval(scrollTimer.time)))
+            Text(String(GlobalFunctions.formatTimeInterval(scrollTimer.time ?? 0)))
                 .font(.headline)
                 .monospacedDigit()
                 .padding(.horizontal, 10)

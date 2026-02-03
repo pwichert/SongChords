@@ -28,13 +28,8 @@ struct AudioPlayerView: View {
     @State private var loopActive: Bool = false
     
     @State private var songSpeed: Float = 1
-//    @State private var songPosition: TimeInterval = 0
     @State private var songPitch: Float = 0
     
-//    @State private var inPositionEditing: Bool = false
-    @State private var inRateEditing: Bool = false
-    @State private var inPitchEditing: Bool = false
-
     @Environment(AudioPlayer.self) private var audioPlayer
     @Environment(Globals.self) private var globals
     @Environment(\.modelContext) private var modelContext
@@ -101,11 +96,10 @@ struct AudioPlayerView: View {
                             value: $songSpeed,       // durch Schattenvariable Scrubbing verhindern
                             in: 0.3...1,
                             onEditingChanged: { editing in
-                                inRateEditing = editing
                                 if !editing { audioPlayer.rate = songSpeed }
                             }
                         ).disabled(GlobalFunctions.isDisabled(song: song))
-                        Text("\(Int(round((inRateEditing ? songSpeed : audioPlayer.rate) * 100.0)))%").font(.footnote).frame(width: 50).lineLimit(1)
+                        Text("\(Int(round(songSpeed * 100.0)))%").font(.footnote).frame(width: 50).lineLimit(1)
                     }.padding(.bottom, gridVerticalSpacing)
                     
                     if song.isLocalMP3() {
@@ -116,7 +110,6 @@ struct AudioPlayerView: View {
                                     value: $songPitch,      // durch Schattenvariable Scrubbing verhindern
                                     in: -110...110,
                                     onEditingChanged: { editing in
-                                        inPitchEditing = editing
                                         if !editing {
                                             audioPlayer.pitch = songPitch
                                             setSongPitch(songPitch)
@@ -132,7 +125,7 @@ struct AudioPlayerView: View {
                                     }.disabled(GlobalFunctions.isDisabled(song: song))
                                 }
                             }
-                            Text(String(format: "%.2f", (inPitchEditing ? songPitch : audioPlayer.pitch) / 10.0)).font(.footnote).frame(width: 50).lineLimit(1)
+                            Text(String(format: "%.2f", songPitch / 10.0)).font(.footnote).frame(width: 50).lineLimit(1)
                         }.padding(.bottom, gridVerticalSpacing)
                     }
                 }
@@ -409,9 +402,9 @@ struct PositionGridRow: View {
             )
             .disabled(GlobalFunctions.isDisabled(song: song))
             #endif
-            Text(GlobalFunctions.formatTimeInterval(inPositionEditing ? songPosition : audioPlayer.position)).font(.footnote).frame(width: 50).lineLimit(1)
+            Text(GlobalFunctions.formatTimeInterval(songPosition)).font(.footnote).frame(width: 50).lineLimit(1)
         }
-        // bidirektionale Kopplung zwischen audioPlayer.position und songPosition
+        // Kopplung zwischen audioPlayer.position und songPosition
         // außer bei inPositionEditing == true, wenn also der Slider bewegt wird.
         // Scrubbing verhindern durch Kopie für Slider in $songPosition und nicht direkt auf audioPlayer.position
         .onChange(of: audioPlayer.position) { _, newValue in

@@ -80,9 +80,7 @@ protocol AudioEngine {
 @Observable
 final class AudioPlayer {
     private var transport = TransportState()
-        
-    private let tickerSleepInterval: TimeInterval = 0.2
-    
+            
     @ObservationIgnored
     private var engine: AudioEngine?
     
@@ -100,9 +98,12 @@ final class AudioPlayer {
             print("position = \(newValue)")
             transport.position = newValue
             engine?.position = newValue
+            clockStartDate = .now
+            clockStartPosition = newValue
+            lastEngineSync = .now
         }}
     
-    // genaue engine-Position für Loop-Set-Button. transport.position kann um tickerSleepInterval abweichen.
+    // genaue engine-Position für Loop-Set-Button
     @ObservationIgnored
     var enginePosition: TimeInterval { get { engine?.position ?? position }}
     
@@ -123,6 +124,15 @@ final class AudioPlayer {
     @ObservationIgnored
     private var ticker: Task<Void, Never>?
     
+    @ObservationIgnored
+    private var clockStartDate = ContinuousClock.now
+
+    @ObservationIgnored
+    private var clockStartPosition: TimeInterval = 0
+
+    @ObservationIgnored
+    private var lastEngineSync = ContinuousClock.now
+
     isolated
     deinit {
         print("AudioPlayer deinit")
@@ -181,6 +191,74 @@ final class AudioPlayer {
         state = .stopped
     }
     
+    private func startTickerII() {
+        stopTicker()
+
+        guard var e = engine else { return }
+        
+        clockStartDate = .now
+        clockStartPosition = e.position
+        lastEngineSync = .now
+
+        // TODO: Dieser Ticker liest e.position nie, nur zum synchen. Ist evtl. etwas weniger CPU-lastig.
+
+        ticker = Task {
+            while !Task.isCancelled {
+                
+                let now = ContinuousClock.now
+                let elapsed = abs(Double(now.duration(to: clockStartDate).components.seconds)
+                    + Double(now.duration(to: clockStartDate).components.attoseconds) / 1_000_000_000_000_000_000)
+
+                var clockTime = clockStartPosition + elapsed * Double(transport.rate)
+
+                // Loop handling (passage based)
+                if let l = loop, isValidLoop(loop: l), clockTime < max(l.start, 0) || clockTime >= min(l.stop, duration) {
+                    // print("korrigiert von \(currentPosition) auf \(max(l.start, 0)) mit drift \(currentPosition - l.stop)")
+                    clockTime = l.start
+                    e.position = l.start
+                    clockStartDate = now
+                    clockStartPosition = l.start
+                }
+
+                // publish to UI
+                let uiSecond = Int(transport.position.rounded(.down))
+                let newSecond = Int(clockTime.rounded(.down))
+                if uiSecond != newSecond {
+                    transport.position = TimeInterval(newSecond)
+                }
+
+                // engine drift sync every ~2 seconds
+                let syncElapsed = now.duration(to: lastEngineSync)
+                let syncSeconds = abs(Double(syncElapsed.components.seconds))
+                if syncSeconds >= 2.0 {
+                    lastEngineSync = now
+                    let real = e.position
+                    let drift = real - clockTime
+                    if abs(drift) > 0.15 {
+                        print(drift)
+                        clockStartPosition += drift
+                        clockStartDate = now
+                    }
+                }
+
+                var sleepInterval = 1.0
+                if let l = loop, isValidLoop(loop: l), transport.rate != 0 {
+                    // sleep maximal bis l.stop
+                    let timeToLoopEnd = (l.stop - clockTime) / Double(transport.rate)
+                    if timeToLoopEnd > 0 && timeToLoopEnd < sleepInterval {
+                        sleepInterval = timeToLoopEnd
+                    }
+                }
+                
+                // tick 1x/sec, zur vollen Sekunde
+                let timeToNextUIUpdate = ceil(clockTime) - clockTime
+                let sleep = min(sleepInterval, timeToNextUIUpdate == 0 ? 1 : timeToNextUIUpdate)
+                
+                try? await Task.sleep(for: .seconds(sleep))
+            }
+        }
+    }
+    
     private func startTicker() {
         stopTicker()
 
@@ -198,7 +276,11 @@ final class AudioPlayer {
                 }
 
                 // engine.position zurückmelden
-                transport.position = currentPosition
+                let uiSecond = Int(transport.position.rounded(.down))
+                let newSecond = Int(currentPosition.rounded(.down))
+                if uiSecond != newSecond {
+                    transport.position = TimeInterval(newSecond)
+                }
                 
                 // üblicherweise am ende
                 if !e.isPlaying {
@@ -207,7 +289,7 @@ final class AudioPlayer {
                     return
                 }
                 
-                var sleepInterval = tickerSleepInterval
+                var sleepInterval = 1.0
                 if let l = loop, isValidLoop(loop: l), transport.rate != 0 {
                     // sleep maximal bis l.stop
                     let timeToLoopEnd = (l.stop - currentPosition) / Double(transport.rate)
@@ -215,8 +297,12 @@ final class AudioPlayer {
                         sleepInterval = timeToLoopEnd
                     }
                 }
+                
+                // tick 1x/sec, zur vollen Sekunde
+                let timeToNextUIUpdate = ceil(currentPosition) - currentPosition
+                let sleep = min(sleepInterval, timeToNextUIUpdate == 0 ? 1 : timeToNextUIUpdate)
 
-                try? await Task.sleep(for: .seconds(sleepInterval))
+                try? await Task.sleep(for: .seconds(sleep))
             }
         }
     }
@@ -245,8 +331,8 @@ final class AudioPlayer {
     }
     
     func isValidLoop(loop: PlayerLoop) -> Bool {
-        let maxLoopStop = max(0, duration - 2.5 * tickerSleepInterval)
-        let minLoopDuration = 2.5 * tickerSleepInterval
+        let maxLoopStop = max(0, duration - 1.2)
+        let minLoopDuration = 1.2
         return loop.stop > 0.0 && loop.stop < maxLoopStop && loop.start < loop.stop && loop.stop - loop.start > minLoopDuration
     }
 }

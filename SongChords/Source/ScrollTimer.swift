@@ -18,7 +18,7 @@ final class ScrollTimer {
     static let shared = ScrollTimer()
     
     // Zeit, die SwiftUI anzeigen soll
-    private(set) var time: TimeInterval = 0
+    private(set) var time: TimeInterval? // = 0
 
     private(set) var trackingMode: TrackingMode = .none
 
@@ -44,20 +44,28 @@ final class ScrollTimer {
     func stopTracking() {
         self.trackingMode = .none
         stop()
-        time = 0
     }
     
     private func start() {
         stop()
 
-        time = 0
         startTime = Date()
 
         task = Task {
             while !Task.isCancelled {
-                time = Date().timeIntervalSince(self.startTime)
-//                print("tick")
-                try? await Task.sleep(for: .seconds(0.25))
+                let t = Date().timeIntervalSince(startTime)
+                let newSecond = Int(floor(t))
+                let uiSecond = Int((time ?? -1).rounded(.down))
+
+                if uiSecond != newSecond {
+                    time = TimeInterval(newSecond)
+                }
+                
+                // tick 1x/sec, zur vollen Sekunde, sync mit Audio
+                let nextTick = floor(t) + 1        // nächste volle Sekunde der Audio-Phase
+                let sleep = max(0.001, nextTick - t)
+
+                try? await Task.sleep(for: .seconds(sleep))
             }
         }
     }
@@ -65,5 +73,10 @@ final class ScrollTimer {
     private func stop() {
         task?.cancel()
         task = nil
+        time = nil
+    }
+    
+    func syncToAudio(position: TimeInterval) {
+        startTime = Date().addingTimeInterval(-position)
     }
 }

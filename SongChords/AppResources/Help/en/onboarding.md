@@ -22,7 +22,7 @@ If you already have a song text with chords somewhere (e.g. from a website, text
 *1 Copy the song text to the **clipboard**.  
 *2 Open SongChords.  
 *3 Select a playlist.  
-*4 In the menu ({icon:ellipsis.circle}), choose `Import text from clipboard`.  
+*4 In the menu {icon:ellipsis.circle}, choose `Import text from clipboard`.  
    You may be asked for permission.  
 *5 **Done.** You now have a new song in the list.
 
@@ -35,7 +35,7 @@ If you already have a song text with chords somewhere (e.g. from a website, text
 If you already have a **ChordPro file** (`.cho`, `.chordpro`, `.pro`):
 
 *1 Select a playlist.  
-*2 In the menu ({icon:ellipsis.circle}), choose `Import ChordPro file`.  
+*2 In the menu {icon:ellipsis.circle}, choose `Import ChordPro file`.  
 *2 Select the ChordPro file.
 
 The song is immediately ready to play and will be shown in the live view.
