@@ -103,7 +103,7 @@ struct SongChordsApp: App {
         } else {
             if scenePhase == .background { print("-> background")
                 audioPlayer.stop()
-                ScrollTimer.shared.stopTracking()
+                TransportClock.shared.stopTicker()
             }
         }
     }

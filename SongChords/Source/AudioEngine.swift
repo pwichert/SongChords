@@ -98,9 +98,9 @@ final class AudioPlayer {
             print("position = \(newValue)")
             transport.position = newValue
             engine?.position = newValue
-            clockStartDate = .now
-            clockStartPosition = newValue
-            lastEngineSync = .now
+//            clockStartDate = .now
+//            clockStartPosition = newValue
+//            lastEngineSync = .now
         }}
     
     // genaue engine-Position für Loop-Set-Button
@@ -121,17 +121,17 @@ final class AudioPlayer {
             engine?.pitch = newValue
         }}
 
-    @ObservationIgnored
-    private var ticker: Task<Void, Never>?
-    
-    @ObservationIgnored
-    private var clockStartDate = ContinuousClock.now
-
-    @ObservationIgnored
-    private var clockStartPosition: TimeInterval = 0
-
-    @ObservationIgnored
-    private var lastEngineSync = ContinuousClock.now
+//    @ObservationIgnored
+//    private var ticker: Task<Void, Never>?
+//    
+//    @ObservationIgnored
+//    private var clockStartDate = ContinuousClock.now
+//
+//    @ObservationIgnored
+//    private var clockStartPosition: TimeInterval = 0
+//
+//    @ObservationIgnored
+//    private var lastEngineSync = ContinuousClock.now
 
     isolated
     deinit {
@@ -141,7 +141,7 @@ final class AudioPlayer {
     
     func load(song: Song) async throws {
         print("AudioPlayer load")
-        stopTicker()
+//        stopTicker()
         engine?.stop()
         engine = nil
 
@@ -157,7 +157,10 @@ final class AudioPlayer {
             
             duration = engine?.duration ?? 0
             applyTransportToEngine()
-            startTicker()
+//            startTicker()
+            TransportClock.shared.audioTick = { currentTime in
+                self.tick(currentTime: currentTime)
+            }
 
         } catch (let error) {
             state = .failed
@@ -170,13 +173,16 @@ final class AudioPlayer {
 
         try await engine?.play()
         state = .playing
-        startTicker()
+//        startTicker()
+        TransportClock.shared.sync(position)
+        TransportClock.shared.startTicker(.audio)
     }
 
     func pause() {
         print("AudioPlayer pause")
 
-        stopTicker()
+//        stopTicker()
+        if TransportClock.shared.isRunningAudio { TransportClock.shared.stopTicker() }
         engine?.pause()
         state = .paused
     }
@@ -184,133 +190,170 @@ final class AudioPlayer {
     func stop() {
         print("AudioPlayer stop")
 
-        stopTicker()
+//        stopTicker()
+        if TransportClock.shared.isRunningAudio {
+            TransportClock.shared.stopTicker()
+            TransportClock.shared.audioTick = nil
+        }
         engine?.stop()
         engine = nil
         position = 0
         state = .stopped
     }
     
-    private func startTickerII() {
-        stopTicker()
-
-        guard var e = engine else { return }
+    func tick(currentTime: TimeInterval) -> TimeInterval? {
+        guard var e = engine else { return nil }
         
-        clockStartDate = .now
-        clockStartPosition = e.position
-        lastEngineSync = .now
+        var currentPosition = e.position
+        TransportClock.shared.sync(currentPosition, rate: rate)
 
-        // TODO: Dieser Ticker liest e.position nie, nur zum synchen. Ist evtl. etwas weniger CPU-lastig.
-
-        ticker = Task {
-            while !Task.isCancelled {
-                
-                let now = ContinuousClock.now
-                let elapsed = abs(Double(now.duration(to: clockStartDate).components.seconds)
-                    + Double(now.duration(to: clockStartDate).components.attoseconds) / 1_000_000_000_000_000_000)
-
-                var clockTime = clockStartPosition + elapsed * Double(transport.rate)
-
-                // Loop handling (passage based)
-                if let l = loop, isValidLoop(loop: l), clockTime < max(l.start, 0) || clockTime >= min(l.stop, duration) {
-                    // print("korrigiert von \(currentPosition) auf \(max(l.start, 0)) mit drift \(currentPosition - l.stop)")
-                    clockTime = l.start
-                    e.position = l.start
-                    clockStartDate = now
-                    clockStartPosition = l.start
-                }
-
-                // publish to UI
-                let uiSecond = Int(transport.position.rounded(.down))
-                let newSecond = Int(clockTime.rounded(.down))
-                if uiSecond != newSecond {
-                    transport.position = TimeInterval(newSecond)
-                }
-
-                // engine drift sync every ~2 seconds
-                let syncElapsed = now.duration(to: lastEngineSync)
-                let syncSeconds = abs(Double(syncElapsed.components.seconds))
-                if syncSeconds >= 2.0 {
-                    lastEngineSync = now
-                    let real = e.position
-                    let drift = real - clockTime
-                    if abs(drift) > 0.15 {
-                        print(drift)
-                        clockStartPosition += drift
-                        clockStartDate = now
-                    }
-                }
-
-                var sleepInterval = 1.0
-                if let l = loop, isValidLoop(loop: l), transport.rate != 0 {
-                    // sleep maximal bis l.stop
-                    let timeToLoopEnd = (l.stop - clockTime) / Double(transport.rate)
-                    if timeToLoopEnd > 0 && timeToLoopEnd < sleepInterval {
-                        sleepInterval = timeToLoopEnd
-                    }
-                }
-                
-                // tick 1x/sec, zur vollen Sekunde
-                let timeToNextUIUpdate = ceil(clockTime) - clockTime
-                let sleep = min(sleepInterval, timeToNextUIUpdate == 0 ? 1 : timeToNextUIUpdate)
-                
-                try? await Task.sleep(for: .seconds(sleep))
-            }
+        // loop evtl wieder auf anfang
+        if let l = loop, isValidLoop(loop: l), currentPosition < max(l.start, 0) || currentPosition >= min(l.stop, duration) {
+            // print("korrigiert von \(currentPosition) auf \(max(l.start, 0)) mit drift \(currentPosition - l.stop)")
+            currentPosition = max(l.start, 0)
+            e.position = currentPosition
+            TransportClock.shared.sync(currentPosition, rate: rate)
         }
+        
+        // engine.position zurückmelden
+        let uiSecond = Int(transport.position.rounded())
+        let newSecond = Int(currentPosition.rounded())
+        if uiSecond != newSecond {
+            transport.position = TimeInterval(newSecond)
+        }
+        
+        // üblicherweise am ende
+        if !e.isPlaying {
+            print("engine stopped")
+            stop()
+            return nil
+        }
+        
+        if let l = loop, isValidLoop(loop: l) { return l.stop }
+        
+        return nil
     }
     
-    private func startTicker() {
-        stopTicker()
-
-        ticker = Task {
-            while !Task.isCancelled {
-                guard var e = engine else { return }
-                
-                var currentPosition = e.position
-
-                // loop evtl wieder auf anfang
-                if let l = loop, isValidLoop(loop: l), currentPosition < max(l.start, 0) || currentPosition >= min(l.stop, duration) {
-//                    print("korrigiert von \(currentPosition) auf \(max(l.start, 0)) mit drift \(currentPosition - l.stop)")
-                    currentPosition = max(l.start, 0)
-                    e.position = currentPosition
-                }
-
-                // engine.position zurückmelden
-                let uiSecond = Int(transport.position.rounded(.down))
-                let newSecond = Int(currentPosition.rounded(.down))
-                if uiSecond != newSecond {
-                    transport.position = TimeInterval(newSecond)
-                }
-                
-                // üblicherweise am ende
-                if !e.isPlaying {
-                    print("engine stopped")
-                    stop()
-                    return
-                }
-                
-                var sleepInterval = 1.0
-                if let l = loop, isValidLoop(loop: l), transport.rate != 0 {
-                    // sleep maximal bis l.stop
-                    let timeToLoopEnd = (l.stop - currentPosition) / Double(transport.rate)
-                    if timeToLoopEnd > 0 && timeToLoopEnd < sleepInterval {
-                        sleepInterval = timeToLoopEnd
-                    }
-                }
-                
-                // tick 1x/sec, zur vollen Sekunde
-                let timeToNextUIUpdate = ceil(currentPosition) - currentPosition
-                let sleep = min(sleepInterval, timeToNextUIUpdate == 0 ? 1 : timeToNextUIUpdate)
-
-                try? await Task.sleep(for: .seconds(sleep))
-            }
-        }
-    }
-    
-    private func stopTicker() {
-        ticker?.cancel()
-        ticker = nil
-    }
+//    private func startTickerII() {
+//        stopTicker()
+//
+//        guard var e = engine else { return }
+//        
+//        clockStartDate = .now
+//        clockStartPosition = e.position
+//        lastEngineSync = .now
+//
+//        // TODO: Dieser Ticker liest e.position nie, nur zum synchen. Ist evtl. etwas weniger CPU-lastig.
+//
+//        ticker = Task {
+//            while !Task.isCancelled {
+//                
+//                let now = ContinuousClock.now
+//                let elapsed = abs(Double(now.duration(to: clockStartDate).components.seconds)
+//                    + Double(now.duration(to: clockStartDate).components.attoseconds) / 1_000_000_000_000_000_000)
+//
+//                var clockTime = clockStartPosition + elapsed * Double(transport.rate)
+//
+//                // Loop handling (passage based)
+//                if let l = loop, isValidLoop(loop: l), clockTime < max(l.start, 0) || clockTime >= min(l.stop, duration) {
+//                    // print("korrigiert von \(currentPosition) auf \(max(l.start, 0)) mit drift \(currentPosition - l.stop)")
+//                    clockTime = l.start
+//                    e.position = l.start
+//                    clockStartDate = now
+//                    clockStartPosition = l.start
+//                }
+//
+//                // publish to UI
+//                let uiSecond = Int(transport.position.rounded(.down))
+//                let newSecond = Int(clockTime.rounded(.down))
+//                if uiSecond != newSecond {
+//                    transport.position = TimeInterval(newSecond)
+//                }
+//
+//                // engine drift sync every ~2 seconds
+//                let syncElapsed = now.duration(to: lastEngineSync)
+//                let syncSeconds = abs(Double(syncElapsed.components.seconds))
+//                if syncSeconds >= 2.0 {
+//                    lastEngineSync = now
+//                    let real = e.position
+//                    let drift = real - clockTime
+//                    if abs(drift) > 0.15 {
+//                        print(drift)
+//                        clockStartPosition += drift
+//                        clockStartDate = now
+//                    }
+//                }
+//
+//                var sleepInterval = 1.0
+//                if let l = loop, isValidLoop(loop: l), transport.rate != 0 {
+//                    // sleep maximal bis l.stop
+//                    let timeToLoopEnd = (l.stop - clockTime) / Double(transport.rate)
+//                    if timeToLoopEnd > 0 && timeToLoopEnd < sleepInterval {
+//                        sleepInterval = timeToLoopEnd
+//                    }
+//                }
+//                
+//                // tick 1x/sec, zur vollen Sekunde
+//                let timeToNextUIUpdate = ceil(clockTime) - clockTime
+//                let sleep = min(sleepInterval, timeToNextUIUpdate == 0 ? 1 : timeToNextUIUpdate)
+//                
+//                try? await Task.sleep(for: .seconds(sleep))
+//            }
+//        }
+//    }
+//    
+//    private func startTicker() {
+//        stopTicker()
+//
+//        ticker = Task {
+//            while !Task.isCancelled {
+//                guard var e = engine else { return }
+//                
+//                var currentPosition = e.position
+//
+//                // loop evtl wieder auf anfang
+//                if let l = loop, isValidLoop(loop: l), currentPosition < max(l.start, 0) || currentPosition >= min(l.stop, duration) {
+////                    print("korrigiert von \(currentPosition) auf \(max(l.start, 0)) mit drift \(currentPosition - l.stop)")
+//                    currentPosition = max(l.start, 0)
+//                    e.position = currentPosition
+//                }
+//
+//                // engine.position zurückmelden
+//                let uiSecond = Int(transport.position.rounded(.down))
+//                let newSecond = Int(currentPosition.rounded(.down))
+//                if uiSecond != newSecond {
+//                    transport.position = TimeInterval(newSecond)
+//                }
+//                
+//                // üblicherweise am ende
+//                if !e.isPlaying {
+//                    print("engine stopped")
+//                    stop()
+//                    return
+//                }
+//                
+//                var sleepInterval = 1.0
+//                if let l = loop, isValidLoop(loop: l), transport.rate != 0 {
+//                    // sleep maximal bis l.stop
+//                    let timeToLoopEnd = (l.stop - currentPosition) / Double(transport.rate)
+//                    if timeToLoopEnd > 0 && timeToLoopEnd < sleepInterval {
+//                        sleepInterval = timeToLoopEnd
+//                    }
+//                }
+//                
+//                // tick 1x/sec, zur vollen Sekunde
+//                let timeToNextUIUpdate = ceil(currentPosition) - currentPosition
+//                let sleep = min(sleepInterval, timeToNextUIUpdate == 0 ? 1 : timeToNextUIUpdate)
+//
+//                try? await Task.sleep(for: .seconds(sleep))
+//            }
+//        }
+//    }
+//    
+//    private func stopTicker() {
+//        ticker?.cancel()
+//        ticker = nil
+//    }
     
     private func applyTransportToEngine() {
         if engine != nil {

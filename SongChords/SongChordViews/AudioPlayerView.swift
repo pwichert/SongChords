@@ -99,7 +99,7 @@ struct AudioPlayerView: View {
                                 if !editing {
                                     audioPlayer.rate = songSpeed
                                     // in sync bleiben
-                                    ScrollTimer.shared.setRate(Double(songSpeed), audioPosition: audioPlayer.enginePosition)
+                                    TransportClock.shared.sync(audioPlayer.enginePosition, rate: songSpeed)
                                 }
                             }
                         ).disabled(GlobalFunctions.isDisabled(song: song))

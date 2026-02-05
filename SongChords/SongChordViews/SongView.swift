@@ -56,7 +56,7 @@ internal struct SongViewX: View {
     @State private var scrollPosition = ScrollPosition(edge: .top)
     @State private var autoScrollEnabled = false
     @State private var currentSectionID: Int?
-    @State private var scrollTimer = ScrollTimer.shared
+//    @State private var scrollTimer = ScrollTimer.shared
     
     private let darkColor = Color(red: 0.20, green: 0.20, blue: 0.20)
     private let lightColor = Color(red: 0.90, green: 0.90, blue: 0.90)
@@ -83,11 +83,11 @@ internal struct SongViewX: View {
                 .padding(0)
             }
             .overlay(alignment: .topTrailing) {
-                if scrollTimer.trackingMode == .timer {
+                if TransportClock.shared.isRunningTimer {
                     VStack(alignment: .trailing) {
-                        TimerOverlayView(scrollTimer: scrollTimer, darkColor: darkColor, lightColor: lightColor) {
+                        TimerOverlayView(time: TransportClock.shared.time ?? 0.0, darkColor: darkColor, lightColor: lightColor) {
                             // Button action
-                            scrollTimer.stopTracking()
+                            TransportClock.shared.stopTicker()
                             currentSectionID = nil
                         }
                         .offset(x: -5, y: 5)
@@ -95,11 +95,17 @@ internal struct SongViewX: View {
                 }
             }
             .scrollPosition($scrollPosition)
-            .onChange(of: scrollTimer.time) {
+            .onChange(of: TransportClock.shared.time) { _, time in
                 guard autoScrollEnabled else { return }
-                guard scrollTimer.time != nil else { return }
-                handleAutoscroll(proxy: proxy)
+                guard let time else { return }
+                handleAutoscroll(time: time, proxy: proxy)
             }
+//            .onAppear {
+//                registerAutoscroll(proxy: proxy)
+//            }
+//            .onDisappear {
+//                unregisterAutoscroll()
+//            }
         }
         .navigationTitle(song.title)
         #if os(iOS)
@@ -135,7 +141,7 @@ internal struct SongViewX: View {
                 Button(action: {
                     withAnimation(.easeInOut(duration: 0.3)) {
                         showAudioPlayer.toggle()
-                        if autoScrollEnabled && scrollTimer.trackingMode != .audio && showAudioPlayer { scrollTimer.startTracking(.audio) } else { scrollTimer.stopTracking() }
+//                        if !showAudioPlayer { TransportClock.shared.stopTicker() }
                     }}) { Label("Audio Player", systemImage: "music.note.list") }
             }
             #endif
@@ -158,7 +164,7 @@ internal struct SongViewX: View {
                 Button(action: {
                     withAnimation(.easeInOut(duration: 0.3)) {
                         showAudioPlayer.toggle()
-                        if autoScrollEnabled && scrollTimer.trackingMode != .audio && showAudioPlayer { scrollTimer.startTracking(.audio) } else { scrollTimer.stopTracking() }
+//                        if !showAudioPlayer { TransportClock.shared.stopTicker() }
                     }}) { Label("Audio Player", systemImage: "music.note.list").help("Audio Player") }
             }
             #endif
@@ -218,7 +224,7 @@ internal struct SongViewX: View {
             // kann man sonst noch kurz den alten Song sehen
             SongTaskManager.shared.representationHolder.resetRowContent()
             
-            scrollTimer.stopTracking()
+            TransportClock.shared.stopTicker()
             currentSectionID = nil
         }
     }
@@ -227,13 +233,20 @@ internal struct SongViewX: View {
         Menu {
             if autoScrollEnabled {
                 HStack {
-                    Button(scrollTimer.trackingMode == .timer ? "Stop timer" : "Start timer", systemImage: scrollTimer.trackingMode == .timer ? "autostartstop.slash" : "autostartstop", action: {
-                        if scrollTimer.trackingMode == .timer { scrollTimer.stopTracking(); currentSectionID = nil } else { audioPlayer.stop(); scrollTimer.startTracking(.timer) }
+                    Button(TransportClock.shared.isRunningTimer ? "Stop timer" : "Start timer", systemImage: TransportClock.shared.isRunningTimer ? "autostartstop.slash" : "autostartstop", action: {
+                        if TransportClock.shared.isRunningTimer {
+                            TransportClock.shared.stopTicker()
+                            currentSectionID = nil
+                        } else {
+                            audioPlayer.stop();
+                            TransportClock.shared.startTicker(.timer)
+                        }
                     })
                 }
                 Button("Autoscroll mode off", systemImage: "rectangle.stack.slash", action: {
-                    scrollTimer.stopTracking()
+                    TransportClock.shared.stopTicker()
                     autoScrollEnabled = false
+//                    setAutoscroll(enabled: autoScrollEnabled)
                     currentSectionID = nil
                 })
                 Divider()
@@ -242,7 +255,8 @@ internal struct SongViewX: View {
             } else {
                 Button("Autoscroll mode on", systemImage: "rectangle.stack", action: {
                     autoScrollEnabled = true
-                    if showAudioPlayer { scrollTimer.startTracking(.audio) }
+//                    setAutoscroll(enabled: autoScrollEnabled)
+//                    if showAudioPlayer { TransportClock.shared.startTicker(.audio) }
                     syncAnchors()
 //                    for s in song.sectionAnchors {
 //                        print("\(s.id) \(s.time)")
@@ -256,26 +270,28 @@ internal struct SongViewX: View {
         }
     }
     
-    private func handleAutoscroll(proxy: ScrollViewProxy) {
-        var time: TimeInterval?
-        
-        if scrollTimer.trackingMode == .timer { time = scrollTimer.time ?? 0.0 }
-        
-        // Scrolltimer mit Audio syncronisieren
-        if scrollTimer.trackingMode == .audio {
-            let pos = audioPlayer.enginePosition
-            time = pos
-            scrollTimer.syncToAudio(position: pos)
-//            print("scroll \(scrollTimer.time ?? 0.0) audio \(pos)")
-        }
-        
+//    private func registerAutoscroll(proxy: ScrollViewProxy) {
+//        TransportClock.shared.scrollTick = { time in
+//            newAutoscroll(time: time, proxy: proxy)
+//        }
+//    }
+//    
+//    private func unregisterAutoscroll() {
+//        TransportClock.shared.scrollTick = nil
+//    }
+//    
+//    private func setAutoscroll(enabled: Bool) {
+//        TransportClock.shared.autoScrollEnabled = enabled
+//    }
+    
+    private func handleAutoscroll(time: TimeInterval, proxy: ScrollViewProxy) {
         let duration = SongTaskManager.shared.representationHolder.directiveManager.duration
-        if let time, duration > 0 && time >= TimeInterval(duration) && scrollTimer.trackingMode == .timer {
+        if duration > 0 && time >= TimeInterval(duration) && TransportClock.shared.isRunningTimer {
             print("duration \(duration)")
-            scrollTimer.stopTracking()
+            TransportClock.shared.stopTicker()
         }
-                            
-        if let time, let section = sectionForTime(time, anchors: song.sectionAnchors), section.id != currentSectionID, let rowID = section.headerRowID {
+                                    
+        if let section = sectionForTime(time, anchors: song.sectionAnchors), section.id != currentSectionID, let rowID = section.headerRowID {
             currentSectionID = section.id
             withAnimation(.linear(duration: 0.25)) {
                 print("scroll to \(section.id)")
@@ -284,11 +300,45 @@ internal struct SongViewX: View {
             
             // bei letzter Section den Timer stoppen, falls die einen anchor hat
             let last = SongTaskManager.shared.representationHolder.sections.sorted(by: { $0.key < $1.key }).last
-            if section.id == last?.key && scrollTimer.trackingMode == .timer {
-                scrollTimer.stopTracking()
+            if section.id == last?.key && TransportClock.shared.isRunningTimer {
+                TransportClock.shared.stopTicker()
             }
         }
     }
+    
+//    private func handleAutoscroll(proxy: ScrollViewProxy) {
+//        var time: TimeInterval?
+//        
+//        if scrollTimer.trackingMode == .timer { time = scrollTimer.time ?? 0.0 }
+//        
+//        // Scrolltimer mit Audio syncronisieren
+//        if scrollTimer.trackingMode == .audio {
+//            let pos = audioPlayer.enginePosition
+//            time = pos
+//            scrollTimer.syncToAudio(position: pos)
+////            print("scroll \(scrollTimer.time ?? 0.0) audio \(pos)")
+//        }
+//        
+//        let duration = SongTaskManager.shared.representationHolder.directiveManager.duration
+//        if let time, duration > 0 && time >= TimeInterval(duration) && scrollTimer.trackingMode == .timer {
+//            print("duration \(duration)")
+//            scrollTimer.stopTracking()
+//        }
+//                            
+//        if let time, let section = sectionForTime(time, anchors: song.sectionAnchors), section.id != currentSectionID, let rowID = section.headerRowID {
+//            currentSectionID = section.id
+//            withAnimation(.linear(duration: 0.25)) {
+//                print("scroll to \(section.id)")
+//                proxy.scrollTo("anchor-\(rowID)", anchor: .topLeading)
+//            }
+//            
+//            // bei letzter Section den Timer stoppen, falls die einen anchor hat
+//            let last = SongTaskManager.shared.representationHolder.sections.sorted(by: { $0.key < $1.key }).last
+//            if section.id == last?.key && scrollTimer.trackingMode == .timer {
+//                scrollTimer.stopTracking()
+//            }
+//        }
+//    }
 
     private func sectionForTime(_ time: TimeInterval, anchors: [SectionAnchor]) -> SectionModel? {
         if let secId = anchors.sorted(by: { $0.time < $1.time }).last(where: { $0.time.rounded(.down) <= time })?.id {
@@ -307,8 +357,9 @@ internal struct SongViewX: View {
     private func songChangedAction() {
         print("songChangedAction")
         
+        TransportClock.shared.stopTicker()
         currentSectionID = nil
-        
+
         // bei Songwechsel auf Livedarstellung schalten
         if pdfUrl != nil {
             print("pdfUrl changed")
@@ -544,7 +595,7 @@ struct SectionHeaderView: View {
                 Button("Set section timestamp") {
                     do {
                         var tm: TimeInterval?
-                        if ScrollTimer.shared.trackingMode == .timer, let time = ScrollTimer.shared.time {
+                        if TransportClock.shared.isRunningTimer, let time = TransportClock.shared.time {
                             tm = time
                         }
                         else {
@@ -573,7 +624,7 @@ struct SectionHeaderView: View {
     
     private func sectionTime() -> String {
         if let anchor = song.sectionAnchors.first(where: { $0.id == sectionId } ) {
-            return GlobalFunctions.formatTimeInterval(anchor.time.rounded(.down))
+            return GlobalFunctions.formatTimeInterval(anchor.time.rounded())
         }
         return ""
     }
@@ -660,7 +711,7 @@ struct PopoverButtonView: View {
 }
 
 struct TimerOverlayView: View {
-    let scrollTimer: ScrollTimer
+    let time: TimeInterval
     let darkColor: Color
     let lightColor: Color
     let action: () -> Void
@@ -671,7 +722,7 @@ struct TimerOverlayView: View {
         Button {
             action()
         } label: {
-            Text(String(GlobalFunctions.formatTimeInterval(scrollTimer.time ?? 0)))
+            Text(String(GlobalFunctions.formatTimeInterval(time)))
                 .font(.headline)
                 .monospacedDigit()
                 .padding(.horizontal, 10)
