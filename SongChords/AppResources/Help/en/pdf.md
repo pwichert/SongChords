@@ -3,9 +3,9 @@ This lets you use content outside the app as well, e.g., on stage, in rehearsal,
 
 For PDF control, you can use the following **ChordPro directives**:
 
-* `{columns}` sets the number of columns.
+* `{columns}` sets the number of columns
 * `{column_break}` moves to the next column. If the last column has already been reached, a new page is started automatically.
-* `{new_page}` forces a page break.
+* `{new_page}` forces a page break
 
 To do this, choose Edit Song {icon:pencil} and then the `Edit ChordPro Text` button. In the editor that follows, you can insert the ChordPro directives accordingly. 
 
@@ -42,12 +42,12 @@ Playlists can be exported as a setlist. The songs are numbered, and the titles a
 
 SongChords can **display the PDF view directly** without requiring an export.
 
-* tap {icon:text.rectangle.page} to switch to the PDF view.
-* tap {icon:text.page} to switch back to the normal live view.
+* tap {icon:text.rectangle.page} to switch to the PDF view
+* tap {icon:text.page} to switch back to the normal live view
 
 This way, the layout can be checked before printing.
 
-> Tip: In some situations, the PDF view is also helpful while playing, e.g., when a song is more clearly displayed in two columns.
+> Tip: In some situations, the PDF view is also helpful while playing, e.g., when a song is more clearly displayed in two columns
 
 ---
 
@@ -56,6 +56,6 @@ This way, the layout can be checked before printing.
 The following rules apply to PDF export and printing:
 
 * the PDF layout uses **its own font sizes** and is independent of the live view in the app. Choose `PDF Options` in the menu {icon:ellipsis.circle} above the playlists.
-* columns are not automatically clipped — lines that are too long may extend into adjacent columns.
-* page breaks occur automatically or via the `{new_page}` directive.
-* the paper size is fixed to **A4**.
+* columns are not automatically clipped — lines that are too long may extend into adjacent columns
+* page breaks occur automatically or via the `{new_page}` directive
+* the paper size is fixed to **A4**

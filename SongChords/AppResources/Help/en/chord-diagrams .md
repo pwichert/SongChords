@@ -37,6 +37,6 @@ The diagrams use a compact, minimal presentation:
 
 ## Tip
 
-> If a chord feels unfamiliar or hard to finger, it can help to practice it slowly using the diagram first, and only then use it in the song context.
+> If a chord feels unfamiliar or hard to finger, it can help to practice it slowly using the diagram first, and only then use it in the song context
 
-> Chord diagrams are a visual aid. Musical interpretation and rhythm remain essential.
+> Chord diagrams are a visual aid. Musical interpretation and rhythm remain essential

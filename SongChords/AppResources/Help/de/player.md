@@ -11,8 +11,8 @@ Du kannst wählen:
 
 Jeder Song kann mit einem Audiotrack verknüpft werden.
 
-* falls der Song mit **Apple Music** verknüpft ist, wird eine Note ♪ dargestellt.
-* falls der Song mit einer **lokalen MP3 Datei** verknüpft ist, wird eine Waveform {icon:waveform} dargestellt.
+* falls der Song mit **Apple Music** verknüpft ist, wird eine Note ♪ dargestellt
+* falls der Song mit einer **lokalen MP3 Datei** verknüpft ist, wird eine Waveform {icon:waveform} dargestellt
 * die Waveform ist deaktiviert, wenn die MP3-Datei auf einem anderen Gerät verknüpft ist. Du kannst dennoch eine Datei auf deinem Gerät zuordnen.
 
 Wenn der Song dargestellt wird, kannst du auf das Notenicon {icon:music.note.list} tappen, um den Audioplayer zu öffnen.
@@ -54,12 +54,12 @@ Ein Song kann mehrere Loops haben.
 
 ## Erstellen einer Loop
 
-*1 starte das Abspielen des Songs mit dem Audio Player.
-*2 drücke **Start**, wenn die gewünschte Anfangsposition des Loops erreicht ist.
-*3 warte oder gehe zu einer anderen Position im Song.
-*4 drücke **End**, wenn die gewünschte Endposition erreicht ist.
-*5 gebe der Loop im Textfeld einen Namen.
-*6 Ausführen von **Speichern** speichert den Loop permanent.
+*1 starte das Abspielen des Songs mit dem Audio Player
+*2 drücke **Start**, wenn die gewünschte Anfangsposition des Loops erreicht ist
+*3 warte oder gehe zu einer anderen Position im Song
+*4 drücke **End**, wenn die gewünschte Endposition erreicht ist
+*5 gebe der Loop im Textfeld einen Namen
+*6 Ausführen von **Speichern** speichert den Loop permanent
 
 Der Loop ist nun einsatzbereit und gespeichert.
 
@@ -67,8 +67,8 @@ Der Loop ist nun einsatzbereit und gespeichert.
 
 ## Aktivieren der Loop
 
-* hake **Aktivieren** an und spiele den Song ab, wenn die Loop ausgeführt werden soll.
-* um die Wiederholungen zu stoppen, hake **Aktivieren** wieder ab.
+* hake **Aktivieren** an und spiele den Song ab, wenn die Loop ausgeführt werden soll
+* um die Wiederholungen zu stoppen, hake **Aktivieren** wieder ab
 
 ---
 
@@ -76,8 +76,8 @@ Der Loop ist nun einsatzbereit und gespeichert.
 
 Wenn Autoscroll aktiviert ist und der Audio Player läuft:
 
-* der Song scrollt automatisch zur nächsten Sektion.
-* das Timing wird aus der Audio-Position entnommen.
+* der Song scrollt automatisch zur nächsten Sektion
+* das Timing wird aus der Audio-Position entnommen
 
 Die Hände sind frei für das Instrument.
 
@@ -85,4 +85,4 @@ Die Hände sind frei für das Instrument.
 
 ## Tipp
 
-> Du kannst Loops auch einfach erstellen, während der Audio Player läuft.
+> Du kannst Loops auch einfach erstellen, während der Audio Player läuft

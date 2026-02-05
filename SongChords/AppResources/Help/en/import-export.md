@@ -2,9 +2,9 @@
 
 If you already have a **ChordPro file** (`.cho`, `.chordpro`, `.pro`):
 
-*1 select a playlist.
-*2 choose in the menu {icon:ellipsis.circle} `Import ChordPro File`.
-*2 select the ChordPro file.
+*1 select a playlist
+*2 choose in the menu {icon:ellipsis.circle} `Import ChordPro File`
+*3 select the ChordPro file
 
 The song is then ready to play immediately and will be shown in the live view.
 
@@ -15,13 +15,13 @@ The song is then ready to play immediately and will be shown in the live view.
 First, choose a playlist.
 If you already have lyrics with chords somewhere (e.g., from a website, text file, or email):
 
-*1 copy the lyrics to the **clipboard**.
-*2 open SongChords.
-*3 select a playlist.
+*1 copy the lyrics to the **clipboard**
+*2 open SongChords
+*3 select a playlist
 *4 choose in the menu {icon:ellipsis.circle} `Import Text from Clipboard`. You may be asked for permission.
 *5 **Done**. You now have a new song in the list.
 
-> Tip: Even simple text formats with chords above the lines or in brackets are usually recognized correctly.
+> Tip: Even simple text formats with chords above the lines or in brackets are usually recognized correctly
 
 ---
 
@@ -31,7 +31,7 @@ If you already have lyrics with chords somewhere (e.g., from a website, text fil
 click {icon:arrow.up.document} and follow the file dialog. Choose the file format `PDF Document`.
 
 **iOS:**
-click the PDF export button at the bottom {icon:arrow.up.document.fill} and then choose `Save to Files`
+click the PDF export button at the bottom {icon:arrow.up.document.fill} and then choose `Save to Files`.
 
 ---
 
@@ -44,13 +44,13 @@ The extension for playlists is `.scplaylist`
 
 ## Import/Export of a playlist in the SongChords format
 
-Use the buttons on the songs list page
+Use the buttons on the songs list page.
 
 **Export macOS:**
 click {icon:arrow.up.document} and follow the file dialog. Choose the file format `SongChords Playlist`.
 
 **Export iOS:**
-click the Share button {icon:square.and.arrow.up} on the songs list and then choose `Save to Files`
+click the Share button {icon:square.and.arrow.up} on the songs list and then choose `Save to Files`.
 
 **Import:**
 tap the file with the `.scplaylist` extension that you want to import again. Then confirm the import. Or drag the file into the window (macOS).
@@ -59,13 +59,13 @@ tap the file with the `.scplaylist` extension that you want to import again. The
 
 ## Import/Export of a song in the SongChords format
 
-Use the buttons on the song page
+Use the buttons on the song page.
 
 **Export macOS:**
 click {icon:arrow.up.document} and follow the file dialog. Choose the file format `Songchords`.
 
 **Export iOS:**
-click the Share button {icon:square.and.arrow.up} on the songs list and then choose `Save to Files`
+click the Share button {icon:square.and.arrow.up} on the songs list and then choose `Save to Files`.
 
 **Import:**
 tap the file with the `.songchords` extension that you want to import again. Then confirm the import. Or drag the file into the window (macOS).

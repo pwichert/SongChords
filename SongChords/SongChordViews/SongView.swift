@@ -83,9 +83,9 @@ internal struct SongViewX: View {
                 .padding(0)
             }
             .overlay(alignment: .topTrailing) {
-                if TransportClock.shared.isRunningTimer {
+                if TransportClock.shared.isRunningTimer, let time = TransportClock.shared.time {
                     VStack(alignment: .trailing) {
-                        TimerOverlayView(time: TransportClock.shared.time ?? 0.0, darkColor: darkColor, lightColor: lightColor) {
+                        TimerOverlayView(time: time, darkColor: darkColor, lightColor: lightColor) {
                             // Button action
                             TransportClock.shared.stopTicker()
                             currentSectionID = nil

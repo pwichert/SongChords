@@ -10,8 +10,7 @@ Once all sections have a time stamp, Autoscroll can be started by turning the ti
 
 *1 select a song
 *2 open the autoscroll menu {icon:rectangle.stack} and activate autoscroll mode
-*3 then choose **Timer** {icon:autostartstop} in the autoscroll menu **or**
-*4 start the audio player {icon:music.note.list}
+*3 then choose **Timer** {icon:autostartstop} in the autoscroll menu **or** start the audio player {icon:music.note.list}
 
 While the timer or the audio player is running, you can create time markers (if not already done).
 
@@ -52,6 +51,6 @@ The song scrolls automatically.
 
 ## Tip
 
-> Autoscroll also works without an Apple Music subscription using the built-in timer.
+> Autoscroll also works without an Apple Music subscription using the built-in timer
 
 > tapping the timer display stopps the timer

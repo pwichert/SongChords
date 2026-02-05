@@ -10,8 +10,7 @@ Wenn alle Sektionen einen Zeitstempel bekommen haben, kann durch Aus- bzw. Einsc
 
 *1 wähle einen Song
 *2 öffne das Autoscroll-Menü {icon:rectangle.stack} und aktiviere den Autoscroll-Modus
-*3 wähle dann im Autoscroll-Menü **Timer** {icon:autostartstop} **oder**
-*4 starte den AudioPlayer {icon:music.note.list}
+*3 wähle dann im Autoscroll-Menü **Timer** {icon:autostartstop} **oder** starte den AudioPlayer {icon:music.note.list}
 
 Während der Timer oder der AudioPlayer läuft, kannst du Zeitmarken erstellen (falls noch nicht erledigt).
 
@@ -52,6 +51,6 @@ Der Song scrollt automatisch.
 
 ## Tipp
 
-> Autoscroll funktioniert auch ohne AppleMusic-Abo mit dem eingebauten Timer.
+> Autoscroll funktioniert auch ohne AppleMusic-Abo mit dem eingebauten Timer
 
 > Klick auf die Timeranzeige stoppt den Timer

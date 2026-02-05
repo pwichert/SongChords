@@ -37,6 +37,6 @@ Die Diagramme verwenden eine kompakte, reduzierte Darstellung:
 
 ## Tipp
 
-> Wenn ein Akkord ungewohnt oder schwer greifbar ist, kann es helfen, ihn zunächst anhand des Diagramms langsam zu spielen und erst danach im Songkontext einzusetzen.
+> Wenn ein Akkord ungewohnt oder schwer greifbar ist, kann es helfen, ihn zunächst anhand des Diagramms langsam zu spielen und erst danach im Songkontext einzusetzen
 
-> Akkord-Diagramme sind eine visuelle Hilfe. Die musikalische Interpretation und der Rhythmus bleiben entscheidend.
+> Akkord-Diagramme sind eine visuelle Hilfe. Die musikalische Interpretation und der Rhythmus bleiben entscheidend

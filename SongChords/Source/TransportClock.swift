@@ -35,7 +35,7 @@ final class TransportClock {
     @ObservationIgnored
     var audioTick: ((TimeInterval) -> TimeInterval?)?
     @ObservationIgnored
-    var scrollTick: ((TimeInterval) -> Void)?
+    private var scrollTick: ((TimeInterval) -> Void)?       // nicht benutzt. SongView triggert Autoscroll über .onChange(of: time)
 
     // Phase lock
     @ObservationIgnored
@@ -66,7 +66,6 @@ final class TransportClock {
                 
                 if time != currentPosition.rounded() { time = currentPosition.rounded() }
 
-                // wird z.Zt. nicht mit Closure genutzt. View triggert Autoscroll über .onChange(of: time)
                 if let time, autoScrollEnabled {
                     // 2️⃣ AutoScroll-Tick
                     scrollTick?(time)
@@ -77,7 +76,8 @@ final class TransportClock {
                 
                 // 3️⃣ Wann wieder aufwachen?
                 let nextWake = min(nextAudioEvent ?? 100000.0, currentPosition.rounded() + 1)
-                let sleepSecs = max(0.001, nextWake - currentPosition) / (rate == 0 ? 1.0 : rate)
+                guard rate > 0.0 else { break }
+                let sleepSecs = max(0.001, nextWake - currentPosition) / rate
                 
                 try? await Task.sleep(for: .seconds(sleepSecs), tolerance: .milliseconds(5))
             }

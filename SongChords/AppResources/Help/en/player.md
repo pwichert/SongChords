@@ -11,8 +11,8 @@ You can choose:
 
 Each song can be linked to an audio track.
 
-* if the song is linked with **Apple Music**, a note ♪ is shown.
-* if the song is linked with a **local MP3 file**, a waveform {icon:waveform} is shown.
+* if the song is linked with **Apple Music**, a note ♪ is shown
+* if the song is linked with a **local MP3 file**, a waveform {icon:waveform} is show
 * the waveform is disabled if the MP3 file is linked on another device. You can still assign a file on your device.
 
 When the song is displayed, you can tap the note icon {icon:music.note.list} to open the audio player.
@@ -54,12 +54,12 @@ A song can have multiple loops.
 
 ## Creating a loop
 
-*1 start playback of the song with the audio player.
-*2 press **Start** when the desired start position of the loop is reached.
-*3 wait or go to another position in the song.
-*4 press **End** when the desired end position is reached.
-*5 give the loop a name in the text field.
-*6 executing **Save** saves the loop permanently.
+*1 start playback of the song with the audio player
+*2 press **Start** when the desired start position of the loop is reached
+*3 wait or go to another position in the song
+*4 press **End** when the desired end position is reached
+*5 give the loop a name in the text field
+*6 executing **Save** saves the loop permanently
 
 The loop is now ready to use and saved.
 
@@ -67,8 +67,8 @@ The loop is now ready to use and saved.
 
 ## Activating the loop
 
-* check **Activate** and play the song if you want the loop to run.
-* to stop repetitions, uncheck **Activate**.
+* check **Activate** and play the song if you want the loop to run
+* to stop repetitions, uncheck **Activate**
 
 ---
 
@@ -76,8 +76,8 @@ The loop is now ready to use and saved.
 
 When autoscroll is enabled and the audio player is running:
 
-* the song scrolls automatically to the next section.
-* the timing is taken from the audio position.
+* the song scrolls automatically to the next section
+* the timing is taken from the audio position
 
 Your hands are free for the instrument.
 
@@ -85,4 +85,4 @@ Your hands are free for the instrument.
 
 ## Tip
 
-> You can also easily create loops while the audio player is running.
+> You can also easily create loops while the audio player is running

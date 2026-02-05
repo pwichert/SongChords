@@ -3,9 +3,9 @@ So lassen sich Inhalte auch außerhalb der App nutzen, z. B. auf der Bühne, im 
 
 Für die PDF-Steuerung können die folgenden **ChordPro-Direktiven** verwendet werden:
 
-* `{columns}` legt die Anzahl der Spalten fest.
+* `{columns}` legt die Anzahl der Spalten fest
 * `{column_break}` wechselt zur nächsten Spalte. Falls bereits die letzte Spalte erreicht ist, wird automatisch eine neue Seite begonnen.
-* `{new_page}` erzwingt einen Seitenumbruch.
+* `{new_page}` erzwingt einen Seitenumbruch
 
 Wähle dazu Song bearbeiten {icon:pencil} und dann Button `ChordPro-Text bearbeiten`. Im folgenden Editor kannst du die ChordPro-Direktiven entsprechend einarbeiten. 
 
@@ -42,12 +42,12 @@ Playlisten lassen sich als Setliste exportieren. Dabei werden die Songs durchnum
 
 SongChords kann die **PDF-Darstellung direkt anzeigen**, ohne dass ein Export notwendig ist.
 
-* tippe auf {icon:text.rectangle.page}, um in die PDF-Ansicht zu wechseln.
-* tippe auf {icon:text.page}, um wieder zur normalen Live-Darstellung zurückzukehren.
+* tippe auf {icon:text.rectangle.page}, um in die PDF-Ansicht zu wechseln
+* tippe auf {icon:text.page}, um wieder zur normalen Live-Darstellung zurückzukehren
 
 So kann das Layout vor dem Drucken überprüft werden.
 
-> Tipp: In manchen Situationen ist die PDF-Darstellung auch während des Spielens hilfreich, z.B. wenn ein Song zweispaltig übersichtlicher dargestellt wird.
+> Tipp: In manchen Situationen ist die PDF-Darstellung auch während des Spielens hilfreich, z.B. wenn ein Song zweispaltig übersichtlicher dargestellt wird
 
 ---
 
@@ -56,6 +56,6 @@ So kann das Layout vor dem Drucken überprüft werden.
 Beim PDF-Export und Drucken gelten folgende Regeln:
 
 * das PDF-Layout verwendet **eigene Schriftgrößen** und ist unabhängig von der Live-Darstellung in der App. Wähle dazu `PDF-Optionen` im Menü {icon:ellipsis.circle} über den Playlisten.
-* Spalten werden nicht automatisch „geclipped“ – zu lange Zeilen können in benachbarte Spalten hineinragen.
-* Seitenumbrüche erfolgen automatisch oder über Direktive `{new_page}`.
-* das Papierformat ist fest auf **DIN A4** eingestellt.
+* Spalten werden nicht automatisch „geclipped“ – zu lange Zeilen können in benachbarte Spalten hineinragen
+* Seitenumbrüche erfolgen automatisch oder über Direktive `{new_page}`
+* das Papierformat ist fest auf **DIN A4** eingestellt

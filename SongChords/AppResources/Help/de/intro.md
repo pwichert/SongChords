@@ -32,12 +32,12 @@ Du kannst diesen Text direkt bearbeiten oder ihn aus Dateien importieren.
 * **Audio Player** – abspielen von MP3 oder Apple Music  
 * **Autoscroll** – scrollt deinen Song automatisch  
 
-Mit der Sidebar kannst du zwischen deinen Setlisten und Songs wählen
+Mit der Sidebar kannst du zwischen deinen Setlisten und Songs wählen.
 
 ---
 
 ## Tipp
 
-> Tap und halte (oder rechts-klick) die Sektion-Überschriften, um im Autoscroll-Modus Timingoptionen zu bearbeiten.
+> Tap und halte (oder rechts-klick) die Sektion-Überschriften, um im Autoscroll-Modus Timingoptionen zu bearbeiten
 
 Viel Spaß! 🎸🎹
