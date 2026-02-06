@@ -66,6 +66,7 @@ final class TransportClock {
                 
                 if time != currentPosition.rounded() { time = currentPosition.rounded() }
 
+                #if false
                 if let time, autoScrollEnabled {
                     // 2️⃣ AutoScroll-Tick
                     scrollTick?(time)
@@ -73,6 +74,7 @@ final class TransportClock {
                     // Position aktualisieren
                     currentPosition = position()
                 }
+                #endif
                 
                 // 3️⃣ Wann wieder aufwachen?
                 let nextWake = min(nextAudioEvent ?? 100000.0, currentPosition.rounded() + 1)

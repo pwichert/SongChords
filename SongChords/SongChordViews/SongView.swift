@@ -272,7 +272,7 @@ internal struct SongViewX: View {
     
 //    private func registerAutoscroll(proxy: ScrollViewProxy) {
 //        TransportClock.shared.scrollTick = { time in
-//            newAutoscroll(time: time, proxy: proxy)
+//            handleAutoscroll(time: time, proxy: proxy)
 //        }
 //    }
 //    
