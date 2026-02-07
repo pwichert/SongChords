@@ -170,7 +170,8 @@ class RepresentationHolder {
     }
     
     private(set) var rows: [RowContent] = []
-        
+    private(set) var isRendered: Int = 0
+    
     @ObservationIgnored
     private(set) var rowsForPrinting: [RowContent] = []
 
@@ -189,7 +190,7 @@ class RepresentationHolder {
     
     func finish() {
         switch self.rowTarget {
-        case .screen: (rows, sections) = rowBuilder.finish()
+        case .screen: (rows, sections) = rowBuilder.finish(); isRendered += 1
         case .printing: (rowsForPrinting, _) = rowBuilder.finish()
         }
     }

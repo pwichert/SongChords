@@ -58,6 +58,8 @@ internal struct SongViewX: View {
     @State private var currentSectionID: Int?
 //    @State private var scrollTimer = ScrollTimer.shared
     
+    @State private var lastRenderedSongID: PersistentIdentifier?
+    
     private let darkColor = Color(red: 0.20, green: 0.20, blue: 0.20)
     private let lightColor = Color(red: 0.90, green: 0.90, blue: 0.90)
 
@@ -206,7 +208,6 @@ internal struct SongViewX: View {
         }
         .onChange(of: song.persistentModelID, initial: true) {
             settingsChangeTick += 1
-            scrollPosition = ScrollPosition(edge: .top)
             songChangedAction()
         }
         .onChange(of: song.showText, initial: false) { print("showtext changed"); settingsChangeTick += 1 }
@@ -218,6 +219,18 @@ internal struct SongViewX: View {
         .onChange(of: userSettings.textfollowschords, initial: false) { print("textfollowschords changed"); settingsChangeTick += 1 }
         .onChange(of: settingsChangeTick) {
             updateSongRepresentation()
+        }
+        .onChange(of: SongTaskManager.shared.representationHolder.isRendered, initial: false) {
+            // wenn der neue Song auch angezeigt wird und nur, wenn es ein neuer Song ist
+            if lastRenderedSongID != song.persistentModelID {
+                lastRenderedSongID = song.persistentModelID
+
+                Task {
+                    // 1 Frame warten, bis die Rows wirklich im ScrollView sind
+                    await Task.yield()
+                    scrollPosition = ScrollPosition(edge: .top)
+                }
+            }
         }
         .onDisappear {
             // Wenn nach der PDF-Ansicht ein anderer Song selektiert wird,
