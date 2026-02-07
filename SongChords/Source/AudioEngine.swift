@@ -671,6 +671,7 @@ final class MP3Engine: AudioEngine {
             return false
         }
         
+        guard sampleRate != 0 else { return false }
         let res = Double(playerTime.sampleTime) / Double(sampleRate)
         return res + startTime < duration
     }
