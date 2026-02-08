@@ -59,6 +59,8 @@ internal struct SongViewX: View {
 //    @State private var scrollTimer = ScrollTimer.shared
     
     @State private var lastRenderedSongID: PersistentIdentifier?
+    @State private var pendingScrollToTop = false
+    @State private var scrollPhase: ScrollPhase = .idle
     
     private let darkColor = Color(red: 0.20, green: 0.20, blue: 0.20)
     private let lightColor = Color(red: 0.90, green: 0.90, blue: 0.90)
@@ -97,6 +99,21 @@ internal struct SongViewX: View {
                 }
             }
             .scrollPosition($scrollPosition)
+            .onScrollPhaseChange { oldPhase, newPhase in
+                scrollPhase = newPhase
+
+                guard pendingScrollToTop else { return }
+
+                // mit "Schwung" gescrollt und Song gewechselt
+                if oldPhase == .decelerating && newPhase == .idle {
+                    scrollPosition = ScrollPosition(edge: .top)
+                    pendingScrollToTop = false
+                }
+                // Schwung manuell gestoppt, kein Scrolling
+                if oldPhase == .interacting {
+                    pendingScrollToTop = false
+                }
+            }
             .onChange(of: TransportClock.shared.time) { _, time in
                 guard autoScrollEnabled else { return }
                 guard let time else { return }
@@ -221,15 +238,16 @@ internal struct SongViewX: View {
             updateSongRepresentation()
         }
         .onChange(of: SongTaskManager.shared.representationHolder.isRendered, initial: false) {
-            // wenn der neue Song auch angezeigt wird und nur, wenn es ein neuer Song ist
-            if lastRenderedSongID != song.persistentModelID {
-                lastRenderedSongID = song.persistentModelID
+            // Songwechsel und rows wurde neu erstellt. Dann nach .top scrollen, je nach Situation
+            guard lastRenderedSongID != song.persistentModelID else { return }
+            lastRenderedSongID = song.persistentModelID
 
-                Task {
-                    // 1 Frame warten, bis die Rows wirklich im ScrollView sind
-                    await Task.yield()
-                    scrollPosition = ScrollPosition(edge: .top)
-                }
+            pendingScrollToTop = true
+
+            // Falls gerade NICHT gescrollt wird → sofort ausführen
+            if scrollPhase == .idle {
+                scrollPosition = ScrollPosition(edge: .top)
+                pendingScrollToTop = false
             }
         }
         .onDisappear {
