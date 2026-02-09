@@ -56,6 +56,8 @@ internal struct SongViewX: View {
     @State private var autoScrollEnabled = false
     @State private var currentSectionID: Int?
         
+    @State private var scrollPosition = ScrollPosition(edge: .top)
+    
     private let darkColor = Color(red: 0.20, green: 0.20, blue: 0.20)
     private let lightColor = Color(red: 0.90, green: 0.90, blue: 0.90)
 
@@ -97,15 +99,16 @@ internal struct SongViewX: View {
                 guard let time else { return }
                 handleAutoscroll(time: time, proxy: proxy)
             }
+            #if os(iOS)
+            .scrollPosition($scrollPosition)
+            #endif
             .onChange(of: SongTaskManager.shared.representationHolder.isRendered, initial: false) {
                 // rows wurde neu erstellt, nach .top scrollen
-                if let anchorId = SongTaskManager.shared.representationHolder.rows.first?.anchorId {
-                    #if os(iOS)
-                    proxy.scrollTo(anchorId, anchor: .topLeading)
-                    #else
-                    proxy.scrollTo("title-top", anchor: .bottomLeading)
-                    #endif
-                }
+                #if os(macOS)
+                proxy.scrollTo("title-top", anchor: .bottomLeading)
+                #else
+                scrollPosition = ScrollPosition(edge: .top)
+                #endif
             }
         }
         .navigationTitle(song.title)
