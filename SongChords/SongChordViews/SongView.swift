@@ -100,7 +100,11 @@ internal struct SongViewX: View {
             .onChange(of: SongTaskManager.shared.representationHolder.isRendered, initial: false) {
                 // rows wurde neu erstellt, nach .top scrollen
                 if let anchorId = SongTaskManager.shared.representationHolder.rows.first?.anchorId {
-                    proxy.scrollTo(anchorId, anchor: .top)
+                    #if os(iOS)
+                    proxy.scrollTo(anchorId, anchor: .topLeading)
+                    #else
+                    proxy.scrollTo("title-top", anchor: .bottomLeading)
+                    #endif
                 }
             }
         }
@@ -374,6 +378,7 @@ struct DetailContent: View {
         VStack(alignment: .leading, spacing: 0) {
             #if os(macOS)
             Text(song.title).font(.title).fontWeight(.bold).padding(EdgeInsets(top: 0, leading: padding, bottom: 10, trailing: 0))
+                .id("title-top")
             #endif
 
             // sinnlose rows (wie .sectionEnded) werden in ViewFilter entfernt
