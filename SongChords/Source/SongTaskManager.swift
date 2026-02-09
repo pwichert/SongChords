@@ -219,7 +219,9 @@ final class RowContent: Identifiable {
     let sectionId: Int?
     let chunkContent: SongRenderChunk.chunkContent
     let rowEvent: RowEvent?
-    
+
+    var anchorId: String { return "anchor-\(id)" }
+
     init(sectionId: Int?, chunkContent: SongRenderChunk.chunkContent, rowEvent: RowEvent? = nil) {
         self.id = UUID()
         self.chunkContent = chunkContent
@@ -232,6 +234,8 @@ final class SectionModel: Identifiable {
     let id: Int          // die Parser-Section-ID
     var headerRowID: UUID?  // UUID der Header-Zeile
     var rows: [RowContent] = [] // zur Section zugehörige Rows
+
+    var anchorId: String? { headerRowID == nil ? nil : "anchor-\(headerRowID?.uuidString ?? "")" }
 
     init(id: Int) {
         self.id = id

@@ -53,15 +53,9 @@ internal struct SongViewX: View {
     @State private var pdfUrl: URL?
     
     @State private var settingsChangeTick = 0
-    @State private var scrollPosition = ScrollPosition(edge: .top)
     @State private var autoScrollEnabled = false
     @State private var currentSectionID: Int?
-//    @State private var scrollTimer = ScrollTimer.shared
-    
-    @State private var lastRenderedSongID: PersistentIdentifier?
-    @State private var pendingScrollToTop = false
-    @State private var scrollPhase: ScrollPhase = .idle
-    
+        
     private let darkColor = Color(red: 0.20, green: 0.20, blue: 0.20)
     private let lightColor = Color(red: 0.90, green: 0.90, blue: 0.90)
 
@@ -98,33 +92,17 @@ internal struct SongViewX: View {
                     }
                 }
             }
-            .scrollPosition($scrollPosition)
-            .onScrollPhaseChange { oldPhase, newPhase in
-                scrollPhase = newPhase
-
-                guard pendingScrollToTop else { return }
-
-                // mit "Schwung" gescrollt und Song gewechselt
-                if oldPhase == .decelerating && newPhase == .idle {
-                    scrollPosition = ScrollPosition(edge: .top)
-                    pendingScrollToTop = false
-                }
-                // Schwung manuell gestoppt, kein Scrolling
-                if oldPhase == .interacting {
-                    pendingScrollToTop = false
-                }
-            }
             .onChange(of: TransportClock.shared.time) { _, time in
                 guard autoScrollEnabled else { return }
                 guard let time else { return }
                 handleAutoscroll(time: time, proxy: proxy)
             }
-//            .onAppear {
-//                registerAutoscroll(proxy: proxy)
-//            }
-//            .onDisappear {
-//                unregisterAutoscroll()
-//            }
+            .onChange(of: SongTaskManager.shared.representationHolder.isRendered, initial: false) {
+                // rows wurde neu erstellt, nach .top scrollen
+                if let anchorId = SongTaskManager.shared.representationHolder.rows.first?.anchorId {
+                    proxy.scrollTo(anchorId, anchor: .top)
+                }
+            }
         }
         .navigationTitle(song.title)
         #if os(iOS)
@@ -237,19 +215,6 @@ internal struct SongViewX: View {
         .onChange(of: settingsChangeTick) {
             updateSongRepresentation()
         }
-        .onChange(of: SongTaskManager.shared.representationHolder.isRendered, initial: false) {
-            // Songwechsel und rows wurde neu erstellt. Dann nach .top scrollen, je nach Situation
-            guard lastRenderedSongID != song.persistentModelID else { return }
-            lastRenderedSongID = song.persistentModelID
-
-            pendingScrollToTop = true
-
-            // Falls gerade NICHT gescrollt wird → sofort ausführen
-            if scrollPhase == .idle {
-                scrollPosition = ScrollPosition(edge: .top)
-                pendingScrollToTop = false
-            }
-        }
         .onDisappear {
             // Wenn nach der PDF-Ansicht ein anderer Song selektiert wird,
             // kann man sonst noch kurz den alten Song sehen
@@ -301,20 +266,6 @@ internal struct SongViewX: View {
         }
     }
     
-//    private func registerAutoscroll(proxy: ScrollViewProxy) {
-//        TransportClock.shared.scrollTick = { time in
-//            handleAutoscroll(time: time, proxy: proxy)
-//        }
-//    }
-//    
-//    private func unregisterAutoscroll() {
-//        TransportClock.shared.scrollTick = nil
-//    }
-//    
-//    private func setAutoscroll(enabled: Bool) {
-//        TransportClock.shared.autoScrollEnabled = enabled
-//    }
-    
     private func handleAutoscroll(time: TimeInterval, proxy: ScrollViewProxy) {
         let duration = SongTaskManager.shared.representationHolder.directiveManager.duration
         if duration > 0 && time >= TimeInterval(duration) && TransportClock.shared.isRunningTimer {
@@ -322,11 +273,11 @@ internal struct SongViewX: View {
             TransportClock.shared.stopTicker()
         }
                                     
-        if let section = sectionForTime(time, anchors: song.sectionAnchors), section.id != currentSectionID, let rowID = section.headerRowID {
+        if let section = sectionForTime(time, anchors: song.sectionAnchors), section.id != currentSectionID, let anchorId = section.anchorId {
             currentSectionID = section.id
             withAnimation(.linear(duration: 0.25)) {
                 print("scroll to \(section.id)")
-                proxy.scrollTo("anchor-\(rowID)", anchor: .topLeading)
+                proxy.scrollTo(anchorId, anchor: .topLeading)
             }
             
             // bei letzter Section den Timer stoppen, falls die einen anchor hat
@@ -336,40 +287,6 @@ internal struct SongViewX: View {
             }
         }
     }
-    
-//    private func handleAutoscroll(proxy: ScrollViewProxy) {
-//        var time: TimeInterval?
-//        
-//        if scrollTimer.trackingMode == .timer { time = scrollTimer.time ?? 0.0 }
-//        
-//        // Scrolltimer mit Audio syncronisieren
-//        if scrollTimer.trackingMode == .audio {
-//            let pos = audioPlayer.enginePosition
-//            time = pos
-//            scrollTimer.syncToAudio(position: pos)
-////            print("scroll \(scrollTimer.time ?? 0.0) audio \(pos)")
-//        }
-//        
-//        let duration = SongTaskManager.shared.representationHolder.directiveManager.duration
-//        if let time, duration > 0 && time >= TimeInterval(duration) && scrollTimer.trackingMode == .timer {
-//            print("duration \(duration)")
-//            scrollTimer.stopTracking()
-//        }
-//                            
-//        if let time, let section = sectionForTime(time, anchors: song.sectionAnchors), section.id != currentSectionID, let rowID = section.headerRowID {
-//            currentSectionID = section.id
-//            withAnimation(.linear(duration: 0.25)) {
-//                print("scroll to \(section.id)")
-//                proxy.scrollTo("anchor-\(rowID)", anchor: .topLeading)
-//            }
-//            
-//            // bei letzter Section den Timer stoppen, falls die einen anchor hat
-//            let last = SongTaskManager.shared.representationHolder.sections.sorted(by: { $0.key < $1.key }).last
-//            if section.id == last?.key && scrollTimer.trackingMode == .timer {
-//                scrollTimer.stopTracking()
-//            }
-//        }
-//    }
 
     private func sectionForTime(_ time: TimeInterval, anchors: [SectionAnchor]) -> SectionModel? {
         if let secId = anchors.sorted(by: { $0.time < $1.time }).last(where: { $0.time.rounded(.down) <= time })?.id {
@@ -468,7 +385,7 @@ struct DetailContent: View {
                     // die RowContent.id wird mit "anchor-..." in den unsichtbaren padding-frame gepflanzt und dieser als scrollanchor benutzt.
                     Color.clear
                         .frame(width: padding, height: 0.1)          // = .padding(.leading)
-                        .id("anchor-\(rowContent.id)")
+                        .id(rowContent.anchorId)
                     
                     RowView(song: song, modelContext: modelContext, globals: globals, audioPlayer: audioPlayer, autoScroll: autoScroll,
                             darkColor: darkColor, lightColor: lightColor, rowContent: rowContent, forPrinting: false, currentSectionID: currentSectionID)
