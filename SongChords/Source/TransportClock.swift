@@ -39,7 +39,7 @@ final class TransportClock {
 
     // Phase lock
     @ObservationIgnored
-    private var startTime = Date.now
+    private var startTime = ContinuousClock.now
     @ObservationIgnored
     private var startPosition: TimeInterval = 0
     @ObservationIgnored
@@ -51,7 +51,7 @@ final class TransportClock {
         task?.cancel()
         task = nil
         
-        startTime = Date.now
+        startTime = ContinuousClock.now
         startPosition = 0.0
         rate = 1
 
@@ -77,10 +77,16 @@ final class TransportClock {
                 #endif
                 
                 // 3️⃣ Wann wieder aufwachen?
-                let nextWake = min(nextAudioEvent ?? 100000.0, currentPosition.rounded() + 1)
+                let epsilon = 0.25      // x.6 -> x+1, x.8 -> x+2, x.2 -> x+1
+                let nearest = round(currentPosition)
+                let nextFullSec: Double
+                if currentPosition < nearest - epsilon { nextFullSec = nearest } else { nextFullSec = nearest + 1 }
+                
+                let nextWake = min(nextAudioEvent ?? 100000.0, nextFullSec)
+//                print("currentPosition \(currentPosition) nextFullSec \(nextFullSec) nextWake \(nextWake)")
                 guard rate > 0.0 else { break }
                 let sleepSecs = max(0.001, nextWake - currentPosition) / rate
-                
+//                print("\(sleepSecs)")
                 try? await Task.sleep(for: .seconds(sleepSecs), tolerance: .milliseconds(5))
             }
         }
@@ -104,7 +110,9 @@ final class TransportClock {
     }
     
     private func position() -> TimeInterval {
-        let el = Date.now.timeIntervalSince(startTime)
+        let d = startTime.duration(to: ContinuousClock.now)
+        let c = d.components
+        let el = Double(c.seconds) + Double(c.attoseconds) * 1e-18
         return startPosition + el * rate
     }
 

@@ -672,7 +672,7 @@ final class MP3Engine: AudioEngine {
         }
         
         guard sampleRate != 0 else { return false }
-        let res = Double(playerTime.sampleTime) / Double(sampleRate)
+        let res = max(0, Double(playerTime.sampleTime) / Double(sampleRate))
         return res + startTime < duration
     }
     
@@ -681,9 +681,8 @@ final class MP3Engine: AudioEngine {
               let playerTime = node.playerTime(forNodeTime: lastRenderTime) else {
             return 0
         }
-        
         guard sampleRate != 0 else { return 0 }
-        return Double(playerTime.sampleTime) / Double(sampleRate)
+        return max(0, Double(playerTime.sampleTime) / Double(sampleRate))
     }
 }
 
