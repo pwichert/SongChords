@@ -77,11 +77,9 @@ final class TransportClock {
                 #endif
                 
                 // 3️⃣ Wann wieder aufwachen?
-                let epsilon = 0.25      // x.6 -> x+1, x.8 -> x+2, x.2 -> x+1
-                let nearest = round(currentPosition)
-                let nextFullSec: Double
-                if currentPosition < nearest - epsilon { nextFullSec = nearest } else { nextFullSec = nearest + 1 }
-                
+                let floor = floor(currentPosition)
+                let nextFullSec: Double = currentPosition - floor < 0.75 ? floor + 1 : floor + 2    // x bis x.7499 -> x+1, sonst x+2
+                                
                 let nextWake = min(nextAudioEvent ?? 100000.0, nextFullSec)
 //                print("currentPosition \(currentPosition) nextFullSec \(nextFullSec) nextWake \(nextWake)")
                 guard rate > 0.0 else { break }
