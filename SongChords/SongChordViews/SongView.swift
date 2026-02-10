@@ -142,7 +142,6 @@ internal struct SongViewX: View {
                 Button(action: {
                     withAnimation(.easeInOut(duration: 0.3)) {
                         showAudioPlayer.toggle()
-//                        if !showAudioPlayer { TransportClock.shared.stopTicker() }
                     }}) { Label("Audio Player", systemImage: "music.note.list") }
             }
             #endif
@@ -165,7 +164,6 @@ internal struct SongViewX: View {
                 Button(action: {
                     withAnimation(.easeInOut(duration: 0.3)) {
                         showAudioPlayer.toggle()
-//                        if !showAudioPlayer { TransportClock.shared.stopTicker() }
                     }}) { Label("Audio Player", systemImage: "music.note.list").help("Audio Player") }
             }
             #endif
@@ -246,7 +244,6 @@ internal struct SongViewX: View {
                 Button("Autoscroll mode off", systemImage: "rectangle.stack.slash", action: {
                     TransportClock.shared.stopTicker()
                     autoScrollEnabled = false
-//                    setAutoscroll(enabled: autoScrollEnabled)
                     currentSectionID = nil
                 })
                 Divider()
@@ -255,8 +252,6 @@ internal struct SongViewX: View {
             } else {
                 Button("Autoscroll mode on", systemImage: "rectangle.stack", action: {
                     autoScrollEnabled = true
-//                    setAutoscroll(enabled: autoScrollEnabled)
-//                    if showAudioPlayer { TransportClock.shared.startTicker(.audio) }
                     syncAnchors()
 //                    for s in song.sectionAnchors {
 //                        print("\(s.id) \(s.time)")
@@ -389,7 +384,7 @@ struct DetailContent: View {
                     // das .leading-Padding ist der Scrollanchor, sonst wird nicht ganz nach links gescrolled
                     // die RowContent.id wird mit "anchor-..." in den unsichtbaren padding-frame gepflanzt und dieser als scrollanchor benutzt.
                     Color.clear
-                        .frame(width: padding, height: 0.1)          // = .padding(.leading)
+                        .frame(width: padding, height: 0.1)
                         .id(rowContent.anchorId)
                     
                     RowView(song: song, modelContext: modelContext, globals: globals, audioPlayer: audioPlayer, autoScroll: autoScroll,
@@ -471,10 +466,8 @@ struct TextsLineView: View {
                         Color.clear.frame(width: text.fontOffset, height: 0.1, alignment: .leading)
                         
                         Text(text.txt)
-//                            .lineLimit(1)
                     } else {
                         Text(text.txt)
-//                            .lineLimit(1)
                             .offset(CGSize(width: text.fontOffset, height: 0))
                     }
                 }
@@ -498,13 +491,11 @@ struct ChordsLineView: View {
                         Color.clear.frame(width: chord.fontOffset, height: 0.1, alignment: .leading)
                         
                         PopoverButtonView(chord: chord)
-//                            .lineLimit(1)
                             .padding(.horizontal, 0.8)
                             .background(chord.background ? (colorScheme == .dark ? darkColor : lightColor) : Color.clear)
                             .clipShape(RoundedRectangle(cornerRadius: 4, style: .circular))
                     } else {
                         PopoverButtonView(chord: chord)
-//                            .lineLimit(1)
                             .padding(.horizontal, 0.8)
                             .background(chord.background ? (colorScheme == .dark ? darkColor : lightColor) : Color.clear)
                             .clipShape(RoundedRectangle(cornerRadius: 4, style: .circular))
@@ -610,10 +601,9 @@ struct ChordsPlainView: View {
     var body: some View {
         HStack(alignment: .center, spacing: 0) {
             ForEach(chords) { chord in
-                if chord != chords.first { Text(" ") }//.lineLimit(1) }
+                if chord != chords.first { Text(" ") }
                 
                 PopoverButtonView(chord: chord)
-//                    .lineLimit(1)
                     .padding(.horizontal, 0.8)
                     .background(chord.background ? (colorScheme == .dark ? darkColor : lightColor) : Color.clear)
                     .clipShape(RoundedRectangle(cornerRadius: 4, style: .circular))
