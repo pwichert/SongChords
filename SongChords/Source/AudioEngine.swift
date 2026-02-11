@@ -70,6 +70,7 @@ protocol AudioEngine {
     var pitch: Float { get set }
     var isPlaying: Bool { get }
     var isLoaded: Bool { get }
+    var loop: PlayerLoop?  { get set }
 
     func load(song: Song) async throws
     func play() async throws
@@ -88,7 +89,7 @@ final class AudioPlayer {
 
     private(set) var state: PlayerState { get { transport.state } set { transport.state = newValue }}
     private(set) var duration: TimeInterval { get { transport.duration } set { transport.duration = newValue }}
-    var loop: PlayerLoop? { get { return transport.loop } set { transport.loop = newValue }}
+    var loop: PlayerLoop? { get { return transport.loop } set { transport.loop = newValue; engine?.loop = newValue }}
 
     var position: TimeInterval {
         get {
@@ -98,9 +99,6 @@ final class AudioPlayer {
             print("position = \(newValue)")
             transport.position = newValue
             engine?.position = newValue
-//            clockStartDate = .now
-//            clockStartPosition = newValue
-//            lastEngineSync = .now
         }}
     
     // genaue engine-Position für Loop-Set-Button
@@ -121,18 +119,6 @@ final class AudioPlayer {
             engine?.pitch = newValue
         }}
 
-//    @ObservationIgnored
-//    private var ticker: Task<Void, Never>?
-//    
-//    @ObservationIgnored
-//    private var clockStartDate = ContinuousClock.now
-//
-//    @ObservationIgnored
-//    private var clockStartPosition: TimeInterval = 0
-//
-//    @ObservationIgnored
-//    private var lastEngineSync = ContinuousClock.now
-
     isolated
     deinit {
         print("AudioPlayer deinit")
@@ -141,7 +127,6 @@ final class AudioPlayer {
     
     func load(song: Song) async throws {
         print("AudioPlayer load")
-//        stopTicker()
         engine?.stop()
         engine = nil
 
@@ -157,7 +142,6 @@ final class AudioPlayer {
             
             duration = engine?.duration ?? 0
             applyTransportToEngine()
-//            startTicker()
             TransportClock.shared.audioTick = { currentTime in
                 self.tick(currentTime: currentTime)
             }
@@ -173,7 +157,6 @@ final class AudioPlayer {
 
         try await engine?.play()
         state = .playing
-//        startTicker()
         TransportClock.shared.sync(position)
         TransportClock.shared.startTicker(.audio)
     }
@@ -181,7 +164,6 @@ final class AudioPlayer {
     func pause() {
         print("AudioPlayer pause")
 
-//        stopTicker()
         if TransportClock.shared.isRunningAudio { TransportClock.shared.stopTicker() }
         engine?.pause()
         state = .paused
@@ -190,7 +172,6 @@ final class AudioPlayer {
     func stop() {
         print("AudioPlayer stop")
 
-//        stopTicker()
         if TransportClock.shared.isRunningAudio {
             TransportClock.shared.stopTicker()
             TransportClock.shared.audioTick = nil
@@ -209,7 +190,7 @@ final class AudioPlayer {
 
         // loop evtl wieder auf anfang
         if let l = loop, isValidLoop(loop: l), currentPosition < max(l.start, 0) || currentPosition >= min(l.stop, duration) {
-            // print("korrigiert von \(currentPosition) auf \(max(l.start, 0)) mit drift \(currentPosition - l.stop)")
+//             print("korrigiert von \(currentPosition) auf \(max(l.start, 0)) mit drift \(currentPosition - l.stop)")
             currentPosition = max(l.start, 0)
             e.position = currentPosition
             TransportClock.shared.sync(currentPosition, rate: rate)
@@ -233,127 +214,6 @@ final class AudioPlayer {
         
         return nil
     }
-    
-//    private func startTickerII() {
-//        stopTicker()
-//
-//        guard var e = engine else { return }
-//        
-//        clockStartDate = .now
-//        clockStartPosition = e.position
-//        lastEngineSync = .now
-//
-//        // TODO: Dieser Ticker liest e.position nie, nur zum synchen. Ist evtl. etwas weniger CPU-lastig.
-//
-//        ticker = Task {
-//            while !Task.isCancelled {
-//                
-//                let now = ContinuousClock.now
-//                let elapsed = abs(Double(now.duration(to: clockStartDate).components.seconds)
-//                    + Double(now.duration(to: clockStartDate).components.attoseconds) / 1_000_000_000_000_000_000)
-//
-//                var clockTime = clockStartPosition + elapsed * Double(transport.rate)
-//
-//                // Loop handling (passage based)
-//                if let l = loop, isValidLoop(loop: l), clockTime < max(l.start, 0) || clockTime >= min(l.stop, duration) {
-//                    // print("korrigiert von \(currentPosition) auf \(max(l.start, 0)) mit drift \(currentPosition - l.stop)")
-//                    clockTime = l.start
-//                    e.position = l.start
-//                    clockStartDate = now
-//                    clockStartPosition = l.start
-//                }
-//
-//                // publish to UI
-//                let uiSecond = Int(transport.position.rounded(.down))
-//                let newSecond = Int(clockTime.rounded(.down))
-//                if uiSecond != newSecond {
-//                    transport.position = TimeInterval(newSecond)
-//                }
-//
-//                // engine drift sync every ~2 seconds
-//                let syncElapsed = now.duration(to: lastEngineSync)
-//                let syncSeconds = abs(Double(syncElapsed.components.seconds))
-//                if syncSeconds >= 2.0 {
-//                    lastEngineSync = now
-//                    let real = e.position
-//                    let drift = real - clockTime
-//                    if abs(drift) > 0.15 {
-//                        print(drift)
-//                        clockStartPosition += drift
-//                        clockStartDate = now
-//                    }
-//                }
-//
-//                var sleepInterval = 1.0
-//                if let l = loop, isValidLoop(loop: l), transport.rate != 0 {
-//                    // sleep maximal bis l.stop
-//                    let timeToLoopEnd = (l.stop - clockTime) / Double(transport.rate)
-//                    if timeToLoopEnd > 0 && timeToLoopEnd < sleepInterval {
-//                        sleepInterval = timeToLoopEnd
-//                    }
-//                }
-//                
-//                // tick 1x/sec, zur vollen Sekunde
-//                let timeToNextUIUpdate = ceil(clockTime) - clockTime
-//                let sleep = min(sleepInterval, timeToNextUIUpdate == 0 ? 1 : timeToNextUIUpdate)
-//                
-//                try? await Task.sleep(for: .seconds(sleep))
-//            }
-//        }
-//    }
-//    
-//    private func startTicker() {
-//        stopTicker()
-//
-//        ticker = Task {
-//            while !Task.isCancelled {
-//                guard var e = engine else { return }
-//                
-//                var currentPosition = e.position
-//
-//                // loop evtl wieder auf anfang
-//                if let l = loop, isValidLoop(loop: l), currentPosition < max(l.start, 0) || currentPosition >= min(l.stop, duration) {
-////                    print("korrigiert von \(currentPosition) auf \(max(l.start, 0)) mit drift \(currentPosition - l.stop)")
-//                    currentPosition = max(l.start, 0)
-//                    e.position = currentPosition
-//                }
-//
-//                // engine.position zurückmelden
-//                let uiSecond = Int(transport.position.rounded(.down))
-//                let newSecond = Int(currentPosition.rounded(.down))
-//                if uiSecond != newSecond {
-//                    transport.position = TimeInterval(newSecond)
-//                }
-//                
-//                // üblicherweise am ende
-//                if !e.isPlaying {
-//                    print("engine stopped")
-//                    stop()
-//                    return
-//                }
-//                
-//                var sleepInterval = 1.0
-//                if let l = loop, isValidLoop(loop: l), transport.rate != 0 {
-//                    // sleep maximal bis l.stop
-//                    let timeToLoopEnd = (l.stop - currentPosition) / Double(transport.rate)
-//                    if timeToLoopEnd > 0 && timeToLoopEnd < sleepInterval {
-//                        sleepInterval = timeToLoopEnd
-//                    }
-//                }
-//                
-//                // tick 1x/sec, zur vollen Sekunde
-//                let timeToNextUIUpdate = ceil(currentPosition) - currentPosition
-//                let sleep = min(sleepInterval, timeToNextUIUpdate == 0 ? 1 : timeToNextUIUpdate)
-//
-//                try? await Task.sleep(for: .seconds(sleep))
-//            }
-//        }
-//    }
-//    
-//    private func stopTicker() {
-//        ticker?.cancel()
-//        ticker = nil
-//    }
     
     private func applyTransportToEngine() {
         if engine != nil {
@@ -454,7 +314,9 @@ final class AppleMusicEngine: AudioEngine {
     var position: TimeInterval {
         get { return player.playbackTime }
         set { player.playbackTime = newValue }}
-    
+
+    var loop: PlayerLoop?
+
     // Speed-Änderung started den Player, daher Status merken und restaurieren
     private var rate_: Float = 1.0
     var rate: Float { get {
@@ -574,10 +436,38 @@ final class MP3Engine: AudioEngine {
     private var startTime: TimeInterval = 0
     private var loaded: Bool = false
 
-    var isPlaying: Bool { get { return isInside() && node.isPlaying }}
+    var loop: PlayerLoop?
+//    var loop: PlayerLoop? { get { loop_ } set {
+//        loop_ = newValue
+//        let p = position
+//        if let l = loop_ {
+//            if p > l.start && p < l.stop {
+//                seek(to: p)
+//            }
+//        } else {
+//            seek(to: p)
+//        }
+//    }}
+    
+    var isPlaying: Bool { get { position < duration && node.isPlaying }}
     var isLoaded: Bool { get { loaded }}
     var duration: TimeInterval = 0
-    var position: TimeInterval { get { return getCurrentPosition() + startTime } set { seek(to: newValue) } }
+    var position: TimeInterval {
+        get {
+            guard let lastRenderTime = node.lastRenderTime,
+                  let playerTime = node.playerTime(forNodeTime: lastRenderTime) else {
+                return max(0, startTime)
+            }
+            guard sampleRate != 0 else { return startTime }
+            let elapsed = Double(playerTime.sampleTime) / sampleRate
+//            print("startTime \(startTime) elapsed \(elapsed) \(playerTime.sampleTime) \(sampleRate)")
+            return max(0, startTime + elapsed)
+        }
+        set {
+            seek(to: newValue)
+        }
+    }
+    
     var rate: Float {
         get { pitchNode.rate }
         set { pitchNode.rate = newValue }
@@ -633,6 +523,16 @@ final class MP3Engine: AudioEngine {
         node.play()
     }
 
+    func play_() throws {
+        try engine.start()
+
+        if let l = loop {
+            schedule(start: l.start, stop: l.stop)
+        }
+
+        node.play()
+    }
+    
     func pause() {
         node.pause()
         engine.pause()
@@ -645,44 +545,53 @@ final class MP3Engine: AudioEngine {
     }
     
     private func seek(to seconds: TimeInterval) {
+//        print("seek \(seconds)")
         guard let file else { return }
-        
-        let framePosition = min(AVAudioFramePosition(seconds * Double(sampleRate)), file.length - 1)
-        let frameCount = AVAudioFrameCount(file.length - framePosition)
-        
-        if framePosition >= file.length {
-            print("Seek-Zeit liegt außerhalb der Datei. \(framePosition) >= \(file.length)")
+
+        startTime = seconds
+        let isPlaying = node.isPlaying
+
+//        if let l = loop {
+//            // innerhalb eines Loops neu positionieren
+//            let loopLength = l.stop - l.start
+//            let offset = (seconds - l.start).truncatingRemainder(dividingBy: loopLength)
+//            let newStart = l.start + max(0, offset)
+//
+//            schedule(start: newStart, stop: l.stop)
+//            if isPlaying { node.play() }
+//            return
+//        }
+
+        let frame = AVAudioFramePosition(seconds * sampleRate)
+
+        guard frame < file.length else {
+            print("Seek-Zeit liegt außerhalb der Datei")
             return
         }
         
-        let isPlaying = node.isPlaying
-                
         node.stop()
-        node.scheduleSegment(file, startingFrame: framePosition, frameCount: frameCount, at: nil, completionHandler: nil)
-        
-        startTime = seconds
-        
+        node.scheduleSegment(file, startingFrame: frame, frameCount: AVAudioFrameCount(file.length - frame), at: nil)
         if isPlaying { node.play() }
     }
     
-    private func isInside() -> Bool {
-        guard let lastRenderTime = node.lastRenderTime,
-              let playerTime = node.playerTime(forNodeTime: lastRenderTime) else {
-            return false
+    private func schedule(start: TimeInterval, stop: TimeInterval) {
+        print("schedule start \(start) stop \(stop)")
+        guard let file else { return }
+
+        let startFrame = AVAudioFramePosition(start * sampleRate)
+        let stopFrame  = AVAudioFramePosition(stop  * sampleRate)
+        
+        guard startFrame < file.length && stopFrame < file.length else {
+            print("schedule-Zeit liegt außerhalb der Datei")
+            return
         }
         
-        guard sampleRate != 0 else { return false }
-        let res = max(0, Double(playerTime.sampleTime) / Double(sampleRate))
-        return res + startTime < duration
-    }
-    
-    private func getCurrentPosition() -> TimeInterval {
-        guard let lastRenderTime = node.lastRenderTime,
-              let playerTime = node.playerTime(forNodeTime: lastRenderTime) else {
-            return 0
-        }
-        guard sampleRate != 0 else { return 0 }
-        return max(0, Double(playerTime.sampleTime) / Double(sampleRate))
+        let frameCount = AVAudioFrameCount(stopFrame - startFrame)
+        if frameCount <= 0 { return }
+
+        let isPlaying = node.isPlaying
+        node.stop()
+        node.scheduleSegment(file, startingFrame: startFrame, frameCount: frameCount, at: nil)
+        if isPlaying { node.play() }
     }
 }
-
