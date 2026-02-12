@@ -82,7 +82,8 @@ final class TransportClock {
                                 
                 let nextWake = min(nextAudioEvent ?? 100000.0, nextFullSec)
 //                print("currentPosition \(currentPosition) nextFullSec \(nextFullSec) nextWake \(nextWake)")
-                guard rate > 0.0 else { break }
+                guard rate > 0.0 else { print("*** rate == 0"); break }
+                guard currentPosition < nextWake else { print("*** currentPosition >= nextWake"); break }
                 let sleepSecs = max(0.001, nextWake - currentPosition) / rate
 //                print("\(sleepSecs)")
                 try? await Task.sleep(for: .seconds(sleepSecs), tolerance: .milliseconds(5))
