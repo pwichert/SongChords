@@ -90,6 +90,7 @@ struct AudioPlayerView: View {
                 Grid(alignment: .trailing, verticalSpacing: 0) {
                     PositionGridRow(song: song)
                     .padding(.bottom, gridVerticalSpacing * 1.5)
+                    
                     GridRow(alignment: .center) {
                         Text("Speed")
                         Slider(
