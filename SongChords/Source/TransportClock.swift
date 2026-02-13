@@ -61,7 +61,7 @@ final class TransportClock {
                 let nextAudioEvent = transportMode == .audio ? audioTick?(position()) : nil
 
                 // aktuelle, gesyncte Position
-                var currentPosition = position()
+                let currentPosition = position()
 //                print("tick \(currentPosition)")
                 
                 if time != currentPosition.rounded() { time = currentPosition.rounded() }
@@ -80,10 +80,10 @@ final class TransportClock {
                 let floor = floor(currentPosition)
                 let nextFullSec: Double = currentPosition - floor < 0.75 ? floor + 1 : floor + 2    // x bis x.7499 -> x+1, sonst x+2
                                 
-                let nextWake = min(nextAudioEvent ?? 100000.0, nextFullSec)
+                let nextWake = if let nextAudioEvent { min(nextAudioEvent, nextFullSec) } else { nextFullSec }
 //                print("currentPosition \(currentPosition) nextFullSec \(nextFullSec) nextWake \(nextWake)")
+                
                 guard rate > 0.0 else { print("*** rate == 0"); break }
-                guard currentPosition < nextWake else { print("*** currentPosition >= nextWake"); break }
                 let sleepSecs = max(0.001, nextWake - currentPosition) / rate
 //                print("\(sleepSecs)")
                 try? await Task.sleep(for: .seconds(sleepSecs), tolerance: .milliseconds(5))

@@ -11,11 +11,16 @@ struct HelpBookView: View {
     @State private var loader: HelpBookLoader
     @State private var scrollPosition = ScrollPosition(edge: .top)
     @State private var helpColumns: NavigationSplitViewVisibility = .all
+    let vers: String
     
     @Environment(\.dismiss) private var dismiss
 
     init(initialChapter: String? = nil) {
         self.loader = HelpBookLoader(initialChapter: initialChapter)
+        let appName = (Bundle.main.object(forInfoDictionaryKey: "CFBundleName") as? String) ?? ""
+        let appVersion = (Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String) ?? ""
+        let appBuild = (Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String) ?? ""
+        vers = "\(appName) \(appVersion)(\(appBuild))"
     }
     
     var body: some View {
@@ -26,6 +31,14 @@ struct HelpBookView: View {
             .navigationTitle("SongChords Help")
             #if os(iOS)
             .navigationBarTitleDisplayMode(.large)
+            .toolbar {
+                ToolbarItem(placement: .status) {
+                    Text(vers).fixedSize(horizontal: true, vertical: false).padding()
+                }
+            }
+            #endif
+            #if os(macOS)
+            Text(vers).fixedSize(horizontal: true, vertical: false).padding()
             #endif
         } detail: {
             if let current = loader.currentID, let chapter = loader.chapters.first(where: { $0.id == current }) {
