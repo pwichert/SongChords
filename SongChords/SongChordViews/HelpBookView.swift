@@ -32,9 +32,9 @@ struct HelpBookView: View {
             #if os(iOS)
             .navigationBarTitleDisplayMode(.large)
             .toolbar {
-                ToolbarItem(placement: .status) {
-                    Text(vers).fixedSize(horizontal: true, vertical: false).padding()
-                }
+                ToolbarItem(placement: .bottomBar) {
+                    Text(vers).fixedSize(horizontal: true, vertical: false).padding(.horizontal)
+                }.sharedBackgroundVisibility(.hidden)
             }
             #endif
             #if os(macOS)
