@@ -187,6 +187,19 @@ final class AudioPlayer {
         var currentPosition = e.position
         TransportClock.shared.sync(currentPosition, rate: rate)
 
+        if let mp3 = engine as? MP3Engine {
+            if let l = loop, isValidLoop(loop: l), mp3.loop?.start != l.start || mp3.loop?.stop != l.stop {
+//                print("gesetzt start \(l.start) stop \(l.stop)")
+                mp3.loop = l
+                mp3.position = currentPosition
+            }
+            if (loop.map { !isValidLoop(loop: $0) } ?? true) && mp3.loop != nil  {
+//                print("gelöscht")
+                mp3.loop = nil
+                mp3.position = currentPosition
+            }
+        }
+        
         // loop evtl wieder auf anfang
         if let l = loop, isValidLoop(loop: l), currentPosition < max(l.start, 0) || currentPosition >= min(l.stop, duration) {
 //             print("korrigiert von \(currentPosition) auf \(max(l.start, 0)) mit drift \(currentPosition - l.stop)")
@@ -433,6 +446,8 @@ final class MP3Engine: AudioEngine {
     private var startTime: TimeInterval = 0
     private var loaded: Bool = false
     
+    var loop: PlayerLoop?
+    
     var isPlaying: Bool { get { position < duration && node.isPlaying }}
     var isLoaded: Bool { get { loaded }}
     var duration: TimeInterval = 0
@@ -520,10 +535,13 @@ final class MP3Engine: AudioEngine {
     
     private func seek(to seconds: TimeInterval) {
 //        print("seek \(seconds)")
-        guard let file else { return }
+        
+        if let loop {
+            schedule(start: loop.start, stop: loop.stop)
+            return
+        }
 
-        startTime = seconds
-        let isPlaying = node.isPlaying
+        guard let file else { return }
 
         let frame = AVAudioFramePosition(seconds * sampleRate)
 
@@ -532,29 +550,35 @@ final class MP3Engine: AudioEngine {
             return
         }
         
+        startTime = seconds
+        
+        let isPlaying = node.isPlaying
         node.stop()
         node.scheduleSegment(file, startingFrame: frame, frameCount: AVAudioFrameCount(file.length - frame), at: nil)
         if isPlaying { node.play() }
     }
     
-//    private func schedule(start: TimeInterval, stop: TimeInterval) {
+    private func schedule(start: TimeInterval, stop: TimeInterval) {
 //        print("schedule start \(start) stop \(stop)")
-//        guard let file else { return }
-//
-//        let startFrame = AVAudioFramePosition(start * sampleRate)
-//        let stopFrame  = AVAudioFramePosition(stop  * sampleRate)
-//        
-//        guard startFrame < file.length && stopFrame < file.length else {
-//            print("schedule-Zeit liegt außerhalb der Datei")
-//            return
-//        }
-//        
-//        let frameCount = AVAudioFrameCount(stopFrame - startFrame)
-//        if frameCount <= 0 { return }
-//
-//        let isPlaying = node.isPlaying
-//        node.stop()
-//        node.scheduleSegment(file, startingFrame: startFrame, frameCount: frameCount, at: nil)
-//        if isPlaying { node.play() }
-//    }
+        
+        guard let file else { return }
+
+        let startFrame = AVAudioFramePosition(start * sampleRate)
+        let stopFrame  = AVAudioFramePosition(stop  * sampleRate)
+        
+        guard startFrame < file.length && stopFrame < file.length else {
+            print("schedule-Zeit liegt außerhalb der Datei")
+            return
+        }
+        
+        let frameCount = AVAudioFrameCount(stopFrame - startFrame)
+        if frameCount <= 0 { return }
+
+        startTime = start
+
+        let isPlaying = node.isPlaying
+        node.stop()
+        node.scheduleSegment(file, startingFrame: startFrame, frameCount: frameCount, at: nil)
+        if isPlaying { node.play() }
+    }
 }
