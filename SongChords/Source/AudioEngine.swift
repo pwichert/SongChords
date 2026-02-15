@@ -187,6 +187,7 @@ final class AudioPlayer {
         var currentPosition = e.position
         TransportClock.shared.sync(currentPosition, rate: rate)
 
+        #if false
         if let mp3 = engine as? MP3Engine {
             if let l = loop, isValidLoop(loop: l), mp3.loop?.start != l.start || mp3.loop?.stop != l.stop {
 //                print("gesetzt start \(l.start) stop \(l.stop)")
@@ -199,6 +200,7 @@ final class AudioPlayer {
                 mp3.position = currentPosition
             }
         }
+        #endif
         
         // loop evtl wieder auf anfang
         if let l = loop, isValidLoop(loop: l), currentPosition < max(l.start, 0) || currentPosition >= min(l.stop, duration) {
@@ -536,10 +538,13 @@ final class MP3Engine: AudioEngine {
     private func seek(to seconds: TimeInterval) {
 //        print("seek \(seconds)")
         
+        #if false
         if let loop {
-            schedule(start: loop.start, stop: loop.stop)
+            let s = if seconds < loop.start || seconds >= loop.stop { loop.start } else { seconds }
+            schedule(start: s, stop: loop.stop)
             return
         }
+        #endif
 
         guard let file else { return }
 
@@ -550,12 +555,11 @@ final class MP3Engine: AudioEngine {
             return
         }
         
-        startTime = seconds
-        
         let isPlaying = node.isPlaying
         node.stop()
         node.scheduleSegment(file, startingFrame: frame, frameCount: AVAudioFrameCount(file.length - frame), at: nil)
         if isPlaying { node.play() }
+        startTime = seconds
     }
     
     private func schedule(start: TimeInterval, stop: TimeInterval) {
@@ -574,11 +578,10 @@ final class MP3Engine: AudioEngine {
         let frameCount = AVAudioFrameCount(stopFrame - startFrame)
         if frameCount <= 0 { return }
 
-        startTime = start
-
         let isPlaying = node.isPlaying
         node.stop()
         node.scheduleSegment(file, startingFrame: startFrame, frameCount: frameCount, at: nil)
         if isPlaying { node.play() }
+        startTime = start
     }
 }
