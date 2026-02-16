@@ -565,8 +565,6 @@ final class MP3Engine: AudioEngine {
         
         let isPlaying = node.isPlaying
         node.stop()
-        node.reset()
-        engine.reset()
         node.scheduleSegment(file, startingFrame: frame, frameCount: AVAudioFrameCount(file.length - frame), at: nil)
         if isPlaying { node.play() }
         startTime = seconds
@@ -590,8 +588,6 @@ final class MP3Engine: AudioEngine {
 
         let isPlaying = node.isPlaying
         node.stop()
-        node.reset()
-        engine.reset()
         node.scheduleSegment(file, startingFrame: startFrame, frameCount: frameCount, at: nil)
         if isPlaying { node.play() }
         startTime = start
