@@ -187,12 +187,12 @@ final class AudioPlayer {
         var currentPosition = e.position
         TransportClock.shared.sync(currentPosition, rate: rate)
 
-        #if false
+        #if true
         if let mp3 = engine as? MP3Engine {
             if let l = loop, isValidLoop(loop: l), mp3.loop?.start != l.start || mp3.loop?.stop != l.stop {
 //                print("gesetzt start \(l.start) stop \(l.stop)")
                 mp3.loop = l
-                mp3.position = currentPosition
+                if isInLoopRange(position: currentPosition, loop: l) { mp3.position = currentPosition }
             }
             if (loop.map { !isValidLoop(loop: $0) } ?? true) && mp3.loop != nil  {
 //                print("gelöscht")
@@ -204,7 +204,7 @@ final class AudioPlayer {
         
         // loop evtl wieder auf anfang
         if let l = loop, isValidLoop(loop: l), currentPosition < max(l.start, 0) || currentPosition >= min(l.stop, duration) {
-//             print("korrigiert von \(currentPosition) auf \(max(l.start, 0)) mit drift \(currentPosition - l.stop)")
+             print("korrigiert von \(currentPosition) auf \(max(l.start, 0)) mit drift \(currentPosition - l.stop)")
             currentPosition = max(l.start, 0)
             e.position = currentPosition
             TransportClock.shared.sync(currentPosition, rate: rate)
@@ -251,6 +251,10 @@ final class AudioPlayer {
         let maxLoopStop = max(0, duration - 1.2)
         let minLoopDuration = 1.2
         return loop.stop > 0.0 && loop.stop < maxLoopStop && loop.start < loop.stop && loop.stop - loop.start > minLoopDuration
+    }
+    
+    func isInLoopRange(position: TimeInterval, loop: PlayerLoop) -> Bool {
+        position >= loop.start && position < loop.stop
     }
 }
 
@@ -459,9 +463,10 @@ final class MP3Engine: AudioEngine {
                   let playerTime = node.playerTime(forNodeTime: lastRenderTime) else {
                 return max(0, startTime)
             }
-            guard sampleRate != 0 else { return startTime }
-            let elapsed = Double(playerTime.sampleTime) / sampleRate
-//            print("startTime \(startTime) elapsed \(elapsed) \(playerTime.sampleTime) \(sampleRate)")
+            let engineRate = playerTime.sampleRate   // ← echte Zeitbasis
+            guard engineRate != 0 else { return startTime }
+            let elapsed = Double(playerTime.sampleTime) / engineRate
+//            print("startTime \(startTime) elapsed \(elapsed) \(playerTime.sampleTime) \(engineRate)")
             return max(0, startTime + elapsed)
         }
         set {
@@ -491,9 +496,10 @@ final class MP3Engine: AudioEngine {
         file = try AVAudioFile(forReading: filePath)
         
         if let file {
+            guard file.processingFormat.sampleRate > 0 else { return }
             sampleRate = file.processingFormat.sampleRate
+            
             duration = Double(file.length) / sampleRate
-            startTime = 0
             
             engine.attach(node)
             engine.attach(pitchNode)
@@ -510,6 +516,8 @@ final class MP3Engine: AudioEngine {
             #endif
             
             self.pitch = pitch
+            node.rate = 1
+            pitchNode.rate = 1
 
             engine.prepare()
             node.scheduleFile(file, at: nil)
@@ -536,9 +544,9 @@ final class MP3Engine: AudioEngine {
     }
     
     private func seek(to seconds: TimeInterval) {
-//        print("seek \(seconds)")
+        print("seek \(seconds)")
         
-        #if false
+        #if true
         if let loop {
             let s = if seconds < loop.start || seconds >= loop.stop { loop.start } else { seconds }
             schedule(start: s, stop: loop.stop)
@@ -557,13 +565,15 @@ final class MP3Engine: AudioEngine {
         
         let isPlaying = node.isPlaying
         node.stop()
+        node.reset()
+        engine.reset()
         node.scheduleSegment(file, startingFrame: frame, frameCount: AVAudioFrameCount(file.length - frame), at: nil)
         if isPlaying { node.play() }
         startTime = seconds
     }
     
     private func schedule(start: TimeInterval, stop: TimeInterval) {
-//        print("schedule start \(start) stop \(stop)")
+        print("schedule start \(start) stop \(stop)")
         
         guard let file else { return }
 
@@ -580,6 +590,8 @@ final class MP3Engine: AudioEngine {
 
         let isPlaying = node.isPlaying
         node.stop()
+        node.reset()
+        engine.reset()
         node.scheduleSegment(file, startingFrame: startFrame, frameCount: frameCount, at: nil)
         if isPlaying { node.play() }
         startTime = start
