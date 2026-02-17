@@ -546,13 +546,11 @@ final class MP3Engine: AudioEngine {
     private func seek(to seconds: TimeInterval) {
         print("seek \(seconds)")
         
-        #if true
         if let loop {
             let s = if seconds < loop.start || seconds >= loop.stop { loop.start } else { seconds }
             schedule(start: s, stop: loop.stop)
             return
         }
-        #endif
 
         guard let file else { return }
 
