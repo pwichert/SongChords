@@ -187,24 +187,22 @@ final class AudioPlayer {
         var currentPosition = e.position
         TransportClock.shared.sync(currentPosition, rate: rate)
 
-        #if true
         if let mp3 = engine as? MP3Engine {
-            if let l = loop, isValidLoop(loop: l), mp3.loop?.start != l.start || mp3.loop?.stop != l.stop {
+            if let l = loop, l.isValid(duration: duration), mp3.loop?.start != l.start || mp3.loop?.stop != l.stop {
 //                print("gesetzt start \(l.start) stop \(l.stop)")
                 mp3.loop = l
-                if isInLoopRange(position: currentPosition, loop: l) { mp3.position = currentPosition }
+                if l.contains(position: currentPosition) { mp3.position = currentPosition }
             }
-            if (loop.map { !isValidLoop(loop: $0) } ?? true) && mp3.loop != nil  {
+            if (loop.map { !$0.isValid(duration: duration) } ?? true) && mp3.loop != nil  {
 //                print("gelöscht")
                 mp3.loop = nil
                 mp3.position = currentPosition
             }
         }
-        #endif
         
         // loop evtl wieder auf anfang
-        if let l = loop, isValidLoop(loop: l), currentPosition < max(l.start, 0) || currentPosition >= min(l.stop, duration) {
-             print("korrigiert von \(currentPosition) auf \(max(l.start, 0)) mit drift \(currentPosition - l.stop)")
+        if let l = loop, l.isValid(duration: duration), currentPosition < max(l.start, 0) || currentPosition >= min(l.stop, duration) {
+//             print("korrigiert von \(currentPosition) auf \(max(l.start, 0)) mit drift \(currentPosition - l.stop)")
             currentPosition = max(l.start, 0)
             e.position = currentPosition
             TransportClock.shared.sync(currentPosition, rate: rate)
@@ -224,7 +222,7 @@ final class AudioPlayer {
             return nil
         }
         
-        if let l = loop, isValidLoop(loop: l) { return l.stop }
+        if let l = loop, l.isValid(duration: duration) { return l.stop }
         
         return nil
     }
@@ -245,16 +243,6 @@ final class AudioPlayer {
     
     func setDefaults() {
         transport = TransportState()
-    }
-    
-    func isValidLoop(loop: PlayerLoop) -> Bool {
-        let maxLoopStop = max(0, duration - 1.2)
-        let minLoopDuration = 1.2
-        return loop.stop > 0.0 && loop.stop < maxLoopStop && loop.start < loop.stop && loop.stop - loop.start > minLoopDuration
-    }
-    
-    func isInLoopRange(position: TimeInterval, loop: PlayerLoop) -> Bool {
-        position >= loop.start && position < loop.stop
     }
 }
 
@@ -463,7 +451,7 @@ final class MP3Engine: AudioEngine {
                   let playerTime = node.playerTime(forNodeTime: lastRenderTime) else {
                 return max(0, startTime)
             }
-            let engineRate = playerTime.sampleRate   // ← echte Zeitbasis
+            let engineRate = playerTime.sampleRate   // ← Hardware Zeitbasis
             guard engineRate != 0 else { return startTime }
             let elapsed = Double(playerTime.sampleTime) / engineRate
 //            print("startTime \(startTime) elapsed \(elapsed) \(playerTime.sampleTime) \(engineRate)")
@@ -547,7 +535,7 @@ final class MP3Engine: AudioEngine {
         print("seek \(seconds)")
         
         if let loop {
-            let s = if seconds < loop.start || seconds >= loop.stop { loop.start } else { seconds }
+            let s = if !loop.contains(position: seconds) { loop.start } else { seconds }
             schedule(start: s, stop: loop.stop)
             return
         }

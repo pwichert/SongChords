@@ -50,4 +50,14 @@ class PlayerLoop: Codable, Identifiable, Hashable {
         case stop
         case title
     }
+    
+    func contains(position: TimeInterval) -> Bool {
+        position >= start && position < stop
+    }
+    
+    func isValid(duration: TimeInterval) -> Bool {
+        let maxLoopStop = max(0, duration - 1.2)
+        let minLoopDuration = 1.2
+        return stop > 0.0 && stop < maxLoopStop && start < stop && stop - start > minLoopDuration
+    }
 }
