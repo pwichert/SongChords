@@ -47,14 +47,18 @@ final class TransportClock {
     
     private func start() {
         print("Clock start")
-
+        
         task?.cancel()
         task = nil
         
         startTime = ContinuousClock.now
         startPosition = 0.0
         rate = 1
-
+        
+        run()
+    }
+    
+    private func run() {
         task = Task(priority: .utility) {
             while !Task.isCancelled {
                 // 1️⃣ Audio-Tick. Synced die Position.
@@ -106,6 +110,15 @@ final class TransportClock {
     func stopTicker() {
         stop()
         self.transportMode = .none
+    }
+    
+    // für sofortige UI-Reaktion sleep abbrechen
+    func restartTicker() {
+        guard task != nil else { return }
+        print("Clock restart")
+        task?.cancel()
+        task = nil
+        run()
     }
     
     private func position() -> TimeInterval {

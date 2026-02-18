@@ -628,6 +628,7 @@ struct PlayerLoopEditView: View {
                 Text("Active").font(.footnote)
                 Button {
                     active.toggle()
+                    if active { TransportClock.shared.restartTicker() }
                 } label: {
                     Image(systemName: active ? "checkmark.square" : "square").font(.title)
                 }
@@ -641,9 +642,10 @@ struct PlayerLoopEditView: View {
                 .font(.body)
                 .textFieldStyle(RoundedBorderTextFieldStyle())
                 .foregroundStyle(!audioPlayer.isLoaded || currentLoop.isValid(duration: audioPlayer.duration) ? Color.primary : Color.red)
-            SetButtonView(song: song, txt: "Start", point: $currentLoop.start)
-            SetButtonView(song: song, txt: "End", point: $currentLoop.stop)
             
+            SetButtonView(loop: currentLoop, active: $active, song: song, txt: "Start", point: $currentLoop.start)
+            SetButtonView(loop: currentLoop, active: $active, song: song, txt: "End", point: $currentLoop.stop)
+
             VStack {
                 Text("Save").font(.footnote)
                 Button {
@@ -682,6 +684,8 @@ struct PlayerLoopEditView: View {
 }
 
 struct SetButtonView: View {
+    let loop: PlayerLoop
+    @Binding var active: Bool
     let song: Song
     let txt: String
     @Binding var point: TimeInterval
@@ -691,8 +695,12 @@ struct SetButtonView: View {
     var body: some View {
         VStack(alignment: .center) {
             Text(txt).font(.footnote)
-            Button { point = audioPlayer.enginePosition } label: { Image(systemName: "button.programmable").font(.title) }.disabled(GlobalFunctions.isDisabled(song: song))
+            Button {
+                point = audioPlayer.enginePosition
+                if active { TransportClock.shared.restartTicker() }
+            } label: { Image(systemName: "button.programmable").font(.title) }.disabled(GlobalFunctions.isDisabled(song: song))
             Text(GlobalFunctions.formatTimeInterval(point)).font(.footnote)
+                .foregroundStyle(!audioPlayer.isLoaded || loop.isValid(duration: audioPlayer.duration) || (loop.start == 0.0 && loop.stop == 0.0) ? Color.primary : Color.red)
         }
     }
 }
