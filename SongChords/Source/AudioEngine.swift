@@ -171,13 +171,17 @@ final class AudioPlayer {
     func stop() {
         print("AudioPlayer stop")
 
+        engine?.stop()
+        engine = nil
+
+        position = 0
+
         if TransportClock.shared.isRunningAudio {
+            TransportClock.shared.sync(position)
             TransportClock.shared.stopTicker()
             TransportClock.shared.audioTick = nil
         }
-        engine?.stop()
-        engine = nil
-        position = 0
+
         state = .stopped
     }
     
