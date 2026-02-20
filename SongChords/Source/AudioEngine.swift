@@ -177,7 +177,6 @@ final class AudioPlayer {
         position = 0
 
         if TransportClock.shared.isRunningAudio {
-            TransportClock.shared.sync(position)
             TransportClock.shared.stopTicker()
             TransportClock.shared.audioTick = nil
         }
@@ -223,6 +222,7 @@ final class AudioPlayer {
         if !e.isPlaying {
             print("engine stopped")
             stop()
+            TransportClock.shared.sync(position)
             return nil
         }
         
