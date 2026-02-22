@@ -93,8 +93,7 @@ internal struct SongViewX: View {
                 }
             }
             .onChange(of: TransportClock.shared.time) { _, time in
-                guard autoScrollEnabled else { return }
-                guard let time else { return }
+                guard autoScrollEnabled, let time else { return }
                 handleAutoscroll(time: time, proxy: proxy)
             }
             .onChange(of: SongTaskManager.shared.representationHolder.isRendered, initial: false) {
@@ -535,20 +534,20 @@ struct SectionHeaderView: View {
         .animation(.easeInOut(duration: 0.4), value: isActive)
         .cornerRadius(5)
         .contextMenu {
-            if let modelContext, let globals, let audioPlayer, autoScroll {
+            if let modelContext, let globals, autoScroll, let time = TransportClock.shared.time {
                 Button("Set section timestamp") {
                     do {
-                        var tm: TimeInterval?
-                        if TransportClock.shared.isRunningTimer, let time = TransportClock.shared.time {
-                            tm = time
-                        }
-                        else {
-                            tm = audioPlayer.position
-                        }
-                        if let tm {
-                            saveAnchor(songPosition: tm)
+//                        var tm: TimeInterval?
+//                        if TransportClock.shared.isRunningTimer {
+//                            tm = TransportClock.shared.time
+//                        }
+//                        else {
+//                            tm = audioPlayer.position
+//                        }
+//                        if let tm {
+                            saveAnchor(songPosition: time)
                             try modelContext.save()
-                        }
+//                        }
                     } catch (let error) {
                         globals.setSongChordsError(error: error)
                     }

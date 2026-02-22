@@ -171,13 +171,15 @@ final class AudioPlayer {
     func stop() {
         print("AudioPlayer stop")
 
+        engine?.stop()
+        engine = nil
+        position = 0
+
         if TransportClock.shared.isRunningAudio {
             TransportClock.shared.stopTicker()
             TransportClock.shared.audioTick = nil
         }
-        engine?.stop()
-        engine = nil
-        position = 0
+        
         state = .stopped
     }
     
@@ -508,6 +510,7 @@ final class MP3Engine: AudioEngine {
             pitchNode.rate = 1
 
             engine.prepare()
+            try engine.start()
             node.scheduleFile(file, at: nil)
             
             startTime = 0
@@ -516,13 +519,12 @@ final class MP3Engine: AudioEngine {
     }
 
     func play() throws {
-        try engine.start()
+        if !engine.isRunning { try engine.start() }
         node.play()
     }
 
     func pause() {
         node.pause()
-        engine.pause()
     }
 
     func stop() {

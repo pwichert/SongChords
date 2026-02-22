@@ -17,7 +17,6 @@ enum TransportMode {
 final class TransportClock {
     static let shared = TransportClock()
 
-    @ObservationIgnored
     private var task: Task<Void, Never>?
 
     private(set) var time: TimeInterval?
@@ -25,7 +24,6 @@ final class TransportClock {
     var isRunningTimer: Bool { get { task != nil && transportMode == .timer }}
     var isRunningAudio: Bool { get { task != nil && transportMode == .audio }}
 
-    @ObservationIgnored
     private var transportMode: TransportMode = .none
 
     @ObservationIgnored
@@ -63,23 +61,25 @@ final class TransportClock {
             while !Task.isCancelled {
                 // 1️⃣ Audio-Tick. Synced die Position.
                 let nextAudioEvent = transportMode == .audio ? audioTick?(position()) : nil
+                if Task.isCancelled { break }
 
                 // aktuelle, gesyncte Position
                 let currentPosition = position()
-//                print("tick \(currentPosition)")
-                
-                if time != currentPosition.rounded() { time = currentPosition.rounded() }
 
                 #if false
                 if let time, autoScrollEnabled {
                     // 2️⃣ AutoScroll-Tick
                     scrollTick?(time)
+                    if Task.isCancelled { break }
 
                     // Position aktualisieren
                     currentPosition = position()
                 }
                 #endif
                 
+//                print("tick \(currentPosition)")
+                if time != currentPosition.rounded() { time = currentPosition.rounded() }
+
                 // 3️⃣ Wann wieder aufwachen?
                 let floor = floor(currentPosition)
                 let nextFullSec: Double = currentPosition - floor < 0.75 ? floor + 1 : floor + 2    // x bis x.7499 -> x+1, sonst x+2
