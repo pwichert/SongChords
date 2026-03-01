@@ -298,7 +298,7 @@ internal struct SongListViewX: View {
                 #endif
             }
         }
-        .fileExporter(isPresented: $showFileExport, item: PlayListTransferable(from: playlist, includeCodable: true, includePDF: true), contentTypes: [], defaultFilename: Song.makeValidFilename(playlist.title)) { result in
+        .fileExporter(isPresented: $showFileExport, item: PlayListTransferable(from: playlist, includeCodable: true, includePDF: true), contentTypes: [.pdf, .playlistJSON], defaultFilename: Song.makeValidFilename(playlist.title)) { result in
             switch result {
             case .success(let url):
                 print("Gespeichert: \(url)")

@@ -20,7 +20,7 @@ struct HelpBookView: View {
         let appName = (Bundle.main.object(forInfoDictionaryKey: "CFBundleName") as? String) ?? ""
         let appVersion = (Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String) ?? ""
         let appBuild = (Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String) ?? ""
-        vers = "\(appName) \(appVersion)(\(appBuild))"
+        vers = "\(appName) \(appVersion) (\(appBuild))"
     }
     
     var body: some View {

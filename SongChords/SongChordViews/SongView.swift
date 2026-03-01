@@ -194,7 +194,7 @@ internal struct SongViewX: View {
             Button("Cancel", role: .cancel) { }
             Button("Ok", role: .destructive) { removeAllAnchors() }
         }
-        .fileExporter(isPresented: $showFileExport, item: SongTransferable(from: song, includeCodable: true, includePDF: true), contentTypes: [], defaultFilename: Song.makeValidFilename(song.title)) { result in
+        .fileExporter(isPresented: $showFileExport, item: SongTransferable(from: song, includeCodable: true, includePDF: true), contentTypes: [.pdf, .songJSON], defaultFilename: Song.makeValidFilename(song.title)) { result in
             switch result {
             case .success(let url):
                 print("Gespeichert: \(url)")

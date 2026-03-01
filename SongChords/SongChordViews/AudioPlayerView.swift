@@ -197,6 +197,7 @@ struct AudioPlayerView: View {
                 do {
                     let (_, pitch) = try song.getMP3Info()
                     audioPlayer.pitch = pitch
+                    songPitch = pitch
                 } catch (let error) {
                     print(error.localizedDescription)
                 }
@@ -467,10 +468,11 @@ struct MusicContentView: View {
                 Button("Ok", systemImage: "checkmark", role: .confirm) {
                     Task {
                         do {
-                            let id = String(selectedSong?.id ?? "")
-                            song.tryRemoveMP3() // falls schon MP3 geladen wurde, erst löschen
-                            song.musicItemId = id
-                            try modelContext.save()
+                            if let sel = selectedSong {
+                                song.tryRemoveMP3() // falls schon MP3 geladen wurde, erst löschen
+                                song.musicItemId = sel.id
+                                try modelContext.save()
+                            }
                         } catch (let error) {
                             globals.setSongChordsError(error: error)
                         }
