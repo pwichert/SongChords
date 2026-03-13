@@ -212,6 +212,7 @@ internal struct SongViewX: View {
         .onChange(of: userSettings.txtsize, initial: false) { print("txtsize changed"); settingsChangeTick += 1 }
         .onChange(of: userSettings.headersize, initial: false) { print("headersize changed"); settingsChangeTick += 1 }
         .onChange(of: userSettings.isGermanNotation, initial: false) { print("isGermanNotation changed"); settingsChangeTick += 1 }
+        .onChange(of: userSettings.transposeKey, initial: false) { print("transposeKey changed"); settingsChangeTick += 1 }
         .onChange(of: userSettings.textfollowschords, initial: false) { print("textfollowschords changed"); settingsChangeTick += 1 }
         .onChange(of: settingsChangeTick) {
             updateSongRepresentation()

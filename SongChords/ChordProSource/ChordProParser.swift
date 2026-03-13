@@ -60,7 +60,7 @@ public struct TextElement: Sendable, Identifiable, Equatable {
     let fontOffset: Double
     let background: Bool
     
-    let chord: ParsedChord?     // falls dieser Text ein Chord ist, für diagrammerzeugung merken
+    let chord: ChordII?     // falls dieser Text ein Chord ist, für diagrammerzeugung merken
     
     func toString() -> String {
         return ("[\(Int(fontOffset))]\(txt)")
@@ -273,19 +273,19 @@ enum CacheResult<T> {
 }
 
 nonisolated
-struct ChordCacheKey: Hashable {
+struct ChordCacheKey: Sendable, Hashable {
     let chord: String
-    let rootSystemID: ObjectIdentifier
+    let rootSys: RootSys
     let strict: Bool
 }
 
 actor ParsedChordCache {
-    private var cache: [ChordCacheKey: ParsedChord?] = [:]
+    private var cache: [ChordCacheKey: ChordII?] = [:]
 
     private var hits: Int = 0
     private var misses: Int = 0
     
-    func get(_ key: ChordCacheKey) -> CacheResult<ParsedChord> {
+    func get(_ key: ChordCacheKey) -> CacheResult<ChordII> {
         switch cache[key] {
         // kein Wert vorhanden
         case .none:
@@ -301,7 +301,7 @@ actor ParsedChordCache {
         }
     }
 
-    func set(_ key: ChordCacheKey, value: ParsedChord?) {
+    func set(_ key: ChordCacheKey, value: ChordII?) {
         cache[key] = value
     }
 }
@@ -329,25 +329,31 @@ public class ChordProParser {
     private let showChords: Bool
     private let textFollowsChords: Bool
     
-    private var rootSystem: ChordRoot
+//    private var rootSystem: ChordRoot
+    private let rootSys: RootSys
     private let txtf: UIFont
     private let chordf: UIFont
         
     private var parserState = ParserState()
     private static let sharedChordCache = ParsedChordCache()
-    
+    private var currentKey: Key?
     private let chordPadding: Double = 3
-        
+    private let transposeKey: Bool
+    
     public init(userSettings: UserSettingsSendable, songTranspose: Int, forPrinting: Bool = false) {
         self.userSettings = userSettings
         self.songTranspose = songTranspose
         self.forPrinting = forPrinting
-        self.rootSystem = userSettings.isGermanNotation ? EnglishGermanRoot() : EnglishDutchRoot()
+//        self.rootSystem = userSettings.isGermanNotation ? EnglishGermanRoot() : EnglishDutchRoot()
+        self.rootSys = userSettings.isGermanNotation ? .german : .common
         self.txtf = forPrinting ? userSettings.txtPDFUIFont : userSettings.txtUIFont
         self.chordf = forPrinting ? userSettings.chordPDFUIFont : userSettings.chordUIFont
         
         self.showChords = !userSettings.hidechords
         self.textFollowsChords = userSettings.textfollowschords
+        self.transposeKey = userSettings.transposeKey
+        
+//        print(KeySystem().toString())
     }
     
     func getDirectiveManager() -> DirectiveManagerSendable {
@@ -408,12 +414,12 @@ public class ChordProParser {
             
         case .bracketEnclosed(let chord):
             // Cache fragen
-            let key = ChordCacheKey(chord: chord, rootSystemID: ObjectIdentifier(type(of: rootSystem)), strict: true)
-            var p: ParsedChord?
+            let key = ChordCacheKey(chord: chord, rootSys: rootSys, strict: true)
+            var p: ChordII?
             
             switch await ChordProParser.sharedChordCache.get(key) {
             case .miss:
-                let parsed = try ParsedChord.parse(chord, rootSystem: &rootSystem, strict: true)
+                let parsed = try ChordII.parse(chord, preferedGermanParsing: rootSys == .german, strict: true)
                 await ChordProParser.sharedChordCache.set(key, value: parsed)
                 p = parsed
 
@@ -423,11 +429,14 @@ public class ChordProParser {
             
             if let pchord = p {
                 let position = max(parserState.nextChordPosition, parserState.minNextChordPosition)
+                let transposeParm = TransposeParm(semitones: songTranspose + directiveManager.transpose, fromKey: currentKey, transposeKey: transposeKey)
 
-                let (str, tchord) = pchord.toString(transpose: songTranspose + directiveManager.transpose, rootSystem: &rootSystem)
+//                let (str, tchord) = pchord.toString(transpose: songTranspose + directiveManager.transpose, rootSystem: &rootSystem)
+                let (str, tchord) = pchord.toString(rootSys: rootSys, transposeParm: transposeParm)
                 let strLen = sizeOfString(string: str, font: chordf)
+//                parserState.chords.append(TextElement(txt: str, isChordcomment: false, fontOffset: position, background: true, chord: tchord ?? pchord))
                 parserState.chords.append(TextElement(txt: str, isChordcomment: false, fontOffset: position, background: true, chord: tchord ?? pchord))
-                
+
                 // wenn Chords angezeigt werden, soll sich der Text danach richten
                 if showChords {
                     // textFollowsChords == true: Text genau an Chord-Position, wird danach aber evtl. auseinander gezogen
@@ -444,7 +453,7 @@ public class ChordProParser {
                 // kein Chord -> chordcomment oder section
                 let position = parserState.nextChordPosition
                 let isChordcomment = chord.starts(with: "*")
-                let str = processReplace(srcline: isChordcomment ? String(chord.dropFirst()) : chord, root: &rootSystem)
+                let str = processReplace(srcline: isChordcomment ? String(chord.dropFirst()) : chord, rootSys: rootSys)
                 let strLen = sizeOfString(string: str, font: chordf)
                 parserState.chords.append(TextElement(txt: str, isChordcomment: isChordcomment, fontOffset: position, background: false, chord: nil))
                 
@@ -464,7 +473,7 @@ public class ChordProParser {
         case .curlyEnclosed(let directive):
             parserState.numDirectives += 1
 
-            if let d = directiveManager.addDirective(processReplace(srcline: directive, root: &rootSystem)) {
+            if let d = directiveManager.addDirective(processReplace(srcline: directive, rootSys: rootSys)) {
 
                 switch d {
                 case .column_break:
@@ -487,10 +496,18 @@ public class ChordProParser {
                     parserState.texts.append(TextElement(txt: val, isChordcomment: false, fontOffset: parserState.nextTextPosition, background: false, chord: nil))
                     textCleanup(str: val, strLen: strLen)
 
+                case .key:
+                    // currentKey aktualisieren
+                    if let key = directiveManager.getDirective(DirectiveType.key.rawValue) {
+                        if let parsed = try ChordII.parse(key, preferedGermanParsing: false, strict: true) {
+                            currentKey = Key(note: parsed.note, mode: parsed.mode == .minor ? .minor : .major)
+                        }
+                    }
+
                 default: break
                 }
             } else {
-                let str = processReplace(srcline: directive, root: &rootSystem)
+                let str = processReplace(srcline: directive, rootSys: rootSys)
                 let strLen = sizeOfString(string: str, font: txtf)
                 parserState.texts.append(TextElement(txt: str, isChordcomment: false, fontOffset: parserState.nextTextPosition, background: false, chord: nil))
                 textCleanup(str: str, strLen: strLen)
@@ -499,7 +516,7 @@ public class ChordProParser {
             return []
             
         case .text(let text):
-            let str = processReplace(srcline: text, root: &rootSystem)
+            let str = processReplace(srcline: text, rootSys: rootSys)
             let strLen = sizeOfString(string: str, font: txtf)
             parserState.texts.append(TextElement(txt: str, isChordcomment: false, fontOffset: parserState.nextTextPosition, background: false, chord: nil))
             parserState.plainText.append(str)
@@ -592,7 +609,7 @@ public class ChordProParser {
     }
     
     // Ersetzt Variablen durch ihren Wert: %{ variable }
-    private func processReplace(srcline: String, root: inout ChordRoot) -> String {
+    private func processReplace(srcline: String, rootSys: RootSys) -> String {
         if srcline.isEmpty { return srcline }
         var res = ""
         
@@ -607,23 +624,32 @@ public class ChordProParser {
                     if let dirval = directiveManager.getDirective(txt) {
                         repl = dirval
                     } else {
-                        if let special = DirectiveNamesSpecial(rawValue: txt) {
+                        // key_actual und key_from werden automatisch generiert, wenn transpose verwendet wurde
+                        if let special = DirectiveNamesSpecial(rawValue: txt), let key = directiveManager.getDirective(DirectiveType.key.rawValue), directiveManager.getDirective(DirectiveType.transpose.rawValue) != nil {
                             switch special {
                             case DirectiveNamesSpecial.key_actual:
-                                let key = directiveManager.getDirective(DirectiveType.key.rawValue)
-                                if let key = key {
-                                    let chord = try? ParsedChord.parse(key, rootSystem: &root, strict: true)
-                                    if let chord = chord {
-                                        (repl, _) = chord.toString(transpose: directiveManager.transpose, rootSystem: &root)
+                                // transponierter Key
+                                let keySys = KeySystem()
+                                repl = key
+                                if let currentKey {
+                                    let note = transposeKey ? keySys.transpose(from: currentKey, note: currentKey.note, by: songTranspose + directiveManager.transpose) :
+                                                            keySys.transpose(note: currentKey.note, by: songTranspose + directiveManager.transpose)
+                                
+                                    if let note {
+                                        repl = "\(note.toString(rootSys: rootSys))\(currentKey.mode.toString())"
                                     }
                                 }
-                                break
+                                
                             case DirectiveNamesSpecial.key_from:
-                                let key = directiveManager.getDirective(DirectiveType.key.rawValue)
-                                if let key = key {
+                                // ursprünglicher Key
+                                if let key = directiveManager.getDirective(DirectiveType.key.rawValue) {
                                     repl = key
                                 }
-                                break
+                            }
+                        } else {
+                            // wenn nichts generiert wurde, dann bleibt's beim Key
+                            if let key = directiveManager.getDirective(DirectiveType.key.rawValue) {
+                                repl = key
                             }
                         }
                     }

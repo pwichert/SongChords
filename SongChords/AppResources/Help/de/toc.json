@@ -33,5 +33,10 @@
     "id": "chords",
     "title": "Akkord Diagramme",
     "file": "chord-diagrams.md"
+  },
+  {
+    "id": "transpose",
+    "title": "Akkorde transponieren",
+    "file": "transpose.md"
   }
 ]

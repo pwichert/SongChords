@@ -176,59 +176,7 @@ struct SongChordsTests {
         #expect(res == expectedResult)
     }
     
-    @Test func testChords() async throws {
-        var englishDutchRoot: any ChordRoot = EnglishDutchRoot()
-        var englishGermanRoot: any ChordRoot = EnglishGermanRoot()
-        
-        var pchord = try? ParsedChord.parse("D/F#", rootSystem: &englishDutchRoot, strict: true)
-        #expect(pchord?.toString(transpose: 0, rootSystem: &englishDutchRoot).0 == "D/F#")
-
-        pchord = try? ParsedChord.parse("C#maj7sus4/d#", rootSystem: &englishDutchRoot, strict: true)
-        #expect(pchord?.toString(transpose: 0, rootSystem: &englishDutchRoot).0 == "C#maj7sus4/D#")
-
-        pchord = try? ParsedChord.parse("C", rootSystem: &englishDutchRoot, strict: true)
-        #expect(pchord?.toString(transpose: 0, rootSystem: &englishDutchRoot).0 == "C")
-
-        pchord = try? ParsedChord.parse("Cmin7", rootSystem: &englishDutchRoot, strict: true)
-        #expect(pchord?.toString(transpose: 0, rootSystem: &englishDutchRoot).0 == "Cmin7")
-
-        pchord = try? ParsedChord.parse("C", rootSystem: &englishDutchRoot, strict: true)
-        #expect(pchord?.toString(transpose: 8, rootSystem: &englishDutchRoot).0 == "G#")
-
-        pchord = try? ParsedChord.parse("Fm", rootSystem: &englishDutchRoot, strict: true)
-        #expect(pchord?.toString(transpose: -1, rootSystem: &englishDutchRoot).0 == "Em")
-
-        pchord = try? ParsedChord.parse("C", rootSystem: &englishDutchRoot, strict: true)
-        #expect(pchord?.toString(transpose: -4, rootSystem: &englishDutchRoot).0 == "Ab")
-
-        pchord = try? ParsedChord.parse("B", rootSystem: &englishDutchRoot, strict: true)
-        #expect(pchord?.toString(transpose: 0, rootSystem: &englishGermanRoot).0 == "H")
-
-        pchord = try? ParsedChord.parse("H", rootSystem: &englishGermanRoot, strict: true)
-        #expect(pchord?.toString(transpose: 0, rootSystem: &englishDutchRoot).0 == "B")
-
-        pchord = try? ParsedChord.parse("B", rootSystem: &englishGermanRoot, strict: true)
-        #expect(pchord?.toString(transpose: 0, rootSystem: &englishDutchRoot).0 == "Bb")
-
-        pchord = try? ParsedChord.parse("H", rootSystem: &englishGermanRoot, strict: true)
-        #expect(pchord?.toString(transpose: 4, rootSystem: &englishGermanRoot).0 == "Dis")
-
-        pchord = try? ParsedChord.parse("B", rootSystem: &englishDutchRoot, strict: true)
-        #expect(pchord?.toString(transpose: 0, rootSystem: &englishDutchRoot).0 == "B")
-
-        pchord = try? ParsedChord.parse("Bb", rootSystem: &englishDutchRoot, strict: true)
-        #expect(pchord?.toString(transpose: 0, rootSystem: &englishGermanRoot).0 == "B")
-
-        pchord = try? ParsedChord.parse("C/B", rootSystem: &englishGermanRoot, strict: true)
-        #expect(pchord?.toString(transpose: -2, rootSystem: &englishGermanRoot).0 == "B/As")
-
-        pchord = try? ParsedChord.parse("Bb", rootSystem: &englishDutchRoot, strict: true)
-        #expect(pchord?.toString(transpose: 0, rootSystem: &englishDutchRoot).0 == "Bb")
-    }
-    
     @Test func testReverse() async throws {
-        let englishDutchRoot: any ChordRoot = EnglishDutchRoot()
-
         var inputText = """
               C                            F   Gsus4
         I get up, and nothing gets me down.
@@ -238,7 +186,7 @@ struct SongChordsTests {
         
         """
         
-        var chordProReverseParser = ChordProReverseParser(rootSystem: englishDutchRoot)
+        var chordProReverseParser = ChordProReverseParser(rootSys: .common)
         let _ = chordProReverseParser.parse(input: inputText)
         #expect(chordProReverseParser.toString() == expectedResult)
         
@@ -253,7 +201,7 @@ struct SongChordsTests {
         
         """
         
-        chordProReverseParser = ChordProReverseParser(rootSystem: englishDutchRoot)
+        chordProReverseParser = ChordProReverseParser(rootSys: .common)
         let _ = chordProReverseParser.parse(input: inputText)
         #expect(chordProReverseParser.toString() == expectedResult)
 
@@ -275,7 +223,7 @@ struct SongChordsTests {
         You've g[C]ot to roll with the punches to get to what'[F]s real [Gsus4]
         
         """
-        chordProReverseParser = ChordProReverseParser(rootSystem: englishDutchRoot)
+        chordProReverseParser = ChordProReverseParser(rootSys: .common)
         let _ = chordProReverseParser.parse(input: inputText)
         #expect(chordProReverseParser.toString() == expectedResult)
 
@@ -292,7 +240,7 @@ struct SongChordsTests {
         (Keyboard Solo)
         
         """
-        chordProReverseParser = ChordProReverseParser(rootSystem: englishDutchRoot)
+        chordProReverseParser = ChordProReverseParser(rootSys: .common)
         let _ = chordProReverseParser.parse(input: inputText)
         #expect(chordProReverseParser.toString() == expectedResult)
 
@@ -309,7 +257,7 @@ struct SongChordsTests {
         [C#m]
         
         """
-        chordProReverseParser = ChordProReverseParser(rootSystem: englishDutchRoot)
+        chordProReverseParser = ChordProReverseParser(rootSys: .common)
         let _ = chordProReverseParser.parse(input: inputText)
         #expect(chordProReverseParser.toString() == expectedResult)
 
@@ -332,8 +280,75 @@ struct SongChordsTests {
         [Cm7]More than a feeling, [F]that's the power of love
         
         """
-        chordProReverseParser = ChordProReverseParser(rootSystem: englishDutchRoot)
+        chordProReverseParser = ChordProReverseParser(rootSys: .common)
         let _ = chordProReverseParser.parse(input: inputText)
         #expect(chordProReverseParser.toString() == expectedResult)
+    }
+//}
+//
+//@Suite("ChordII.fromString Parsing Tests")
+//struct ChordIIParsingTests {
+
+    func assertChord(_ input: String, german: Bool = false, expected: String) {
+        let chord = try? ChordII.parse(input, preferedGermanParsing: german, strict: true)
+        let (rendered, _) = chord?.toString(rootSys: german ? .german : .common, transposeParm: nil) ?? ("", nil)
+        #expect(rendered == expected, "Input: \(input) -> got: \(rendered)), expected: \(expected)")
+        print("\(rendered == expected), Input: \(input) -> got: \(rendered)), expected: \(expected)")
+    }
+
+    @Test("Basic english notes")
+    func englishBasics() {
+        assertChord("C", expected: "C")
+        assertChord("C#", expected: "C#")
+        assertChord("Db", expected: "Db")
+        assertChord("F##", expected: "F##")
+        assertChord("Gbb", expected: "Gbb")
+    }
+
+    @Test("German H/B basics")
+    func germanBasics() {
+        assertChord("H", german: true, expected: "H")
+        assertChord("B", german: true, expected: "B")
+        assertChord("Ces", german: true, expected: "Ces")
+        assertChord("Cis", german: true, expected: "Cis")
+        assertChord("As", german: true, expected: "As")
+        assertChord("Ais", german: true, expected: "Ais")
+    }
+
+    @Test("Chord qualities and extensions")
+    func qualitiesAndExtensions() {
+        assertChord("Cm", expected: "Cm")
+        assertChord("Cmin", expected: "Cmin")
+        assertChord("Cdim", expected: "Cdim")
+        assertChord("Caug", expected: "Caug")
+        assertChord("Cmaj7", expected: "Cmaj7")
+        assertChord("C#m7", expected: "C#m7")
+        assertChord("Bbmin7", expected: "Bbmin7")
+        assertChord("F#maj7", expected: "F#maj7")
+    }
+
+    @Test("sus/add/power")
+    func susAddPower() {
+        assertChord("Asus2", expected: "Asus2")
+        assertChord("Dsus4", expected: "Dsus4")
+        assertChord("Bbadd9", expected: "Bbadd9")
+        assertChord("Gadd11", expected: "Gadd11")
+        assertChord("C5", expected: "C5")
+    }
+
+    @Test("Slash bass")
+    func slashBass() {
+        assertChord("C/E", expected: "C/E")
+        assertChord("F#maj7/A", expected: "F#maj7/A")
+        assertChord("Bbmin7/D", expected: "Bbmin7/D")
+        assertChord("Gsus4/B", expected: "Gsus4/B")
+    }
+
+    @Test("Mixed spellings and german accidentals with slash")
+    func mixed() {
+        assertChord("Gessus4", expected: "Gessus4")
+        assertChord("Gessus4/Des", expected: "Gessus4/Des")
+        assertChord("Hmaj7/F#", german: true, expected: "Hmaj7/F#")
+        assertChord("Bdim/F", german: true, expected: "Bdim/F")
     }
 }

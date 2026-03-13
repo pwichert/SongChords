@@ -425,9 +425,9 @@ internal struct SongListViewX: View {
         #endif
         
         if let cb, !cb.isEmpty {
-            let root: ChordRoot = userSettings.isGermanNotation ? EnglishGermanRoot() : EnglishDutchRoot()
+            let rootSys: RootSys = userSettings.isGermanNotation ? .german : .common
             
-            let chordProReverseParser = ChordProReverseParser(rootSystem: root)
+            let chordProReverseParser = ChordProReverseParser(rootSys: rootSys)
             chordProReverseParser.parse(input: cb)
             let txt = chordProReverseParser.toString()
             

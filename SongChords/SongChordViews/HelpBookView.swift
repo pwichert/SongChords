@@ -9,7 +9,6 @@ import SwiftUI
 
 struct HelpBookView: View {
     @State private var loader: HelpBookLoader
-    @State private var scrollPosition = ScrollPosition(edge: .top)
     @State private var helpColumns: NavigationSplitViewVisibility = .all
     let vers: String
     
@@ -44,16 +43,21 @@ struct HelpBookView: View {
             if let current = loader.currentID, let chapter = loader.chapters.first(where: { $0.id == current }) {
                 let nodes = MarkdownParser.parse(loader.loadMarkdown(chapter))
                 
+                // ScrollView truncated den Text in iOS manchmal. Form nicht. ???
+                #if os(macOS)
                 ScrollView {
                     MarkdownView(nodes: nodes)
                         .padding()
-                }
+                }.id(current)   // scroll top
                 .navigationTitle(chapter.title)
-                #if os(iOS)
+                #else
+                Form {
+                    MarkdownView(nodes: nodes)
+                }.id(current)   // scroll top
+                .scrollContentBackground(.hidden)
+                .navigationTitle(chapter.title)
                 .navigationBarTitleDisplayMode(.large)
                 #endif
-                .onChange(of: current) { scrollPosition = ScrollPosition(edge: .top) }
-                .scrollPosition($scrollPosition)
             } else {
                 ContentUnavailableView("Select a topic", systemImage: "book")
             }

@@ -15,21 +15,14 @@ struct OptionsContentView<Content: View>: View {
     }
     
     var body: some View {
-        #if os(macOS)
-        ScrollView {
-            Form {
-                content
-            }
-            .frame(width: 400, height: 300)     // sonst -LayoutIfNeeded-Fehler
-            .padding()
-        }
-        #else
         Form {
             content
         }
+        #if os(macOS)
+        .formStyle(.grouped)
+        .frame(width: 400, height: 300)     // sonst -LayoutIfNeeded-Fehler
         #endif
     }
-
 }
 
 struct OptionsView: View {
@@ -40,6 +33,7 @@ struct OptionsView: View {
     @State private var txtSize: Double = 0
     @State private var headerSize: Double = 0
     @State private var isGermanNotation: Bool = false
+    @State private var transposeKey: Bool = false
     @State private var textFollowsChords: Bool = false
     @State private var hideChords: Bool = false
     @State private var displayMode: DisplayMode = .automatic
@@ -52,22 +46,13 @@ struct OptionsView: View {
                 Text("dark").tag(DisplayMode.dark)
                 Text("system").tag(DisplayMode.automatic)
             }.pickerStyle(.segmented)
-            #if os(macOS)
-                .padding(.bottom, 4)
-            #endif
             
             Section(footer: Text("If you are a singer and don't need chords. This is global for all songs.")
-                #if os(macOS)
-                .font(.footnote).padding(.bottom, 4)
-                #endif
             ){
                 Toggle("Hide Chords", isOn: $hideChords)
             }
 
             Section(footer: Text("The text is always positioned below the chord.")
-                #if os(macOS)
-                .font(.footnote).padding(.bottom, 4)
-                #endif
             ){
                 Toggle("Text follows Chords", isOn: $textFollowsChords).disabled(hideChords)
             }
@@ -75,10 +60,12 @@ struct OptionsView: View {
             Section {
                 Toggle("German Notation", isOn: $isGermanNotation)
             }
-            #if os(macOS)
-                .padding(.bottom, 4)
-            #endif
             
+            Section(footer: Text("Transpose according to the key signature or simply along the chromatic scale.")
+            ){
+                Toggle("Transpose Key", isOn: $transposeKey)
+            }
+
             HStack {
                 #if os(iOS)
                 Text("Headersize [\(Int(headerSize))]")
@@ -96,9 +83,6 @@ struct OptionsView: View {
                     Text("Headersize [\(Int(headerSize))]")
                 }
             }
-            #if os(macOS)
-                .padding(.bottom, 4)
-            #endif
 
             HStack {
                 #if os(iOS)
@@ -117,9 +101,6 @@ struct OptionsView: View {
                     Text("Chordsize [\(Int(chordSize))]")
                 }
             }
-            #if os(macOS)
-                .padding(.bottom, 4)
-            #endif
 
             HStack {
                 #if os(iOS)
@@ -138,9 +119,6 @@ struct OptionsView: View {
                     Text("Textsize [\(Int(txtSize))]")
                 }
             }
-            #if os(macOS)
-                .padding(.bottom, 4)
-            #endif
 
             HStack {
                 #if os(iOS)
@@ -173,6 +151,7 @@ struct OptionsView: View {
                     if Int(txtSize) != Int(userSettings.txtsize) { userSettings.txtsize = txtSize }
                     if Int(headerSize) != Int(userSettings.headersize) { userSettings.headersize = headerSize }
                     if isGermanNotation != userSettings.isGermanNotation { userSettings.isGermanNotation = isGermanNotation }
+                    if transposeKey != userSettings.transposeKey { userSettings.transposeKey = transposeKey }
                     if hideChords != userSettings.hidechords { userSettings.hidechords = hideChords }
                     if textFollowsChords != userSettings.textfollowschords { userSettings.textfollowschords = textFollowsChords }
                     if Int(lineSpacing) != Int(userSettings.linespacing) { userSettings.linespacing = lineSpacing }
@@ -192,6 +171,7 @@ struct OptionsView: View {
             txtSize = userSettings.txtsize
             headerSize = userSettings.headersize
             isGermanNotation = userSettings.isGermanNotation
+            transposeKey = userSettings.transposeKey
             hideChords = userSettings.hidechords
             textFollowsChords = userSettings.textfollowschords
             displayMode = userSettings.displayMode
@@ -228,9 +208,6 @@ struct PrintOptionsView: View {
                     Text("Headersize [\(Int(headerSize))]")
                 }
             }
-            #if os(macOS)
-                .padding(.bottom, 4)
-            #endif
 
             HStack {
                 #if os(iOS)
@@ -249,9 +226,6 @@ struct PrintOptionsView: View {
                     Text("Chordsize [\(Int(chordSize))]")
                 }
             }
-            #if os(macOS)
-                .padding(.bottom, 4)
-            #endif
 
             HStack {
                 #if os(iOS)
@@ -270,9 +244,6 @@ struct PrintOptionsView: View {
                     Text("Textsize [\(Int(txtSize))]")
                 }
             }
-            #if os(macOS)
-                .padding(.bottom, 4)
-            #endif
 
             HStack {
                 #if os(iOS)

@@ -7,10 +7,13 @@
 
 public class ChordProReverseParser {
     private(set) var chunks: [SongRenderChunk] = []
-    private var rootSystem: ChordRoot
+//    private var rootSystem: ChordRoot
+    private let rootSys: RootSys
     
-    public init(rootSystem: ChordRoot) {
-        self.rootSystem = rootSystem
+    public init(rootSys: RootSys) {
+//        self.rootSystem = rootSystem
+        self.rootSys = rootSys
+
     }
     
     public func toString() -> String {
@@ -100,8 +103,8 @@ public class ChordProReverseParser {
         
         for word in spl {
             // falls es Chords sind
-            if let chord = try? ParsedChord.parse(word.txt, rootSystem: &rootSystem, strict: true) {
-                chords.append(TextElement(txt: "[" + chord.name + "]", isChordcomment: false, fontOffset: Double(word.pos), background: false, chord: chord))
+            if let chord = try? ChordII.parse(word.txt, preferedGermanParsing: rootSys == .german, strict: true) {
+                chords.append(TextElement(txt: "[" + chord.toString() + "]", isChordcomment: false, fontOffset: Double(word.pos), background: false, chord: chord))
                 numChords += 1
             } else {
                 chords.append(TextElement(txt: word.txt, isChordcomment: false, fontOffset: Double(word.pos), background: false, chord: nil))

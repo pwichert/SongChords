@@ -28,5 +28,10 @@
     "id": "chords",
     "title": "Chord Diagrams",
     "file": "chord-diagrams.md"
+  },
+  {
+    "id": "transpose",
+    "title": "Transpose Chords",
+    "file": "transpose.md"
   }
 ]

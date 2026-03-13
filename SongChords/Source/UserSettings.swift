@@ -20,6 +20,7 @@ public struct UserSettingsSendable: Sendable {
 #endif
     
     let isGermanNotation: Bool
+    let transposeKey: Bool
     let hidechords: Bool
     let textfollowschords: Bool
     
@@ -65,6 +66,7 @@ public final class UserSettings {
     public func makeSendable() -> UserSettingsSendable {
         return .init(
             isGermanNotation: isGermanNotation,
+            transposeKey: transposeKey,
             hidechords: hidechords,
             textfollowschords: textfollowschords,
             headersize: headersize,
@@ -92,6 +94,9 @@ public final class UserSettings {
            
     var isGermanNotation: Bool = UserDefaults.standard.bool(forKey: "set_isGermanNotation")
     { didSet { UserDefaults.standard.set(isGermanNotation, forKey: "set_isGermanNotation") }}
+
+    var transposeKey: Bool = UserDefaults.standard.bool(forKey: "set_transposeKey")
+    { didSet { UserDefaults.standard.set(transposeKey, forKey: "set_transposeKey") }}
 
     var hidechords: Bool = UserDefaults.standard.bool(forKey: "set_hidechords")
     { didSet { UserDefaults.standard.set(hidechords, forKey: "set_hidechords") }}

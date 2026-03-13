@@ -33,20 +33,20 @@ struct SongEditView: View {
             TextField("Title", text: $title)
                 .focused($focusedField, equals: .songTitle)
                 .autocorrectionDisabled()
-            #if os(macOS)
-                .padding(.bottom, 4)
-            #endif
+//            #if os(macOS)
+//                .padding(.bottom, 4)
+//            #endif
             
             Section(footer: Text("Without lyrics, you could get a more compact overview of the chords.")
-                #if os(macOS)
-                .font(.footnote).padding(.bottom, 4)
-                #endif
+//                #if os(macOS)
+//                .font(.footnote).padding(.bottom, 4)
+//                #endif
             ){
                 Toggle("Show Text", isOn: $showText)
             }
-            #if os(macOS)
-                .padding(.bottom, 4)
-            #endif
+//            #if os(macOS)
+//                .padding(.bottom, 4)
+//            #endif
                         
             HStack {
                 #if os(iOS)
@@ -65,16 +65,16 @@ struct SongEditView: View {
                     Text("Transpose [\(Int(transpose))]")
                 }
             }
-            #if os(macOS)
-                .padding(.bottom, 4)
-            #endif
+//            #if os(macOS)
+//                .padding(.bottom, 4)
+//            #endif
 
-            Button(action: { showSrcEditor.toggle() }) {
+            Button(role: .confirm, action: { showSrcEditor.toggle() }) {
                 Label("Edit ChordPro Text", systemImage: "doc")
             }.help("Edit ChordPro Text")
-            #if os(macOS)
-            .padding(.bottom, 4)
-            #endif
+//            #if os(macOS)
+//            .padding(.bottom, 4)
+//            #endif
         }
         .navigationTitle((song == nil ? "" :  song?.title) ?? "")
         .toolbar {

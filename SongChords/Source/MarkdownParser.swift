@@ -186,6 +186,9 @@ struct MarkdownView: View {
                 }
             }
         }
+//        #if os(iOS)
+//        .padding(.horizontal)   // bis jetzt einziges Mittel in iOS, um truncating durch  "..." zu verhindern, wenn in ScrolView
+//        #endif
     }
     
     func spanLine(_ spans: [MDSpan]) -> Text {
