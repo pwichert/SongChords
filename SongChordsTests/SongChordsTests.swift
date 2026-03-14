@@ -290,7 +290,7 @@ struct SongChordsTests {
 //struct ChordIIParsingTests {
 
     func assertChord(_ input: String, german: Bool = false, expected: String) {
-        let chord = try? ChordII.parse(input, preferedGermanParsing: german, strict: true)
+        let chord = try? Chord.parse(input, preferedGermanParsing: german, strict: true)
         let (rendered, _) = chord?.toString(rootSys: german ? .german : .common, transposeParm: nil) ?? ("", nil)
         #expect(rendered == expected, "Input: \(input) -> got: \(rendered)), expected: \(expected)")
         print("\(rendered == expected), Input: \(input) -> got: \(rendered)), expected: \(expected)")

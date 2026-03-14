@@ -135,236 +135,6 @@ import SwiftUI
 //    public let sharps = [ ["c", "his"], ["cis", "c#"], ["d"], ["dis", "d#"], ["e"], ["f", "eis"], ["fis", "f#"], ["g"], ["gis", "g#"], ["a"], ["ais", "a#"], ["h"] ]
 //    public let flats = [ ["c"], ["des", "db"], ["d"], ["es", "ees", "eb"], ["e", "fes"], ["f"], ["ges", "gb"], ["g"], ["as", "aes", "ab"], ["a"], ["b", "bb"], ["h", "cb", "ces"] ]
 //}
-//
-///// ChordRoot Arrays "sharps" und "flats"
-/////
-///// Jedes SubArray ist eine Sequenz von Synonymen für die jeweilige Tonstufe. Der erste Eintrag erscheint bei der Darstellung für dieses Rootsystem,
-///// das gesamte SubArray wird als Suchmuster für die Tonstufe verwendet.
-/////
-///// Darstellung nach Transponieren: positiv verwendet das "sharps"-Array, negativ das "flats"-Array
-/////
-///// International/Common
-///// EnglishDutchRoot: steht für das englische System (A, A#, B, Bb ...) mit dutch Erweiterung (Bis, Bes, B ...).
-/////
-///// Deutsch
-///// EnglichGermanRoot: steht für das deutsche System (His, B, H ...) mit english Erweiterung (A, A#, B, Bb ...).
-/////
-//
-//
-//nonisolated
-//public struct ParsedChord: Identifiable, Equatable, Sendable {
-//    public let id = UUID()
-//    
-//    // ursprünglicher Akkordtext
-//    public let name: String
-//        
-//    // Akkordgrundtonwert: Tonstufe und sharps/flats-Array
-//    private let grundton: Int?
-//    private let isFlat: Bool
-//        
-//    private let quality: ChordQuality?
-//    private let ext: ChordExt?
-//    
-//    // Akkordbasstonwert: Tonstufe und sharps/flats-Array
-//    private let basston: Int?
-//    private let isBassFlat: Bool
-//    
-////    func getFrets() -> [ChordFretVariant] {
-////        guard let grundton else { return [] }
-////        
-////        var res: [ChordFretVariant] = []
-////        res.append(contentsOf: ChordGenerator.nonBarre(grundton: grundton, quality: quality, ext: ext, basston: basston))
-////        res.append(contentsOf: ChordGenerator.barre(grundton: grundton, quality: quality, ext: ext, basston: basston))
-////        res.append(contentsOf: ChordGenerator.movableChord(grundton: grundton, quality: quality, ext: ext, basston: basston))
-////        return res.sorted { $0.base < $1.base }
-////    }
-//        
-//    public static func parse(_ chordString: String, rootSystem: inout ChordRoot, strict: Bool) throws -> ParsedChord? {
-//        if chordString.isEmpty { return nil }
-//        
-//        // Grundton
-//        let str = chordString.lowercased()
-//        let gtIndex: Int?
-//        let grundtonLen: Int
-//        let isFlat: Bool
-//        (gtIndex, grundtonLen, isFlat) = findTone(tone: str, rootSystem: &rootSystem)
-//        
-//        if gtIndex == nil { return nil }
-//        
-//        var index = chordString.index(chordString.startIndex, offsetBy: grundtonLen)
-//        
-//        var quality: ChordQuality?
-//        if index < chordString.endIndex && !String(chordString[index...]).lowercased().starts(with: "maj") {
-//            quality = ChordQuality.allCases.first(where: { String(chordString[index...]).lowercased().starts(with: $0.rawValue) })
-//            if let quality = quality {
-//                index = chordString.index(index, offsetBy: quality.rawValue.count)
-//            }
-//        }
-//        
-//        try Task.checkCancellation()
-//        
-//        var ext: ChordExt?
-//        if index < chordString.endIndex {
-//            ext = ChordExt.allCases.first(where: { String(chordString[index...]).lowercased().starts(with: $0.rawValue) })
-//            if let ext = ext {
-//                index = chordString.index(index, offsetBy: ext.rawValue.count)
-//            }
-//        }
-//        
-//        try Task.checkCancellation()
-//        
-//        var bsIndex: Int?
-//        var bassFlat: Bool = false
-//        if index < chordString.endIndex && chordString[index] == "/" {
-//            index = chordString.index(index, offsetBy: 1)
-//            
-//            if index < chordString.endIndex {
-//                // Basston extrahieren
-//                let bassLen: Int
-//                let str = chordString[index...].lowercased()
-//                (bsIndex, bassLen, bassFlat) = findTone(tone: str, rootSystem: &rootSystem)
-//                index = chordString.index(index, offsetBy: bassLen)
-//            }
-//            if bsIndex == nil && strict { return nil }
-//        }
-//        
-//        if index < chordString.endIndex && strict {
-//            return nil
-//        }
-//        
-//        return ParsedChord(name: chordString, grundton: gtIndex, isFlat: isFlat, quality: quality, ext: ext, basston: bsIndex, isBassFlat: bassFlat)
-//    }
-//    
-//    /// Sucht einen Ton im Notationssystem, Ergebnis ist der Index
-//    /// Dabei wird vermerkt, ob der Ton aus der sharp- oder flat-Liste ist.
-//    /// Es wird der längste passende String gewählt (siehe shortTone: "as" und "asus" bedenken)
-//    private static func findTone(tone: String, rootSystem: inout ChordRoot) -> (Int?, Int, isFlat: Bool) {
-//        var idx = 0
-//        var sharpIdx: Int?
-//        var sharpLen = 0
-//        var shortTone = tone.replacingOccurrences(of: "sus", with: "X")
-//        shortTone = shortTone.replacingOccurrences(of: "add", with: "X")
-//        shortTone = shortTone.replacingOccurrences(of: "maj", with: "X")
-//        
-//        for rootElem in rootSystem.sharps {
-//            for enharmonic in rootElem {
-//                if shortTone.starts(with: enharmonic) && enharmonic.count > sharpLen {
-//                    sharpLen = enharmonic.count
-//                    sharpIdx = idx
-//                }
-//            }
-//            idx += 1
-//        }
-//        
-//        var flatIdx: Int?
-//        var flatLen = 0
-//        idx = 0
-//        for rootElem in rootSystem.flats {
-//            for enharmonic in rootElem {
-//                if shortTone.starts(with: enharmonic) && enharmonic.count > flatLen {
-//                    flatLen = enharmonic.count
-//                    flatIdx = idx
-//                }
-//            }
-//            idx += 1
-//        }
-//        
-//        return flatLen > sharpLen ? (flatIdx, flatLen, true) : (sharpIdx, sharpLen, false)
-//    }
-//    
-//    public func toString(transpose: Int, rootSystem: inout ChordRoot) -> (String, ParsedChord?) {
-//        if transpose != 0 {
-//            let tChord = transposeChord(by: transpose, rootSystem: &rootSystem)
-//            
-//            if let tChord = tChord {
-//                return (tChord.toString_(transpose: transpose, rootSystem: &rootSystem), tChord)
-//            }
-//            
-//            return ("?", nil)
-//        }
-//        
-//        return (toString_(transpose: transpose, rootSystem: &rootSystem), nil)
-//    }
-//    
-//    private func toString_(transpose: Int, rootSystem: inout ChordRoot) -> String {
-//        var res = ""
-//                
-//        if let grundton = grundton {
-//            if transpose < 0 || isFlat {
-//                res.append(rootSystem.flats[grundton].first!.capitalized)
-//            } else {
-//                res.append(rootSystem.sharps[grundton].first!.capitalized)
-//            }
-//        }
-//        
-//        if let quality = quality {
-//            res.append(quality.rawValue)
-//        }
-//        
-//        if let ext = ext {
-//            res.append(ext.rawValue)
-//        }
-//        
-//        if let basston = basston {
-//            if transpose < 0 || isBassFlat {
-//                res.append("/" + rootSystem.flats[basston].first!.capitalized)
-//            } else {
-//                res.append("/" + rootSystem.sharps[basston].first!.capitalized)
-//            }
-//        }
-//        
-//        return res
-//    }
-//    
-//    private func transposeChord(by halfSteps: Int, rootSystem: inout ChordRoot) -> ParsedChord? {
-//        let sharps = rootSystem.sharps
-//        let flats = rootSystem.flats
-//        
-//        if let grundton = grundton {
-//            let gTrx = transposeTone(tone: grundton, by: halfSteps)
-//            
-//            if let basston = basston {
-//                let bTrx = transposeTone(tone: basston, by: halfSteps)
-//                
-//                return ParsedChord(name: name, grundton: gTrx, isFlat: isFlat, quality: quality, ext: ext, basston: bTrx, isBassFlat: isBassFlat)
-//            }
-//            
-//            return ParsedChord(name: name, grundton: gTrx, isFlat: isFlat, quality: quality, ext: ext, basston: basston, isBassFlat: isBassFlat)
-//        }
-//        
-//        return nil
-//        
-//        func transposeTone(tone: Int, by halfSteps: Int) -> Int {
-//            let trx = halfSteps >= 0 ? sharps : flats
-//            let transposeVal = if halfSteps >= 0 {
-//                halfSteps % trx.count
-//            } else {
-//                -((-halfSteps) % trx.count)
-//            }
-//            
-//            return (tone + transposeVal + trx.count) % (trx.count)
-//        }
-//    }
-//    
-//    static func mergeArrays(_ seq1: [[String]], _ seq2: [[String]]) -> [[String]] {
-//        var merged: [[String]] = []
-//        
-//        for (seq1Group, seq2Group) in zip(seq1, seq2) {
-//            // Kombiniere die Subarrays, behalte die Reihenfolge und entferne Duplikate
-//            var combined = seq1Group
-//            for element in seq2Group {
-//                if !combined.contains(element) {
-//                    combined.append(element)
-//                }
-//            }
-//            merged.append(combined)
-//        }
-//        
-//        return merged
-//    }
-//}
-
-// ********************************   ChordII   *****************************************
 
 public struct ChordFretVariant: Hashable, Equatable, Sendable {
     let base: Int       // fretoffset
@@ -401,14 +171,14 @@ nonisolated
 enum ExtensionKind: Equatable, Sendable {
     case maj(Int)    // maj7, maj9, ...
     case add(Int)    // add9, add11, ...
-    case sus(Int)    // sus2, sus4
+    case sus(Int?)    // sus, sus2, sus4
     case flat(Int)   // b9
     case sharp(Int)  // #9
     case plain(Int)  // 7, 9, 11, 13
 }
 
 nonisolated
-public struct ChordII: Identifiable, Equatable, Sendable {
+public struct Chord: Identifiable, Equatable, Sendable {
     public let id = UUID()
 
     let note: Note          // Note
@@ -427,7 +197,7 @@ public struct ChordII: Identifiable, Equatable, Sendable {
                 switch ext {
                 case .maj(let n): return "maj\(n)"
                 case .add(let n): return "add\(n)"
-                case .sus(let n): return n > 0 ? "sus\(n)" : "sus"
+                case .sus(let n): return if let n { "sus\(n)" } else { "sus" }
                 case .flat(let n): return "b\(n)"
                 case .sharp(let n): return "#\(n)"
                 case .plain(let n): return "\(n)"
@@ -449,7 +219,7 @@ public struct ChordII: Identifiable, Equatable, Sendable {
     }
     
     // note und bass richten sich nach rootSys, zusätzlich Transponieren
-    public func toString(rootSys: RootSys, transposeParm: TransposeParm?) -> (String, ChordII?) {
+    public func toString(rootSys: RootSys, transposeParm: TransposeParm?) -> (String, Chord?) {
         if let transposeParm, transposeParm.semitones != 0 {
             let keySys = KeySystem()
             if let key = transposeParm.fromKey, transposeParm.transposeKey {
@@ -457,22 +227,22 @@ public struct ChordII: Identifiable, Equatable, Sendable {
                 
                 if let bass {
                     guard let bassNote = keySys.transpose(from: key, note: bass, by: transposeParm.semitones) else { return (toString(), self) }
-                    let trxChord = ChordII(note: baseNote, noteStr: baseNote.toString(rootSys: rootSys), noteExt: noteExt, mode: mode, modeStr: modeStr, bass: bassNote, bassStr: bassNote.toString(rootSys: rootSys), bassExt: bassExt, extensions: self.extensions)
+                    let trxChord = Chord(note: baseNote, noteStr: baseNote.toString(rootSys: rootSys), noteExt: noteExt, mode: mode, modeStr: modeStr, bass: bassNote, bassStr: bassNote.toString(rootSys: rootSys), bassExt: bassExt, extensions: self.extensions)
                     return (trxChord.toString(), trxChord)
                 }
                 
-                let trxChord = ChordII(note: baseNote, noteStr: baseNote.toString(rootSys: rootSys), noteExt: noteExt, mode: mode, modeStr: modeStr, bass: nil, bassStr: nil, bassExt: nil, extensions: self.extensions)
+                let trxChord = Chord(note: baseNote, noteStr: baseNote.toString(rootSys: rootSys), noteExt: noteExt, mode: mode, modeStr: modeStr, bass: nil, bassStr: nil, bassExt: nil, extensions: self.extensions)
                 return (trxChord.toString(), trxChord)
             } else {
                 let baseNote = keySys.transpose(note: note, by: transposeParm.semitones)
                 
                 if let bass {
                     let bassNote = keySys.transpose(note: bass, by: transposeParm.semitones)
-                    let trxChord = ChordII(note: baseNote, noteStr: baseNote.toString(rootSys: rootSys), noteExt: noteExt, mode: mode, modeStr: modeStr, bass: bassNote, bassStr: bassNote.toString(rootSys: rootSys), bassExt: bassExt, extensions: self.extensions)
+                    let trxChord = Chord(note: baseNote, noteStr: baseNote.toString(rootSys: rootSys), noteExt: noteExt, mode: mode, modeStr: modeStr, bass: bassNote, bassStr: bassNote.toString(rootSys: rootSys), bassExt: bassExt, extensions: self.extensions)
                     return (trxChord.toString(), trxChord)
                 }
                 
-                let trxChord = ChordII(note: baseNote, noteStr: baseNote.toString(rootSys: rootSys), noteExt: noteExt, mode: mode, modeStr: modeStr, bass: nil, bassStr: nil, bassExt: nil, extensions: self.extensions)
+                let trxChord = Chord(note: baseNote, noteStr: baseNote.toString(rootSys: rootSys), noteExt: noteExt, mode: mode, modeStr: modeStr, bass: nil, bassStr: nil, bassExt: nil, extensions: self.extensions)
                 return (trxChord.toString(), trxChord)
             }
         }
@@ -481,10 +251,10 @@ public struct ChordII: Identifiable, Equatable, Sendable {
         return (chordStr, self)
     }
     
-    public static func parse(_ input: String, preferedGermanParsing: Bool, strict: Bool) throws -> ChordII? {
+    public static func parse(_ input: String, preferedGermanParsing: Bool, strict: Bool) throws -> Chord? {
         let parts = splitAtFirstSlash(input)
         
-        if let (parsedNote, remainder) = ChordII.parseWithRemainder(from: parts.left, preferedGermanParsing: preferedGermanParsing) {
+        if let (parsedNote, remainder) = Chord.parseWithRemainder(from: parts.left, preferedGermanParsing: preferedGermanParsing) {
             try Task.checkCancellation()
 
             // Erkannten Notenstring als original-String merken. Dazu Remainder am Ende entfernen
@@ -504,12 +274,12 @@ public struct ChordII: Identifiable, Equatable, Sendable {
             let rest = String(remainder.dropFirst(consumed))
             
             // Parse structured extensions from rest (e.g., maj7, add9, sus4, 7, 9, 11, 13). Allow multiple chained.
-            let (exts, leftover) = ChordII.parseExtensions(from: rest)
+            let (exts, leftover) = Chord.parseExtensions(from: rest)
             
             if strict && !leftover.isEmpty { return nil }
 
             // BassNote erkennen und in bassStr merken
-            if !parts.right.isEmpty, let (bassNote, rest2) = ChordII.parseWithRemainder(from: parts.right, preferedGermanParsing: preferedGermanParsing) {
+            if !parts.right.isEmpty, let (bassNote, rest2) = Chord.parseWithRemainder(from: parts.right, preferedGermanParsing: preferedGermanParsing) {
                 try Task.checkCancellation()
 
                 let n = min(parts.right.count, rest2.count)
@@ -517,11 +287,11 @@ public struct ChordII: Identifiable, Equatable, Sendable {
                 let bassStr = String(parts.right[..<endIndex])
                 
                 if strict && !rest2.isEmpty { return nil }
-                return ChordII(note: parsedNote, noteStr: noteStr, noteExt: rest, mode: mode, modeStr: modeStr, bass: bassNote, bassStr: bassStr, bassExt: rest2, extensions: exts)
+                return Chord(note: parsedNote, noteStr: noteStr, noteExt: rest, mode: mode, modeStr: modeStr, bass: bassNote, bassStr: bassStr, bassExt: rest2, extensions: exts)
             }
             
             // keine BassNote
-            return ChordII(note: parsedNote, noteStr: noteStr, noteExt: rest, mode: mode, modeStr: modeStr, bass: nil, bassStr: nil, bassExt: nil, extensions: exts)
+            return Chord(note: parsedNote, noteStr: noteStr, noteExt: rest, mode: mode, modeStr: modeStr, bass: nil, bassStr: nil, bassExt: nil, extensions: exts)
         }
         
         // nix erkannt
@@ -566,7 +336,7 @@ public struct ChordII: Identifiable, Equatable, Sendable {
             let start = idx
             if consumePrefix("maj"), let n = readNumber() { exts.append(.maj(n)); continue }
             if consumePrefix("add"), let n = readNumber() { exts.append(.add(n)); continue }
-            if consumePrefix("sus") { exts.append(.sus(readNumber() ?? 0)); continue }
+            if consumePrefix("sus") { exts.append(.sus(readNumber())); continue }
             if consumePrefix("b"), let n = readNumber() { exts.append(.flat(n)); continue }
             if consumePrefix("#"), let n = readNumber() { exts.append(.sharp(n)); continue }
             if consumePrefix("^"), let n = readNumber() { exts.append(.maj(n)); continue }
@@ -576,6 +346,7 @@ public struct ChordII: Identifiable, Equatable, Sendable {
             idx = start
             break
         }
+        
         let leftover = String(s[idx...])
         return (exts, leftover)
     }

@@ -60,7 +60,7 @@ public struct TextElement: Sendable, Identifiable, Equatable {
     let fontOffset: Double
     let background: Bool
     
-    let chord: ChordII?     // falls dieser Text ein Chord ist, für diagrammerzeugung merken
+    let chord: Chord?     // falls dieser Text ein Chord ist, für diagrammerzeugung merken
     
     func toString() -> String {
         return ("[\(Int(fontOffset))]\(txt)")
@@ -280,12 +280,12 @@ struct ChordCacheKey: Sendable, Hashable {
 }
 
 actor ParsedChordCache {
-    private var cache: [ChordCacheKey: ChordII?] = [:]
+    private var cache: [ChordCacheKey: Chord?] = [:]
 
     private var hits: Int = 0
     private var misses: Int = 0
     
-    func get(_ key: ChordCacheKey) -> CacheResult<ChordII> {
+    func get(_ key: ChordCacheKey) -> CacheResult<Chord> {
         switch cache[key] {
         // kein Wert vorhanden
         case .none:
@@ -301,7 +301,7 @@ actor ParsedChordCache {
         }
     }
 
-    func set(_ key: ChordCacheKey, value: ChordII?) {
+    func set(_ key: ChordCacheKey, value: Chord?) {
         cache[key] = value
     }
 }
@@ -329,7 +329,6 @@ public class ChordProParser {
     private let showChords: Bool
     private let textFollowsChords: Bool
     
-//    private var rootSystem: ChordRoot
     private let rootSys: RootSys
     private let txtf: UIFont
     private let chordf: UIFont
@@ -344,7 +343,6 @@ public class ChordProParser {
         self.userSettings = userSettings
         self.songTranspose = songTranspose
         self.forPrinting = forPrinting
-//        self.rootSystem = userSettings.isGermanNotation ? EnglishGermanRoot() : EnglishDutchRoot()
         self.rootSys = userSettings.isGermanNotation ? .german : .common
         self.txtf = forPrinting ? userSettings.txtPDFUIFont : userSettings.txtUIFont
         self.chordf = forPrinting ? userSettings.chordPDFUIFont : userSettings.chordUIFont
@@ -415,11 +413,11 @@ public class ChordProParser {
         case .bracketEnclosed(let chord):
             // Cache fragen
             let key = ChordCacheKey(chord: chord, rootSys: rootSys, strict: true)
-            var p: ChordII?
+            var p: Chord?
             
             switch await ChordProParser.sharedChordCache.get(key) {
             case .miss:
-                let parsed = try ChordII.parse(chord, preferedGermanParsing: rootSys == .german, strict: true)
+                let parsed = try Chord.parse(chord, preferedGermanParsing: rootSys == .german, strict: true)
                 await ChordProParser.sharedChordCache.set(key, value: parsed)
                 p = parsed
 
@@ -431,10 +429,8 @@ public class ChordProParser {
                 let position = max(parserState.nextChordPosition, parserState.minNextChordPosition)
                 let transposeParm = TransposeParm(semitones: songTranspose + directiveManager.transpose, fromKey: currentKey, transposeKey: transposeKey)
 
-//                let (str, tchord) = pchord.toString(transpose: songTranspose + directiveManager.transpose, rootSystem: &rootSystem)
                 let (str, tchord) = pchord.toString(rootSys: rootSys, transposeParm: transposeParm)
                 let strLen = sizeOfString(string: str, font: chordf)
-//                parserState.chords.append(TextElement(txt: str, isChordcomment: false, fontOffset: position, background: true, chord: tchord ?? pchord))
                 parserState.chords.append(TextElement(txt: str, isChordcomment: false, fontOffset: position, background: true, chord: tchord ?? pchord))
 
                 // wenn Chords angezeigt werden, soll sich der Text danach richten
@@ -499,7 +495,7 @@ public class ChordProParser {
                 case .key:
                     // currentKey aktualisieren
                     if let key = directiveManager.getDirective(DirectiveType.key.rawValue) {
-                        if let parsed = try ChordII.parse(key, preferedGermanParsing: false, strict: true) {
+                        if let parsed = try Chord.parse(key, preferedGermanParsing: false, strict: true) {
                             currentKey = Key(note: parsed.note, mode: parsed.mode == .minor ? .minor : .major)
                         }
                     }
