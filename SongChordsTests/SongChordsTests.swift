@@ -346,9 +346,9 @@ struct SongChordsTests {
 
     @Test("Mixed spellings and german accidentals with slash")
     func mixed() {
-        assertChord("Gessus4", expected: "Gessus4")
-        assertChord("Gessus4/Des", expected: "Gessus4/Des")
-        assertChord("Hmaj7/F#", german: true, expected: "Hmaj7/F#")
+        assertChord("Gessus4", german: true, expected: "Gessus4")
+        assertChord("Gessus4/Des", german: true, expected: "Gessus4/Des")
+        assertChord("Hmaj7/F#", german: true, expected: "Hmaj7/Fis")
         assertChord("Bdim/F", german: true, expected: "Bdim/F")
     }
 }

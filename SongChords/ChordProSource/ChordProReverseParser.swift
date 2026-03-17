@@ -5,6 +5,8 @@
 //  Created by Peter Wichert on 13.11.24.
 //
 
+import Foundation
+
 public class ChordProReverseParser {
     private(set) var chunks: [SongRenderChunk] = []
 //    private var rootSystem: ChordRoot
@@ -117,6 +119,66 @@ public class ChordProReverseParser {
         
         if numChords > 0 && numChords > spl.count / 2 { return (chords, true) }
         return (txts, false)
+    }
+    
+    /// Verbesserte Version mit Gewichtung, als Idee für später
+    private func isChordlineII(line: String) -> (textElement: [TextElement], isChord: Bool) {
+        let spl = splitWords(line: line)
+
+        var chordElems: [TextElement] = []
+        var textElems: [TextElement] = []
+        var score: Double = 0.0
+
+        // Regex-Vorfilter, sehr tolerant
+        let chordishRegex = #"(?i)^\s*([A-GH](?:#|b|is|es)?)(?:m|maj|dim|aug)?(?:\d+|sus\\d+|add\\d+|b\\d+|#\\d+|\\^\\d+)*(?:/[A-GH](?:#|b|is|es)?)?\\s*$"#
+
+        for word in spl {
+            var raw = word.txt
+
+            // Token säubern: eckige Klammern/ChordComments am Rand entfernen
+            if raw.hasPrefix("[*"), raw.hasSuffix("]") {
+                raw = String(raw.dropFirst(2).dropLast(1))
+            } else if raw.hasPrefix("["), raw.hasSuffix("]") {
+                raw = String(raw.dropFirst(1).dropLast(1))
+            }
+            // Satzzeichen am Rand entfernen (nicht #/b)
+            raw = raw.trimmingCharacters(in: CharacterSet(charactersIn: ",.;:!?"))
+
+            let looksChordish = raw.range(of: chordishRegex, options: .regularExpression) != nil
+
+            if looksChordish, let chord = try? Chord.parse(raw, preferedGermanParsing: rootSys == .german, strict: true) {
+                // als Akkord zählen
+                chordElems.append(TextElement(txt: "[" + chord.toString() + "]",
+                                              isChordcomment: false,
+                                              fontOffset: Double(word.pos),
+                                              background: false,
+                                              chord: chord))
+                // Punkte vergeben
+                score += 1.0
+                if raw.contains("/") { score += 0.25 }
+                if raw.range(of: #"[0-9]"#, options: .regularExpression) != nil { score += 0.1 }
+            } else {
+                // als Text behandeln
+                chordElems.append(TextElement(txt: word.txt, isChordcomment: false, fontOffset: Double(word.pos), background: false, chord: nil))
+                // Leicht negativ werten
+                let cleaned = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+                if cleaned.isEmpty || cleaned.count <= 2 {
+                    score -= 0.05
+                } else {
+                    score -= 0.1
+                }
+            }
+
+            // Textliste immer füllen (wie zuvor)
+            textElems.append(TextElement(txt: word.txt, isChordcomment: false, fontOffset: Double(word.pos), background: false, chord: nil))
+        }
+
+        // Schwelle dynamisch: bei wenigen Tokens etwas toleranter
+        let threshold = max(0.5, Double(spl.count) * 0.15)
+        let isChord = score >= threshold
+
+        if isChord { return (chordElems, true) }
+        return (textElems, false)
     }
     
     private func splitWords(line: String) -> [(pos: Int, txt: String)] {
