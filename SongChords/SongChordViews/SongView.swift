@@ -46,6 +46,7 @@ internal struct SongViewX: View {
     @Environment(AudioPlayer.self) private var audioPlayer
 
     @State private var showAudioPlayer: Bool = false
+    @State private var hideAudioPlayer: Bool = false        // audioPlayer läuft weiter, aber nicht sichtbar
     @State private var showSongEditView: Bool = false
     @State private var showRemoveAllAnchors: Bool = false
     @State private var showFileExport: Bool = false
@@ -140,7 +141,7 @@ internal struct SongViewX: View {
             ToolbarItem(placement: .bottomBar) {
                 Button(action: {
                     withAnimation(.easeInOut(duration: 0.3)) {
-                        showAudioPlayer.toggle()
+                        if !showAudioPlayer { showAudioPlayer.toggle() } else { hideAudioPlayer.toggle() }
                     }}) { Label("Audio Player", systemImage: "music.note.list") }
             }
             #endif
@@ -162,7 +163,7 @@ internal struct SongViewX: View {
             ToolbarItem {
                 Button(action: {
                     withAnimation(.easeInOut(duration: 0.3)) {
-                        showAudioPlayer.toggle()
+                        if !showAudioPlayer { showAudioPlayer.toggle() } else { hideAudioPlayer.toggle() }
                     }}) { Label("Audio Player", systemImage: "music.note.list").help("Audio Player") }
             }
             #endif
@@ -179,6 +180,7 @@ internal struct SongViewX: View {
                         .stroke(Color.gray.opacity(0.5), lineWidth: 2)
                     )
                     .padding()
+                    .opacity(hideAudioPlayer ? 0 : 1)
                 }
             }, alignment: .bottom
         )
