@@ -374,24 +374,21 @@ final class AppleMusicEngine: AudioEngine {
         duration = item.duration ?? 0
         player.queue = [item]
         
-        let pl = player
         let pres = Task {
-            try await pl.prepareToPlay()
+            try await ApplicationMusicPlayer.shared.prepareToPlay()
         }
         let _ = try await pres.value
         loaded = true
     }
     
     func play() async throws {
-        let pl = player
-        
         // nach .play() ist der Zustand erst .pause, nicht .playing
         // aboutToPlay überbrückt bis .playing
         aboutToPlay = true
         
         let res = Task {
-            try await pl.play()
-            pl.state.playbackRate = self.rate
+            try await ApplicationMusicPlayer.shared.play()
+            ApplicationMusicPlayer.shared.state.playbackRate = self.rate
         }
         let _ = try await res.value
         

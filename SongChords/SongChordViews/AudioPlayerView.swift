@@ -104,7 +104,7 @@ struct AudioPlayerView: View {
                                 }
                             }
                         ).disabled(GlobalFunctions.isDisabled(song: song))
-                        Text("\(Int(round(songSpeed * 100.0)))%").font(.footnote).frame(width: 50).lineLimit(1)
+                        Text(verbatim: "\(Int(round(songSpeed * 100.0)))%").font(.footnote).frame(width: 50).lineLimit(1)
                     }.padding(.bottom, gridVerticalSpacing)
                     
                     if song.isLocalMP3() {
