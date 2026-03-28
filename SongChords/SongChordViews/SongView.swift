@@ -180,7 +180,7 @@ internal struct SongViewX: View {
                         .stroke(Color.gray.opacity(0.5), lineWidth: 2)
                     )
                     .padding()
-                    .opacity(hideAudioPlayer ? 0 : 1)
+                    .opacity(hideAudioPlayer ? 0 : 1).allowsHitTesting(!hideAudioPlayer)
                 }
             }, alignment: .bottom
         )
