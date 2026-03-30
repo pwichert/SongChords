@@ -176,14 +176,49 @@ struct SongChordsTests {
         #expect(res == expectedResult)
     }
     
+    @Test func testReverseIII() async throws {
+        let inputText = """
+        [Riff]
+        
+        | C   | C   | C   | D   |
+        
+        
+        """
+        let expectedResult = """
+        [Riff]
+
+        [*|] [C]   [*|] [C]   [*|] [C]   [*|] [D]   [*|]
+        
+        """
+        
+        let chordProReverseParser = ChordProReverseParser(rootSys: .common)
+        let _ = chordProReverseParser.parse(input: inputText)
+        #expect(chordProReverseParser.toString() == expectedResult)
+    }
+     
+    @Test func testReverseII() async throws {
+        //| G/B  Gm/Bb | A    Bbdim | A A7 D    |
+        //0123456789012345678901234567890123456789012345
+        //                                      [*|]
+        let inputText = """
+        | G/B  Gm/Bb | A    Bbdim | A A7 D    |
+        """
+        let expectedResult = """
+        [*|] [G/B]  [Gm/Bb] [*|] [A]    [Bbdim] [*|] [A] [A7] [D]    [*|]
+        """
+        
+        let chordProReverseParser = ChordProReverseParser(rootSys: .common)
+        let _ = chordProReverseParser.parse(input: inputText)
+        #expect(chordProReverseParser.toString() == expectedResult)
+    }
+    
     @Test func testReverse() async throws {
         var inputText = """
               C                            F   Gsus4
         I get up, and nothing gets me down.
         """
         var expectedResult = """
-        I get [C]up, and nothing gets me down.[F]    [Gsus4]
-        
+        I get [C]up, and nothing gets me down.[F]   [Gsus4]
         """
         
         var chordProReverseParser = ChordProReverseParser(rootSys: .common)
@@ -197,8 +232,7 @@ struct SongChordsTests {
         """
         expectedResult = """
         [Verse]
-        I get [C]up, and noth[*sdsd]ing gets me down.[F]    [Gsus4]
-        
+        I get [C]up, and noth[*sdsd]ing gets me down.[F]   [Gsus4]
         """
         
         chordProReverseParser = ChordProReverseParser(rootSys: .common)
@@ -221,7 +255,6 @@ struct SongChordsTests {
         You go[C]t it tough, I've seen the toughest [F]aroun[Gsus4]d.
         A[C]nd I know, baby, just how you [F]feel.[Gsus4]
         You've g[C]ot to roll with the punches to get to what'[F]s real [Gsus4]
-        
         """
         chordProReverseParser = ChordProReverseParser(rootSys: .common)
         let _ = chordProReverseParser.parse(input: inputText)
@@ -238,7 +271,6 @@ struct SongChordsTests {
         (Guitar Solo)
         
         (Keyboard Solo)
-        
         """
         chordProReverseParser = ChordProReverseParser(rootSys: .common)
         let _ = chordProReverseParser.parse(input: inputText)
@@ -255,7 +287,6 @@ struct SongChordsTests {
         (Guitar Solo)
         
         [C#m]
-        
         """
         chordProReverseParser = ChordProReverseParser(rootSys: .common)
         let _ = chordProReverseParser.parse(input: inputText)
@@ -278,7 +309,6 @@ struct SongChordsTests {
         [Cm7]Make a one man weep, make an[F]other man sing
         [Cm7]Change a heart to a l[F]ittle white dove
         [Cm7]More than a feeling, [F]that's the power of love
-        
         """
         chordProReverseParser = ChordProReverseParser(rootSys: .common)
         let _ = chordProReverseParser.parse(input: inputText)
