@@ -209,7 +209,22 @@ struct SongChordsTests {
         let _ = chordProReverseParser.parse(input: inputText)
         #expect(chordProReverseParser.toString() == expectedResult)
     }
-     
+    
+    @Test func testReverseV() async throws {
+        let inputText = """
+        Db/Ab Eb/Bb Ab7/Bb
+        [Verse 1]
+        """
+        let expectedResult = """
+        [Db/Ab] [Eb/Bb] [Ab7/Bb]
+        [Verse 1]
+        """
+        
+        let chordProReverseParser = ChordProReverseParser(rootSys: .common)
+        let _ = chordProReverseParser.parse(input: inputText)
+        #expect(chordProReverseParser.toString() == expectedResult)
+    }
+    
     @Test func testReverseII() async throws {
         //| G/B  Gm/Bb | A    Bbdim | A A7 D    |
         //0123456789012345678901234567890123456789012345

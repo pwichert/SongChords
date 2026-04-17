@@ -60,9 +60,11 @@ public final class ChordProReverseParser {
             if chordInfo.isChordLine {
                 // Try to pair with next line if it's not a chord line and not empty
                 if i + 1 < lines.count {
-                    let next = trimmingTrailing(lines[i + 1])
+                    let n = lines[i + 1]
+                    let nextTrimmed = n.trimmingCharacters(in: .whitespaces)
+                    let next = trimmingTrailing(n)
                     let nextInfo = analyze(line: next)
-                    if !nextInfo.isChordLine && !nextInfo.tokens.isEmpty {
+                    if !nextInfo.isChordLine && !nextInfo.tokens.isEmpty && !(nextTrimmed.hasPrefix("[") && nextTrimmed.hasSuffix("]")) {
                         // Chords over text: merge into one ChordPro line
                         let merged = mergeChord(tokens: chordInfo.tokens, text: next)
                         outputLines.append(merged)
