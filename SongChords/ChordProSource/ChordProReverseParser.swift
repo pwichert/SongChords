@@ -5,6 +5,8 @@
 //  Created by Peter Wichert on 13.11.24.
 //
 
+import Foundation
+
 public final class ChordProReverseParser {
     private let rootSys: RootSys
     private var outputLines: [String] = []
@@ -21,13 +23,23 @@ public final class ChordProReverseParser {
     // - Chord-only lines (no following text) are emitted as a single line with inline chords at offsets.
     // - Text-only lines are passed through.
     // - Empty lines are preserved.
-    public func parse(input: String) {
+    public func parse(inp: String) {
         outputLines.removeAll(keepingCapacity: true)
 
+        // alle Arten von Whitespace cleanen
+        let inp1 = inp.unicodeScalars.map {
+            CharacterSet.whitespaces.contains($0) ? " " : String($0)
+        }.joined()
+        
+        let input = inp1.filter { ch in
+            // Remove control and format characters, but not \n
+            !(ch.isControlCharacter && ch != "\n" || ch.isFormatCharacter || ch.isNonBreakingSpace)
+        }
+        
         // Split lines while preserving empty lines
         var lines: [String] = []
         input.enumerateLines { line, _ in
-            lines.append(line.replacingOccurrences(of: "\r", with: ""))
+            lines.append(line)
         }
         
         if input.hasSuffix("\n") && (lines.isEmpty || lines.last != "") {
