@@ -23,26 +23,25 @@ public final class ChordProReverseParser {
     // - Chord-only lines (no following text) are emitted as a single line with inline chords at offsets.
     // - Text-only lines are passed through.
     // - Empty lines are preserved.
-    public func parse(inp: String) {
+    public func parse(input: String) {
         outputLines.removeAll(keepingCapacity: true)
 
-        // alle Arten von Whitespace cleanen
-        let inp1 = inp.unicodeScalars.map {
-            CharacterSet.whitespaces.contains($0) ? " " : String($0)
-        }.joined()
+        let normalized = input.replacingOccurrences(of: "\r\n", with: "\n")
+                              .replacingOccurrences(of: "\r", with: "\n")
         
-        let input = inp1.filter { ch in
-            // Remove control and format characters, but not \n
-            !(ch.isControlCharacter && ch != "\n" || ch.isFormatCharacter || ch.isNonBreakingSpace)
-        }
+        let inp = String(normalized.unicodeScalars.filter { scalar in
+            let category = scalar.properties.generalCategory
+            return scalar == "\n" || !(category == .control || category == .format)
+        })
+        .replacingOccurrences(of: "\u{00A0}", with: " ") // NBSP → normales Leerzeichen
         
         // Split lines while preserving empty lines
         var lines: [String] = []
-        input.enumerateLines { line, _ in
+        inp.enumerateLines { line, _ in
             lines.append(line)
         }
         
-        if input.hasSuffix("\n") && (lines.isEmpty || lines.last != "") {
+        if inp.hasSuffix("\n") && (lines.isEmpty || lines.last != "") {
             // enumerateLines doesn't add a trailing empty line if input ends with \n
             // add empty line explicitly
             lines.append("")
