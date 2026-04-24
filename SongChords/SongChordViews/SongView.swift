@@ -537,10 +537,10 @@ struct SectionHeaderView: View {
         .animation(.easeInOut(duration: 0.4), value: isActive)
         .cornerRadius(5)
         .contextMenu {
-            if let modelContext, let globals, autoScroll, let time = TransportClock.shared.time {
+            if let modelContext, let globals, autoScroll {
                 Button("Set section timestamp") {
                     do {
-                        saveAnchor(songPosition: time)
+                        saveAnchor(songPosition: TransportClock.shared.time ?? 0)
                         try modelContext.save()
                     } catch (let error) {
                         globals.setSongChordsError(error: error)
