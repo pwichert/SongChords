@@ -540,17 +540,8 @@ struct SectionHeaderView: View {
             if let modelContext, let globals, autoScroll, let time = TransportClock.shared.time {
                 Button("Set section timestamp") {
                     do {
-//                        var tm: TimeInterval?
-//                        if TransportClock.shared.isRunningTimer {
-//                            tm = TransportClock.shared.time
-//                        }
-//                        else {
-//                            tm = audioPlayer.position
-//                        }
-//                        if let tm {
-                            saveAnchor(songPosition: time)
-                            try modelContext.save()
-//                        }
+                        saveAnchor(songPosition: time)
+                        try modelContext.save()
                     } catch (let error) {
                         globals.setSongChordsError(error: error)
                     }
