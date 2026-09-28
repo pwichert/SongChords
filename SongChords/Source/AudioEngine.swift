@@ -490,8 +490,10 @@ final class MP3Engine: AudioEngine {
             
             engine.attach(node)
             engine.attach(pitchNode)
-            engine.connect(node, to: pitchNode, format: nil)
-            engine.connect(pitchNode, to: engine.mainMixerNode, format: nil)
+            // engine.connect(node, to: pitchNode, format: nil)
+            // engine.connect(pitchNode, to: engine.mainMixerNode, format: nil)
+            try engine.connectNode(node, to: pitchNode, format: nil)
+            try engine.connectNode(pitchNode, to: engine.mainMixerNode, format: nil)
                         
             #if os(iOS)
             do {
@@ -517,7 +519,7 @@ final class MP3Engine: AudioEngine {
 
     func play() throws {
         if !engine.isRunning { try engine.start() }
-        node.play()
+        try node.playAudio()
     }
 
     func pause() {
@@ -543,15 +545,21 @@ final class MP3Engine: AudioEngine {
 
         let frame = AVAudioFramePosition(seconds * sampleRate)
 
-        guard frame < file.length else {
+        guard frame <= file.length else {
             print("Seek-Zeit liegt außerhalb der Datei")
             return
         }
         
+        let remaining = max(0, file.length - frame)
+        let count = AVAudioFrameCount(remaining)
+        if count == 0 { node.stop(); startTime = seconds; return }
+        
         let isPlaying = node.isPlaying
         node.stop()
-        node.scheduleSegment(file, startingFrame: frame, frameCount: AVAudioFrameCount(file.length - frame), at: nil)
-        if isPlaying { node.play() }
+        node.scheduleSegment(file, startingFrame: frame, frameCount: count, at: nil)
+        if isPlaying {
+            do { try node.playAudio() } catch(let error) { print(error) }
+        }
         startTime = seconds
     }
     
@@ -563,7 +571,7 @@ final class MP3Engine: AudioEngine {
         let startFrame = AVAudioFramePosition(start * sampleRate)
         let stopFrame  = AVAudioFramePosition(stop  * sampleRate)
         
-        guard startFrame < file.length && stopFrame < file.length else {
+        guard startFrame < file.length && stopFrame <= file.length else {
             print("schedule-Zeit liegt außerhalb der Datei")
             return
         }
@@ -574,7 +582,9 @@ final class MP3Engine: AudioEngine {
         let isPlaying = node.isPlaying
         node.stop()
         node.scheduleSegment(file, startingFrame: startFrame, frameCount: frameCount, at: nil)
-        if isPlaying { node.play() }
+        if isPlaying {
+            do { try node.playAudio() } catch(let error) { print(error) }
+        }
         startTime = start
     }
 }

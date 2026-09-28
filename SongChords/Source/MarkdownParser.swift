@@ -7,16 +7,14 @@
 
 import SwiftUI
 
-enum MDSpan: Identifiable {
+enum MDSpanType {
     case text(String)
     case bold(String)   // **bold**
     case code(String)   // `code`
     case icon(String)   // {icon:SF Symbol name}
-
-    var id: UUID { UUID() }
 }
 
-enum MDNode: Identifiable {
+enum MDNodeType {
     case h1([MDSpan])               // #
     case h2([MDSpan])               // ##
     case bullet([MDSpan])           // *
@@ -26,8 +24,18 @@ enum MDNode: Identifiable {
     case paragraph([MDSpan])
     case divider                    // ---
     case spacer(CGFloat)            // newline
+}
 
-    var id: UUID { UUID() }
+struct MDSpan: Identifiable {
+    let id = UUID()
+    let spanType: MDSpanType
+    init(_ spanType: MDSpanType) { self.spanType = spanType }
+}
+
+struct MDNode: Identifiable {
+    let id = UUID()
+    let nodeType: MDNodeType
+    init(_ nodeType: MDNodeType) { self.nodeType = nodeType }
 }
 
 struct MarkdownParser {
@@ -37,33 +45,33 @@ struct MarkdownParser {
             .components(separatedBy: .newlines)
             .map { $0.trimmingCharacters(in: .whitespaces) }
             .compactMap { line in
-                if line == "---" { return .divider }
-                if line.isEmpty { return .spacer(8) }
+                if line == "---" { return MDNode(.divider) }
+                if line.isEmpty { return MDNode(.spacer(8)) }
 
                 if line.hasPrefix("## ") {
-                    return .h2(InlineParser.parse(String(line.dropFirst(3))))
+                    return MDNode(.h2(InlineParser.parse(String(line.dropFirst(3)))))
                 }
                 if line.hasPrefix("# ") {
-                    return .h1(InlineParser.parse(String(line.dropFirst(2))))
+                    return MDNode(.h1(InlineParser.parse(String(line.dropFirst(2)))))
                 }
                 if line.hasPrefix("*") {
                     if line.hasPrefix("* ") {
-                        return .bullet(InlineParser.parse(String(line.dropFirst(2))))
+                        return MDNode(.bullet(InlineParser.parse(String(line.dropFirst(2)))))
                     } else if line.count > 3 {
                         let num = line.dropFirst(1).first
                         let hasDelim = line.dropFirst(2).first?.isWhitespace ?? false
                         if let num, hasDelim, num.isNumber, let d = Int(String(num)) {
-                            return .enumeration(InlineParser.parse(String(line.dropFirst(3))), d)
+                            return MDNode(.enumeration(InlineParser.parse(String(line.dropFirst(3))), d))
                         }
                     }
                 }
                 if line.hasPrefix("- ") {
-                    return .hyphen(InlineParser.parse(String(line.dropFirst(2))))
+                    return MDNode(.hyphen(InlineParser.parse(String(line.dropFirst(2)))))
                 }
                 if line.hasPrefix("> ") {
-                    return .quote(InlineParser.parse(String(line.dropFirst(2))))
+                    return MDNode(.quote(InlineParser.parse(String(line.dropFirst(2)))))
                 }
-                return .paragraph(InlineParser.parse(line))
+                return MDNode(.paragraph(InlineParser.parse(line)))
             }
     }
 }
@@ -77,7 +85,7 @@ struct InlineParser {
 
         func flush() {
             if !buffer.isEmpty {
-                spans.append(.text(buffer))
+                spans.append(MDSpan(.text(buffer)))
                 buffer = ""
             }
         }
@@ -94,7 +102,7 @@ struct InlineParser {
                 if let end = text[start...].range(of: "**")?.lowerBound {
                     flush()
                     let bold = String(text[start..<end])
-                    spans.append(.bold(bold))
+                    spans.append(MDSpan(.bold(bold)))
                     i = text.index(end, offsetBy: 2)
                     continue
                 }
@@ -106,7 +114,7 @@ struct InlineParser {
                 if let end = text[start...].firstIndex(of: "`") {
                     flush()
                     let code = String(text[start..<end])
-                    spans.append(.code(code))
+                    spans.append(MDSpan(.code(code)))
                     i = text.index(after: end)
                     continue
                 }
@@ -121,7 +129,7 @@ struct InlineParser {
                 if token.hasPrefix("icon:") {
                     flush()
                     let name = token.dropFirst(5)
-                    spans.append(.icon(String(name)))
+                    spans.append(MDSpan(.icon(String(name))))
                     i = text.index(after: close)
                     continue
                 }
@@ -142,7 +150,7 @@ struct MarkdownView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             ForEach(nodes) { node in
-                switch node {
+                switch node.nodeType {
                 case .h1(let spans):
                     spanLine(spans)
                         .font(.title).bold().padding(.top, 8)
@@ -193,7 +201,7 @@ struct MarkdownView: View {
     
     func spanLine(_ spans: [MDSpan]) -> Text {
         spans.reduce(Text("")) { result, span in
-            switch span {
+            switch span.spanType {
             case .text(let s):
                 return Text("\(result)\(s)")
                 

@@ -93,6 +93,9 @@ struct SongChordsApp: App {
     private func scenePhaseChanged(_ phase: ScenePhase) async {
         if scenePhase == .active {
             print("-> active")
+            #if os(iOS)
+            UIApplication.shared.isIdleTimerDisabled = true     // kein Sperrzustand
+            #endif
             Task {
                 do {
                     try await Task.sleep(for: .seconds(10))
@@ -101,6 +104,9 @@ struct SongChordsApp: App {
                 } catch {}
             }
         } else {
+            #if os(iOS)
+            UIApplication.shared.isIdleTimerDisabled = false     // Sperrzustand wieder möglich
+            #endif
             if scenePhase == .background { print("-> background")
                 audioPlayer.stop()
                 TransportClock.shared.stopTicker()

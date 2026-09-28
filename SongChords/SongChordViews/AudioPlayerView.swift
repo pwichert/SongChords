@@ -7,6 +7,7 @@
 
 import SwiftUI
 import MusicKit
+import SwiftData
 
 struct MusicItem: Identifiable, Sendable, Hashable {
     let id: String
