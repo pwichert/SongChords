@@ -95,12 +95,7 @@ public final class UserSettings {
 #endif
            
     var isIdleTimerDisabled: Bool = UserDefaults.standard.bool(forKey: "set_isIdleTimerDisabled")
-    { didSet {
-        UserDefaults.standard.set(isIdleTimerDisabled, forKey: "set_isIdleTimerDisabled")
-        #if os(iOS)
-        UIApplication.shared.isIdleTimerDisabled = isIdleTimerDisabled    // kein Sperrzustand
-        #endif
-    }}
+    { didSet { UserDefaults.standard.set(isIdleTimerDisabled, forKey: "set_isIdleTimerDisabled") }}
 
     var isGermanNotation: Bool = UserDefaults.standard.bool(forKey: "set_isGermanNotation")
     { didSet { UserDefaults.standard.set(isGermanNotation, forKey: "set_isGermanNotation") }}

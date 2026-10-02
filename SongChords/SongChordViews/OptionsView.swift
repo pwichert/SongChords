@@ -155,7 +155,12 @@ struct OptionsView: View {
         .toolbar {
             ToolbarItem(placement: .confirmationAction) {
                 Button("Save", systemImage: "checkmark") {
-                    if isIdleTimerDisabled != userSettings.isIdleTimerDisabled { userSettings.isIdleTimerDisabled = isIdleTimerDisabled }
+                    if isIdleTimerDisabled != userSettings.isIdleTimerDisabled {
+                        userSettings.isIdleTimerDisabled = isIdleTimerDisabled
+                        #if os(iOS)
+                        UIApplication.shared.isIdleTimerDisabled = isIdleTimerDisabled    // kein Sperrzustand
+                        #endif
+                    }
                     if Int(chordSize) != Int(userSettings.chordsize) { userSettings.chordsize = chordSize }
                     if Int(txtSize) != Int(userSettings.txtsize) { userSettings.txtsize = txtSize }
                     if Int(headerSize) != Int(userSettings.headersize) { userSettings.headersize = headerSize }
