@@ -19,6 +19,7 @@ public struct UserSettingsSendable: Sendable {
     typealias UIFont = NSFont
 #endif
     
+    let isIdleTimerDisabled: Bool
     let isGermanNotation: Bool
     let transposeKey: Bool
     let hidechords: Bool
@@ -65,6 +66,7 @@ public final class UserSettings {
     
     public func makeSendable() -> UserSettingsSendable {
         return .init(
+            isIdleTimerDisabled: isIdleTimerDisabled,
             isGermanNotation: isGermanNotation,
             transposeKey: transposeKey,
             hidechords: hidechords,
@@ -92,6 +94,14 @@ public final class UserSettings {
     typealias UIFont = NSFont
 #endif
            
+    var isIdleTimerDisabled: Bool = UserDefaults.standard.bool(forKey: "set_isIdleTimerDisabled")
+    { didSet {
+        UserDefaults.standard.set(isIdleTimerDisabled, forKey: "set_isIdleTimerDisabled")
+        #if os(iOS)
+        UIApplication.shared.isIdleTimerDisabled = isIdleTimerDisabled    // kein Sperrzustand
+        #endif
+    }}
+
     var isGermanNotation: Bool = UserDefaults.standard.bool(forKey: "set_isGermanNotation")
     { didSet { UserDefaults.standard.set(isGermanNotation, forKey: "set_isGermanNotation") }}
 

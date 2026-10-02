@@ -29,6 +29,7 @@ struct OptionsView: View {
     @Environment(UserSettings.self) private var userSettings
     @Environment(\.dismiss) private var dismiss
 
+    @State private var isIdleTimerDisabled: Bool = false
     @State private var chordSize: Double = 0
     @State private var txtSize: Double = 0
     @State private var headerSize: Double = 0
@@ -47,6 +48,13 @@ struct OptionsView: View {
                 Text("system").tag(DisplayMode.automatic)
             }.pickerStyle(.segmented)
             
+            #if os(iOS)
+            Section(footer: Text("Do not lock device while SongChords is running.")
+            ){
+                Toggle("Lock device off", isOn: $isIdleTimerDisabled)
+            }
+            #endif
+
             Section(footer: Text("If you are a singer and don't need chords. This is global for all songs.")
             ){
                 Toggle("Hide Chords", isOn: $hideChords)
@@ -147,6 +155,7 @@ struct OptionsView: View {
         .toolbar {
             ToolbarItem(placement: .confirmationAction) {
                 Button("Save", systemImage: "checkmark") {
+                    if isIdleTimerDisabled != userSettings.isIdleTimerDisabled { userSettings.isIdleTimerDisabled = isIdleTimerDisabled }
                     if Int(chordSize) != Int(userSettings.chordsize) { userSettings.chordsize = chordSize }
                     if Int(txtSize) != Int(userSettings.txtsize) { userSettings.txtsize = txtSize }
                     if Int(headerSize) != Int(userSettings.headersize) { userSettings.headersize = headerSize }
@@ -167,6 +176,7 @@ struct OptionsView: View {
             }
         }
         .onAppear {
+            isIdleTimerDisabled = userSettings.isIdleTimerDisabled
             chordSize = userSettings.chordsize
             txtSize = userSettings.txtsize
             headerSize = userSettings.headersize

@@ -94,7 +94,8 @@ struct SongChordsApp: App {
         if scenePhase == .active {
             print("-> active")
             #if os(iOS)
-            UIApplication.shared.isIdleTimerDisabled = true     // kein Sperrzustand
+            UIApplication.shared.isIdleTimerDisabled = userSettings.isIdleTimerDisabled    // kein Sperrzustand
+            print("isIdleTimerDisabled = \(userSettings.isIdleTimerDisabled)")
             #endif
             Task {
                 do {
